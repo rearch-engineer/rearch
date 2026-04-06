@@ -25,6 +25,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
 import HubIcon from "@mui/icons-material/Hub";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import GeneralSettings from "../components/Administration/GeneralSettings";
 import GuardRailsSettings from "../components/Administration/GuardRailsSettings";
 import FlowPersonasSettings from "../components/Administration/FlowPersonasSettings";
@@ -38,6 +39,7 @@ import McpServersSettings from "../components/Administration/McpServersSettings"
 import McpServersGalleryPage from "../components/Administration/McpServersGalleryPage";
 import McpServersManualPage from "../components/Administration/McpServersManualPage";
 import McpServersEditPage from "../components/Administration/McpServersEditPage";
+import LlmSettings from "../components/Administration/LlmSettings";
 import { useJobs } from "../contexts/JobsContext";
 
 export default function AdministrationPage() {
@@ -55,6 +57,11 @@ export default function AdministrationPage() {
       label: "Users",
       path: "/administration/users",
       icon: <PeopleIcon />,
+    },
+    {
+      label: "LLM Provider",
+      path: "/administration/llm",
+      icon: <SmartToyIcon />,
     },
     {
       label: "Guardrails",
@@ -158,6 +165,7 @@ export default function AdministrationPage() {
           />
           <Route path="/general" element={<GeneralSettings />} />
           <Route path="/users" element={<UsersSettings />} />
+          <Route path="/llm" element={<LlmSettings />} />
           <Route path="/guardrails" element={<GuardRailsSettings />} />
           <Route path="/flow-personas" element={<FlowPersonasSettings />} />
           <Route path="/skills" element={<SkillsSettings />} />

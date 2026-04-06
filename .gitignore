@@ -65,3 +65,8 @@ open/node_modules/@opencode-ai/sdk/dist/v2/gen/client/utils.gen.js
 
 # ========================
 pending/*
+
+# ========================
+# Lock files (project uses bun.lock / bun.lockb)
+# ========================
+package-lock.json

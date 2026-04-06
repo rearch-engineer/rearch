@@ -3,6 +3,7 @@ import { Worker } from "bullmq";
 import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
+import Setting from "../models/Setting.js";
 import config from "../config.js";
 import { clearClientCache } from "../utils/opencodeContainer.js";
 
@@ -10,6 +11,7 @@ import { redisConfig, docker } from "./config.js";
 import { emitJobEvent, jobLog } from "./events.js";
 import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
+import { LLM_PROVIDERS } from "../routes/settings.js";
 
 /** CONVERSATIONS WORKER */
 const conversationsWorker = new Worker(
@@ -148,20 +150,37 @@ const conversationsWorker = new Worker(
         );
       }
 
-      // Validate Anthropic API key is set
-      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-      if (!anthropicApiKey) {
-        throw new Error(
-          "ANTHROPIC_API_KEY environment variable not set - required for OpenCode containers",
+      // ── Resolve LLM provider / API key ──────────────────────────────────
+      // Prefer DB-configured settings (set via admin UI). Fall back to the
+      // legacy ANTHROPIC_API_KEY env var so existing deployments keep working.
+      const llmSetting = await Setting.findOne({ key: "llmProvider" });
+      const llmConfig = llmSetting?.value;
+
+      let llmProvider = "anthropic";
+      let llmModel = "claude-sonnet-4-20250514";
+      let llmApiKey = process.env.ANTHROPIC_API_KEY;
+
+      if (llmConfig?.provider && llmConfig?.model && llmConfig?.apiKey) {
+        llmProvider = llmConfig.provider;
+        llmModel = llmConfig.model;
+        llmApiKey = llmConfig.apiKey;
+        console.log(
+          `✅ Using DB-configured LLM provider: ${llmProvider} / ${llmModel}`,
+        );
+      } else {
+        console.log(
+          `ℹ️  No DB LLM config found, falling back to env vars (provider: anthropic)`,
         );
       }
 
-      // Log API key is set without exposing the value
-      const keyPrefix = anthropicApiKey.substring(0, 7);
-      const keyLength = anthropicApiKey.length;
-      console.log(
-        `✅ Anthropic API key configured (${keyPrefix}...${keyLength} chars)`,
-      );
+      if (!llmApiKey) {
+        throw new Error(
+          "No LLM API key configured. Set one via the admin UI (LLM Provider) " +
+            "or set the ANTHROPIC_API_KEY environment variable.",
+        );
+      }
+
+      console.log(`✅ LLM API key configured (${llmApiKey.length} chars)`);
 
       await jobLog(
         job,
@@ -211,7 +230,9 @@ const conversationsWorker = new Worker(
         conversationId,
         repoUrl,
         repoBranch,
-        anthropicApiKey,
+        llmProvider,
+        llmModel,
+        llmApiKey,
         appPort,
         appStartCommand,
         bitbucketEmail,

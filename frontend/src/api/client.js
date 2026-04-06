@@ -818,6 +818,24 @@ export const api = {
     return response.data;
   },
 
+  // LLM provider settings (admin)
+  getLlmProviders: async () => {
+    const response = await axios.get(`${API_BASE_URL}/settings/llm/providers`);
+    return response.data;
+  },
+  getLlmSettings: async () => {
+    const response = await axios.get(`${API_BASE_URL}/settings/llm`);
+    return response.data;
+  },
+  updateLlmSettings: async (data) => {
+    const response = await axios.put(`${API_BASE_URL}/settings/llm`, data);
+    return response.data;
+  },
+  deleteLlmSettings: async () => {
+    const response = await axios.delete(`${API_BASE_URL}/settings/llm`);
+    return response.data;
+  },
+
   // MCP Servers
   getMcpGallery: async () => {
     const response = await axios.get(`${API_BASE_URL}/mcp/gallery`);
