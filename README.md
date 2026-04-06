@@ -20,10 +20,10 @@ ReArch provides a chat interface where users can have AI-assisted conversations 
 ## Architecture
 
 ```
-[Traefik] ──► app.rearch.engineer   → React frontend (nginx)
-          ──► api.rearch.engineer   → Elysia.js backend
-          ──► auth.rearch.engineer  → Keycloak (identity provider)
-          ──► conv-*.rearch.engineer → Per-conversation OpenCode containers
+[Traefik] ──► app.rearch.yourdomain   → React frontend (nginx)
+          ──► api.rearch.yourdomain   → Elysia.js backend
+          ──► auth.rearch.yourdomain  → Keycloak (identity provider)
+          ──► conv-*.rearch.yourdomain → Per-conversation OpenCode containers
 ```
 
 **Services:**
@@ -135,9 +135,9 @@ docker stack deploy -c docker-compose.yml rearch
 
 Services are exposed at:
 
-- `https://app.rearch.engineer` — Frontend
-- `https://api.rearch.engineer` — Backend API
-- `https://auth.rearch.engineer` — Keycloak
+- `https://app.rearch.yourdomain` — Frontend
+- `https://api.rearch.yourdomain` — Backend API
+- `https://auth.rearch.yourdomain` — Keycloak
 
 ## API
 
