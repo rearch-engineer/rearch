@@ -6,6 +6,7 @@
  */
 
 import mongoose from 'mongoose';
+import { config as configLogger } from './logger.js';
 
 // ---------------------------------------------------------------------------
 // Mongoose model – mirrors backend/models/McpServer.js
@@ -53,7 +54,7 @@ export async function loadMcpServers() {
     }
     return servers;
   } catch (err) {
-    console.error('[config] Failed to load MCP servers:', err.message);
+    configLogger.error({ err }, 'Failed to load MCP servers');
     return {};
   }
 }
@@ -74,14 +75,14 @@ export function watchForChanges(callback, intervalMs = 30_000) {
 
   // -- Polling fallback --------------------------------------------------------
   function startPolling() {
-    console.log(`[config] Polling for config changes every ${intervalMs / 1000}s`);
+    configLogger.info({ intervalSeconds: intervalMs / 1000 }, `Polling for config changes every ${intervalMs / 1000}s`);
     timer = setInterval(async () => {
       if (stopped) return;
       try {
         const servers = await loadMcpServers();
         callback(servers);
       } catch (err) {
-        console.error('[config] Polling error:', err.message);
+        configLogger.error({ err }, 'Polling error');
       }
     }, intervalMs);
   }
@@ -92,22 +93,22 @@ export function watchForChanges(callback, intervalMs = 30_000) {
 
     changeStream.on('change', async () => {
       if (stopped) return;
-      console.log('[config] Change stream detected McpServer update');
+      configLogger.info('Change stream detected McpServer update');
       const servers = await loadMcpServers();
       callback(servers);
     });
 
     changeStream.on('error', (err) => {
       // Change streams are unavailable (standalone mongod) — fall back.
-      console.warn(
-        '[config] Change stream unavailable, falling back to polling:',
-        err.message,
+      configLogger.warn(
+        { err },
+        'Change stream unavailable, falling back to polling',
       );
       changeStream.close().catch(() => {});
       startPolling();
     });
 
-    console.log('[config] Watching for changes via change stream');
+    configLogger.info('Watching for changes via change stream');
 
     return {
       stop() {

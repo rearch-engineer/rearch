@@ -6,6 +6,7 @@
  * or Redis dependencies.
  */
 import Docker from "dockerode";
+import { queueLogger } from "../logger.js";
 
 const docker = new Docker();
 
@@ -80,8 +81,9 @@ export async function createConversationContainer({
         portBindings[portKey] = [{ HostPort: "0" }];
       }
     }
-    console.log(
-      `📦 Exposing ${rearchServices.length} service ports from rearch.services: ${rearchServices.map((s) => `${s.label}:${s.internalPort}`).join(", ")}`,
+    queueLogger.info(
+      { serviceCount: rearchServices.length, services: rearchServices.map((s) => `${s.label}:${s.internalPort}`).join(", ") },
+      `Exposing ${rearchServices.length} service ports from rearch.services`,
     );
   } else if (!useOverlayNetwork) {
     // Fallback: hard-coded ports for backward compatibility (host-port mode only)
@@ -187,13 +189,14 @@ export async function createConversationContainer({
     try {
       const network = docker.getNetwork(dockerNetwork);
       await network.connect({ Container: container.id });
-      console.log(
-        `📡 Container connected to overlay network: ${dockerNetwork}`,
+      queueLogger.info(
+        { network: dockerNetwork, containerId: container.id },
+        `Container connected to overlay network: ${dockerNetwork}`,
       );
     } catch (netErr) {
-      console.error(
-        `Failed to connect container to network ${dockerNetwork}:`,
-        netErr.message,
+      queueLogger.error(
+        { err: netErr, network: dockerNetwork, containerId: container.id },
+        `Failed to connect container to network ${dockerNetwork}`,
       );
       // Continue anyway; the container may still work on the default bridge
     }
@@ -203,13 +206,14 @@ export async function createConversationContainer({
     try {
       const bridgeNetwork = docker.getNetwork("bridge");
       await bridgeNetwork.connect({ Container: container.id });
-      console.log(
-        `🌐 Container connected to bridge network for internet access`,
+      queueLogger.info(
+        { network: "bridge", containerId: container.id },
+        "Container connected to bridge network for internet access",
       );
     } catch (bridgeErr) {
-      console.error(
-        `Failed to connect container to bridge network:`,
-        bridgeErr.message,
+      queueLogger.error(
+        { err: bridgeErr, network: "bridge", containerId: container.id },
+        "Failed to connect container to bridge network",
       );
     }
   }
@@ -231,11 +235,10 @@ export async function createConversationContainer({
   if (useOverlayNetwork) {
     // ── Overlay mode: access via Docker DNS name ───────────────────────
     opencodeUrl = `http://${containerName}:${OPENCODE_PORT}`;
-    console.log(
-      `✅ Container ${containerId} started for conversation ${conversationId} (overlay network)`,
+    queueLogger.info(
+      { containerId, conversationId, mode: "overlay", opencodeUrl, publicUrl: `https://conv-${conversationId}.${appDomain}` },
+      `Container ${containerId} started for conversation ${conversationId} (overlay network)`,
     );
-    console.log(`📡 OpenCode server (internal): ${opencodeUrl}`);
-    console.log(`🌐 Public URL: https://conv-${conversationId}.${appDomain}`);
   } else {
     // ── Host-port mode: access via localhost ───────────────────────────
     const ports = containerInfo.NetworkSettings.Ports;
@@ -262,22 +265,18 @@ export async function createConversationContainer({
       ? parseInt(postgresPortBind[0].HostPort, 10)
       : null;
 
-    console.log(
-      `✅ Container ${containerId} started for conversation ${conversationId}`,
+    queueLogger.info(
+      {
+        containerId,
+        conversationId,
+        mode: "host-port",
+        opencodeUrl,
+        codeServerHostPort,
+        appHostPort,
+        postgresHostPort,
+      },
+      `Container ${containerId} started for conversation ${conversationId} (host-port mode)`,
     );
-    console.log(`📡 OpenCode server will be available at ${opencodeUrl}`);
-    if (codeServerHostPort)
-      console.log(
-        `💻 Code-server (VS Code) will be available at http://localhost:${codeServerHostPort}`,
-      );
-    if (appHostPort)
-      console.log(
-        `🚀 Node.js app will be available at http://localhost:${appHostPort}`,
-      );
-    if (postgresHostPort)
-      console.log(
-        `🐘 PostgreSQL will be available at localhost:${postgresHostPort}`,
-      );
   }
 
   // Build public URLs for overlay mode

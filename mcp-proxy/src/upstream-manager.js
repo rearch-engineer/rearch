@@ -11,6 +11,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { upstream as upstreamLogger } from './logger.js';
 
 const CONNECT_TIMEOUT_MS = 30_000;
 
@@ -59,7 +60,7 @@ export class UpstreamManager {
     // Disconnect removed / disabled servers
     for (const name of this.#upstreams.keys()) {
       if (!desired.has(name)) {
-        console.log(`[upstream] Removing server: ${name}`);
+        upstreamLogger.info({ server: name }, `Removing server: ${name}`);
         await this.#disconnect(name);
       }
     }
@@ -115,13 +116,14 @@ export class UpstreamManager {
       entry.tools = tools || [];
       entry.status = 'connected';
 
-      console.log(
-        `[upstream] Connected to ${name} — ${entry.tools.length} tool(s): ${entry.tools.map((t) => t.name).join(', ') || '(none)'}`,
+      upstreamLogger.info(
+        { server: name, toolCount: entry.tools.length, tools: entry.tools.map((t) => t.name) },
+        `Connected to ${name} - ${entry.tools.length} tool(s)`,
       );
     } catch (err) {
       entry.status = 'error';
       entry.error = err.message;
-      console.error(`[upstream] Failed to connect to ${name}:`, err.message);
+      upstreamLogger.error({ err, server: name }, `Failed to connect to ${name}`);
     }
   }
 
@@ -163,7 +165,7 @@ export class UpstreamManager {
     try {
       if (entry.client) await entry.client.close();
     } catch (err) {
-      console.warn(`[upstream] Error closing client for ${name}:`, err.message);
+      upstreamLogger.warn({ err, server: name }, `Error closing client for ${name}`);
     }
 
     try {
@@ -171,7 +173,7 @@ export class UpstreamManager {
         await entry.transport.close();
       }
     } catch (err) {
-      console.warn(`[upstream] Error closing transport for ${name}:`, err.message);
+      upstreamLogger.warn({ err, server: name }, `Error closing transport for ${name}`);
     }
 
     this.#upstreams.delete(name);
@@ -202,7 +204,7 @@ export class UpstreamManager {
         const { tools: freshTools } = await entry.client.listTools();
         entry.tools = freshTools || [];
       } catch (err) {
-        console.warn(`[upstream] Failed to refresh tools for ${name}:`, err.message);
+        upstreamLogger.warn({ err, server: name }, `Failed to refresh tools for ${name}`);
         // Fall through with cached tools
       }
 

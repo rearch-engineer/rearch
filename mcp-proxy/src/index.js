@@ -10,6 +10,7 @@ import { validateAuth } from "./auth.js";
 import { loadMcpServers, watchForChanges } from "./config.js";
 import { UpstreamManager } from "./upstream-manager.js";
 import { handleMcpRequest } from "./proxy.js";
+import { system, proxy as proxyLogger } from "./logger.js";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -31,11 +32,12 @@ let configWatcher = null;
 // ---------------------------------------------------------------------------
 
 async function connectMongo() {
-  console.log(
-    `[mongo] Connecting to ${MONGODB_URI.replace(/\/\/[^@]+@/, "//***@")} ...`,
+  system.info(
+    { uri: MONGODB_URI.replace(/\/\/[^@]+@/, "//***@") },
+    `Connecting to MongoDB ...`,
   );
   await mongoose.connect(MONGODB_URI);
-  console.log("[mongo] Connected");
+  system.info("MongoDB connected");
 }
 
 // ---------------------------------------------------------------------------
@@ -43,10 +45,10 @@ async function connectMongo() {
 // ---------------------------------------------------------------------------
 
 async function reloadUpstreams() {
-  console.log("[proxy] Loading MCP server configs from MongoDB ...");
+  proxyLogger.info("Loading MCP server configs from MongoDB ...");
   const configs = await loadMcpServers();
   const count = Object.keys(configs).length;
-  console.log(`[proxy] Found ${count} server config(s)`);
+  proxyLogger.info({ count }, `Found ${count} server config(s)`);
   await upstreamManager.loadServers(configs);
 }
 
@@ -130,17 +132,16 @@ async function start() {
 
     // Watch for runtime config changes
     configWatcher = watchForChanges(async (servers) => {
-      console.log("[proxy] Config change detected – reloading upstreams");
+      proxyLogger.info("Config change detected - reloading upstreams");
       await upstreamManager.loadServers(servers);
     });
 
-    console.log(`[proxy] MCP proxy listening on http://0.0.0.0:${PORT}`);
-    console.log(`[proxy] Endpoints:`);
-    console.log(`         POST /mcp      – MCP Streamable HTTP`);
-    console.log(`         GET  /health   – Health check`);
-    console.log(`         POST /reload   – Reload config from MongoDB`);
+    proxyLogger.info(
+      { port: PORT, endpoints: ["POST /mcp", "GET /health", "POST /reload"] },
+      `MCP proxy listening on http://0.0.0.0:${PORT}`,
+    );
   } catch (err) {
-    console.error("[proxy] Fatal startup error:", err);
+    proxyLogger.fatal({ err }, "Fatal startup error");
     process.exit(1);
   }
 }
@@ -150,12 +151,12 @@ async function start() {
 // ---------------------------------------------------------------------------
 
 async function shutdown() {
-  console.log("\n[proxy] Shutting down ...");
+  proxyLogger.info("Shutting down ...");
   if (configWatcher) configWatcher.stop();
   await upstreamManager.closeAll();
   await mongoose.disconnect();
   server.stop();
-  console.log("[proxy] Bye");
+  proxyLogger.info("Shutdown complete");
   process.exit(0);
 }
 

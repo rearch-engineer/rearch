@@ -5,6 +5,7 @@ import {
   getFileInfo,
 } from '../utils/gridfs.js';
 import { authPlugin } from '../middleware/auth.js';
+import { logger } from '../logger.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -45,7 +46,7 @@ const privateRouter = new Elysia({ prefix: '/api/files' })
 
       return results;
     } catch (err) {
-      console.error('Error uploading files:', err);
+      logger.error({ err }, 'error uploading files');
       return status(500, { error: err.message });
     }
   })
@@ -79,7 +80,7 @@ const privateRouter = new Elysia({ prefix: '/api/files' })
       const stream = downloadFileStream(fileId);
       return new Response(stream, { headers });
     } catch (err) {
-      console.error('Error serving file:', err);
+      logger.error({ err }, 'error serving file');
       return status(500, { error: err.message });
     }
   });
@@ -124,7 +125,7 @@ const publicRouter = new Elysia({ prefix: '/api/files' })
       const stream = downloadFileStream(fileId);
       return new Response(stream, { headers });
     } catch (err) {
-      console.error('Error serving public file:', err);
+      logger.error({ err }, 'error serving public file');
       return status(500, { error: err.message });
     }
   });

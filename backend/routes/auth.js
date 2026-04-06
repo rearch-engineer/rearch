@@ -14,6 +14,7 @@ import {
   extractKeycloakRoles,
   extractKeycloakUserInfo,
 } from "../utils/keycloak.js";
+import { security, logger, getClientIp as loggerGetClientIp } from "../logger.js";
 
 const router = new Elysia({ prefix: "/api/auth" });
 
@@ -218,6 +219,8 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
       },
     });
 
+    security.info({ event: 'auth.register.success', userId: user._id.toString(), email: email.toLowerCase() }, 'user registered (pending verification)');
+
     return new Response(
       JSON.stringify({
         message:
@@ -227,7 +230,7 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
       { status: 201, headers: { "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("POST /auth/register error:", err);
+    security.error({ event: 'auth.register.error', err }, 'registration error');
     return status(500, { error: "Registration failed." });
   }
 });
@@ -251,11 +254,13 @@ rateLimitedAuthRoutes.post("/login", async ({ body, headers, status }) => {
 
     const user = await User.findOne({ "account.email": email.toLowerCase() });
     if (!user) {
+      security.warn({ event: 'auth.login.failed', email, ip: getClientIp(headers), reason: 'unknown_email' }, 'login failed — unknown email');
       return status(401, { error: "Invalid email or password." });
     }
 
     // Verify password
     if (!user.auth.password_hash) {
+      security.warn({ event: 'auth.login.failed', email, ip: getClientIp(headers), reason: 'no_password_hash' }, 'login failed — no password hash');
       return status(401, { error: "Invalid email or password." });
     }
 
@@ -264,11 +269,13 @@ rateLimitedAuthRoutes.post("/login", async ({ body, headers, status }) => {
       user.auth.password_hash,
     );
     if (!passwordValid) {
+      security.warn({ event: 'auth.login.failed', email, ip: getClientIp(headers), reason: 'bad_password' }, 'login failed — invalid password');
       return status(401, { error: "Invalid email or password." });
     }
 
     // Check account status
     if (user.account.status !== "active") {
+      security.warn({ event: 'auth.login.blocked', email, ip: getClientIp(headers), accountStatus: user.account.status }, 'login blocked — account not active');
       return status(403, {
         error: `Account is ${user.account.status}. Contact an administrator.`,
       });
@@ -281,12 +288,14 @@ rateLimitedAuthRoutes.post("/login", async ({ body, headers, status }) => {
 
     const token = signToken(user);
 
+    security.info({ event: 'auth.login.success', userId: user._id.toString(), email, ip: getClientIp(headers) }, 'login successful');
+
     return {
       token,
       user: user.toSafeJSON(),
     };
   } catch (err) {
-    console.error("POST /auth/login error:", err);
+    security.error({ event: 'auth.login.error', err }, 'login error');
     return status(500, { error: "Login failed." });
   }
 });
@@ -335,7 +344,7 @@ router.get("/oauth/authorize", async ({ status }) => {
       stateToken, // frontend must send this back with the callback
     };
   } catch (err) {
-    console.error("GET /auth/oauth/authorize error:", err);
+    security.error({ event: 'auth.oauth.authorize.error', err }, 'OAuth authorize error');
     return status(500, { error: "Failed to generate authorization URL." });
   }
 });
@@ -369,6 +378,7 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
     }
 
     if (statePayload.state !== state) {
+      security.warn({ event: 'auth.oauth.csrf', ip: getClientIp(headers) }, 'OAuth state mismatch — possible CSRF');
       return status(400, { error: "State mismatch. Possible CSRF attack." });
     }
 
@@ -446,6 +456,7 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
 
     // Check account status
     if (user.account.status !== "active") {
+      security.warn({ event: 'auth.oauth.blocked', email, ip: getClientIp(headers), accountStatus: user.account.status }, 'OAuth login blocked — account not active');
       return status(403, {
         error: `Account is ${user.account.status}. Contact an administrator.`,
         accountStatus: user.account.status,
@@ -459,12 +470,14 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
 
     const token = signToken(user);
 
+    security.info({ event: 'auth.oauth.success', userId: user._id.toString(), email, ip: getClientIp(headers) }, 'OAuth login successful');
+
     return {
       token,
       user: user.toSafeJSON(),
     };
   } catch (err) {
-    console.error("POST /auth/oauth/callback error:", err);
+    security.error({ event: 'auth.oauth.callback.error', err }, 'OAuth callback error');
     return status(500, { error: "OAuth callback failed." });
   }
 });
@@ -528,8 +541,10 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
       payload = await verifyKeycloakToken(keycloakToken);
     } catch (err) {
       if (err.code === "ERR_JWT_EXPIRED") {
+        security.warn({ event: 'auth.keycloak.expired', ip: getClientIp(headers) }, 'Keycloak token expired during exchange');
         return status(401, { error: "Keycloak token expired." });
       }
+      security.warn({ event: 'auth.keycloak.invalid', ip: getClientIp(headers), err }, 'invalid Keycloak token during exchange');
       return status(401, { error: "Invalid Keycloak token." });
     }
 
@@ -584,6 +599,7 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
 
     // Check account status
     if (user.account.status !== "active") {
+      security.warn({ event: 'auth.keycloak.blocked', email: userInfo.email, ip: getClientIp(headers), accountStatus: user.account.status }, 'Keycloak login blocked — account not active');
       return status(403, {
         error: `Account is ${user.account.status}. Contact an administrator.`,
         accountStatus: user.account.status,
@@ -598,12 +614,14 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
     // Issue app JWT for Socket.IO and internal use
     const appToken = signToken(user);
 
+    security.info({ event: 'auth.keycloak.success', userId: user._id.toString(), email: userInfo.email, ip: getClientIp(headers) }, 'Keycloak login successful');
+
     return {
       token: appToken,
       user: user.toSafeJSON(),
     };
   } catch (err) {
-    console.error("POST /auth/keycloak/token-exchange error:", err);
+    security.error({ event: 'auth.keycloak.exchange.error', err }, 'Keycloak token exchange error');
     return status(500, { error: "Token exchange failed." });
   }
 });
@@ -626,7 +644,7 @@ router.get("/me", async ({ user, status }) => {
     if (!dbUser) return status(404, { error: "User not found." });
     return dbUser.toSafeJSON();
   } catch (err) {
-    console.error("GET /auth/me error:", err);
+    logger.error({ event: 'auth.me.error', err }, 'failed to fetch user profile');
     return status(500, { error: "Failed to fetch user profile." });
   }
 });
@@ -662,15 +680,18 @@ router.post("/change-password", async ({ body, user, status }) => {
 
     const isValid = await bcrypt.compare(currentPassword, dbUser.auth.password_hash);
     if (!isValid) {
+      security.warn({ event: 'auth.password.change.failed', userId: user.userId, reason: 'bad_current_password' }, 'password change failed — wrong current password');
       return status(401, { error: "Current password is incorrect." });
     }
 
     dbUser.auth.password_hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await dbUser.save();
 
+    security.info({ event: 'auth.password.change.success', userId: user.userId }, 'password changed');
+
     return { message: "Password changed successfully." };
   } catch (err) {
-    console.error("POST /auth/change-password error:", err);
+    security.error({ event: 'auth.password.change.error', userId: user.userId, err }, 'password change error');
     return status(500, { error: "Failed to change password." });
   }
 });
@@ -708,7 +729,7 @@ router.patch("/profile", async ({ body, user, status }) => {
 
     return dbUser.toSafeJSON();
   } catch (err) {
-    console.error("PATCH /auth/profile error:", err);
+    logger.error({ event: 'auth.profile.update.error', userId: user.userId, err }, 'profile update error');
     return status(500, { error: "Failed to update profile." });
   }
 });
@@ -776,7 +797,7 @@ router.post("/avatar", async ({ body, user, status }) => {
 
     return dbUser.toSafeJSON();
   } catch (err) {
-    console.error("POST /auth/avatar error:", err);
+    logger.error({ event: 'auth.avatar.upload.error', userId: user.userId, err }, 'avatar upload error');
     return status(500, { error: "Failed to upload avatar." });
   }
 });
@@ -806,7 +827,7 @@ router.delete("/avatar", async ({ user, status }) => {
 
     return dbUser.toSafeJSON();
   } catch (err) {
-    console.error("DELETE /auth/avatar error:", err);
+    logger.error({ event: 'auth.avatar.delete.error', userId: user.userId, err }, 'avatar delete error');
     return status(500, { error: "Failed to delete avatar." });
   }
 });

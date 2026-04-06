@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 
 import Setting from "../models/Setting.js";
 import { executeActionHook } from "../utils/hookLoader.js";
+import { queueLogger } from "../logger.js";
 
 import { redisConfig } from "./config.js";
 import { emitJobEvent, jobLog } from "./events.js";
@@ -37,7 +38,7 @@ const resourcesWorker = new Worker(
             );
           }
         } catch (updateErr) {
-          console.error("Failed to update lastTriggeredAt:", updateErr);
+          queueLogger.error({ err: updateErr }, "Failed to update lastTriggeredAt");
         }
 
         await jobLog(
@@ -55,7 +56,8 @@ const resourcesWorker = new Worker(
         "resources",
         `Executing action '${action}' for provider '${parentResource.provider}'`,
       );
-      console.log(
+      queueLogger.info(
+        { action, provider: parentResource.provider, jobId: job.id },
         `Executing action '${action}' for provider '${parentResource.provider}'`,
       );
 
@@ -71,7 +73,10 @@ const resourcesWorker = new Worker(
       return { success };
     } catch (error) {
       await jobLog(job, "resources", `Action failed: ${error.message}`);
-      console.error(`❌ Job ${job.id} failed:`, error.message);
+      queueLogger.error(
+        { err: error, jobId: job.id },
+        `Job ${job.id} failed: ${error.message}`,
+      );
       throw error; // Re-throw to mark job as failed
     }
   },
@@ -79,20 +84,23 @@ const resourcesWorker = new Worker(
 );
 
 resourcesWorker.on("active", (job) => {
-  console.log(`Job ${job.id} is now active`);
+  queueLogger.debug({ jobId: job.id, queue: "resources" }, `Job ${job.id} is now active`);
   emitJobEvent("job.active", job, "resources");
 });
 
 resourcesWorker.on("completed", (job) => {
-  console.log(`Job ${job.id} has been completed`);
+  queueLogger.info({ jobId: job.id, queue: "resources" }, `Job ${job.id} completed`);
   emitJobEvent("job.completed", job, "resources");
 });
 
 resourcesWorker.on("failed", (job, err) => {
-  console.error(`Job ${job.id} has failed with error: ${err.message}`);
+  queueLogger.error(
+    { jobId: job.id, queue: "resources", error: err.message },
+    `Job ${job.id} failed: ${err.message}`,
+  );
   emitJobEvent("job.failed", job, "resources", { error: err.message });
 });
 
-console.log("✅ Resources Worker is running and listening for jobs");
+queueLogger.info("Resources Worker is running and listening for jobs");
 
 export { resourcesWorker };

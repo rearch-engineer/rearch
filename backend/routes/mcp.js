@@ -5,6 +5,7 @@ import { authPlugin } from "../middleware/auth.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { audit, logger } from "../logger.js";
 
 // ─── Gallery Data ─────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ try {
   const raw = readFileSync(join(__dirname, "..", "mcp-gallery.json"), "utf-8");
   galleryData = JSON.parse(raw);
 } catch (err) {
-  console.warn("Could not load mcp-gallery.json:", err.message);
+  logger.warn({ event: 'mcp.gallery.load.failed', err: err.message }, 'could not load mcp-gallery.json');
 }
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ const router = new Elysia({ prefix: "/api/mcp" })
         const servers = await McpServer.find().sort({ name: 1 });
         return servers;
       } catch (err) {
-        console.error("Error fetching MCP servers:", err);
+        logger.error({ event: 'admin.mcp.list.error', err }, 'failed to list MCP servers');
         return status(500, { error: err.message });
       }
     },
@@ -161,9 +162,12 @@ const router = new Elysia({ prefix: "/api/mcp" })
           environment,
           enabled,
         });
+
+        audit.info({ event: 'admin.mcp.created', serverName: name, type }, `MCP server created: ${name}`);
+
         return server;
       } catch (err) {
-        console.error("Error adding MCP server:", err);
+        logger.error({ event: 'admin.mcp.create.error', err }, 'failed to create MCP server');
         return status(500, { error: err.message });
       }
     },
@@ -212,9 +216,11 @@ const router = new Elysia({ prefix: "/api/mcp" })
         });
         await server.save();
 
+        audit.info({ event: 'admin.mcp.updated', serverName: params.name, type }, `MCP server updated: ${params.name}`);
+
         return server;
       } catch (err) {
-        console.error("Error updating MCP server:", err);
+        logger.error({ event: 'admin.mcp.update.error', serverName: params.name, err }, 'failed to update MCP server');
         return status(500, { error: err.message });
       }
     },
@@ -243,9 +249,11 @@ const router = new Elysia({ prefix: "/api/mcp" })
           return status(404, { error: `Server "${params.name}" not found` });
         }
 
+        audit.info({ event: 'admin.mcp.deleted', serverName: params.name }, `MCP server deleted: ${params.name}`);
+
         return { success: true };
       } catch (err) {
-        console.error("Error deleting MCP server:", err);
+        logger.error({ event: 'admin.mcp.delete.error', serverName: params.name, err }, 'failed to delete MCP server');
         return status(500, { error: err.message });
       }
     },
@@ -264,7 +272,7 @@ const router = new Elysia({ prefix: "/api/mcp" })
       try {
         return galleryData;
       } catch (err) {
-        console.error("Error fetching MCP gallery:", err);
+        logger.error({ event: 'admin.mcp.gallery.error', err }, 'failed to fetch MCP gallery');
         return status(500, { error: err.message });
       }
     },
@@ -302,7 +310,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
   .post(
     "/reload",
     async ({ status }) => {
-      console.log(`${MCP_PROXY_URL}/reload`);
       try {
         const res = await fetch(`${MCP_PROXY_URL}/reload`, {
           method: "POST",
@@ -315,9 +322,12 @@ const router = new Elysia({ prefix: "/api/mcp" })
         }
 
         const data = await res.json();
+
+        audit.info({ event: 'admin.mcp.reloaded' }, 'MCP proxy reloaded');
+
         return { success: true, ...data };
       } catch (err) {
-        console.error("Error reloading MCP proxy:", err);
+        logger.error({ event: 'admin.mcp.reload.error', err }, 'MCP proxy reload error');
         return status(502, { error: "MCP proxy unreachable" });
       }
     },

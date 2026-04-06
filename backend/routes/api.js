@@ -28,6 +28,7 @@ import {
   listWorkspaceMembers,
 } from "../utils/attlasian/bitbucket.js";
 import { authPlugin } from "../middleware/auth.js";
+import { logger, audit } from "../logger.js";
 
 const docker = new Docker();
 
@@ -286,7 +287,7 @@ const router = new Elysia({ prefix: "/api" })
       try {
         statusMap = await getSessionStatuses(conversations);
       } catch (err) {
-        console.error("Error fetching session statuses:", err.message);
+        logger.error({ err: err.message }, "error fetching session statuses");
       }
 
       // Enrich each conversation with sessionStatus and hasUnread
@@ -383,7 +384,7 @@ const router = new Elysia({ prefix: "/api" })
           const opencodeMessages = await getSessionMessages(params.id);
           messages = opencodeMessages || [];
         } catch (err) {
-          console.log("Could not fetch messages from OpenCode:", err.message);
+          logger.debug({ err: err.message }, "could not fetch messages from OpenCode");
         }
       }
 
@@ -471,7 +472,7 @@ const router = new Elysia({ prefix: "/api" })
 
   // Send message and get AI response (streaming via OpenCode agent)
   .post("/conversations/:id/messages", async ({ params, body, user, set }) => {
-    console.log("Handler triggered");
+    logger.debug("handler triggered");
 
     if (!validateObjectId(params.id)) {
       set.status = 400;
@@ -484,7 +485,7 @@ const router = new Elysia({ prefix: "/api" })
       return { error: parsed.error.flatten() };
     }
 
-    console.log("Validation sucess");
+    logger.debug("validation success");
 
     const { content, model, agent, files } = parsed.data;
     const conversationId = params.id;
@@ -492,7 +493,7 @@ const router = new Elysia({ prefix: "/api" })
     // Check if container is ready
     const status = await getContainerStatus(conversationId);
 
-    console.log("Container status", status.containerStatus);
+    logger.debug({ containerStatus: status.containerStatus }, "container status");
 
     if (status.containerStatus !== "running") {
       set.status = 503;
@@ -505,7 +506,7 @@ const router = new Elysia({ prefix: "/api" })
       };
     }
 
-    console.log("Server healthy", status.serverHealthy);
+    logger.debug({ serverHealthy: status.serverHealthy }, "server healthy");
 
     if (!status.serverHealthy) {
       set.status = 503;
@@ -520,14 +521,14 @@ const router = new Elysia({ prefix: "/api" })
       $addToSet: { participants: user.userId },
     });
 
-    console.log("Ensured user is part of conversation");
+    logger.debug("ensured user is part of conversation");
 
     // Stream events from OpenCode agent via SSE
     let streamClosed = false;
     const stream = new ReadableStream({
       async start(controller) {
         const safeEnqueue = (chunk) => {
-          console.log("safe enqueue chunk");
+          logger.debug("safe enqueue chunk");
 
           if (!streamClosed) controller.enqueue(chunk);
         };
@@ -546,17 +547,17 @@ const router = new Elysia({ prefix: "/api" })
             userId: user.userId,
           });
 
-          console.log("Streaming started");
+          logger.debug("streaming started");
 
           for await (const event of eventStream) {
-            console.log(event);
+            logger.trace({ event }, "SSE event");
             safeEnqueue(`data: ${JSON.stringify(event)}\n\n`);
           }
 
           safeEnqueue(`data: ${JSON.stringify({ type: "done" })}\n\n`);
           safeClose();
         } catch (err) {
-          console.error("Error:", err);
+          logger.error({ err }, "streaming error");
           if (!streamClosed) {
             streamClosed = true;
             controller.enqueue(
@@ -627,7 +628,7 @@ const router = new Elysia({ prefix: "/api" })
         );
         return { success: true, data: result };
       } catch (err) {
-        console.error("Error replying to question:", err);
+        logger.error({ err }, "error replying to question");
         set.status = 500;
         return { error: err.message };
       }
@@ -663,7 +664,7 @@ const router = new Elysia({ prefix: "/api" })
         const result = await rejectQuestion(conversationId, requestId);
         return { success: true, data: result };
       } catch (err) {
-        console.error("Error rejecting question:", err);
+        logger.error({ err }, "error rejecting question");
         set.status = 500;
         return { error: err.message };
       }
@@ -712,7 +713,7 @@ const router = new Elysia({ prefix: "/api" })
         );
         return { success: true, data: result };
       } catch (err) {
-        console.error("Error replying to permission:", err);
+        logger.error({ err }, "error replying to permission");
         set.status = 500;
         return { error: err.message };
       }
@@ -751,7 +752,7 @@ const router = new Elysia({ prefix: "/api" })
       const providers = await getProviders(conversationId);
       return providers;
     } catch (err) {
-      console.error("Error getting providers:", err);
+      logger.error({ err }, "error getting providers");
       set.status = 500;
       return { error: err.message };
     }
@@ -784,7 +785,7 @@ const router = new Elysia({ prefix: "/api" })
       const agents = await getAgents(conversationId);
       return agents;
     } catch (err) {
-      console.error("Error getting agents:", err);
+      logger.error({ err }, "error getting agents");
       set.status = 500;
       return { error: err.message };
     }
@@ -805,7 +806,7 @@ const router = new Elysia({ prefix: "/api" })
       const info = await getSessionInfo(conversationId);
       return info;
     } catch (err) {
-      console.error("Error getting session info:", err);
+      logger.error({ err }, "error getting session info");
       set.status = 500;
       return { error: err.message };
     }
@@ -856,7 +857,7 @@ const router = new Elysia({ prefix: "/api" })
         const containerInfo = await container.inspect();
         ports = containerInfo.NetworkSettings.Ports || {};
       } catch (dockerError) {
-        console.error("Error inspecting container:", dockerError.message);
+        logger.error({ err: dockerError.message }, "error inspecting container");
         return { services: [] };
       }
 
@@ -884,7 +885,7 @@ const router = new Elysia({ prefix: "/api" })
 
       return { services };
     } catch (err) {
-      console.error("Error getting services:", err);
+      logger.error({ err }, "error getting services");
       set.status = 500;
       return { error: err.message };
     }
@@ -968,7 +969,7 @@ const router = new Elysia({ prefix: "/api" })
 
       return { files };
     } catch (err) {
-      console.error("Error getting git files:", err);
+      logger.error({ err }, "error getting git files");
       set.status = 500;
       return { error: err.message };
     }
@@ -1043,7 +1044,7 @@ const router = new Elysia({ prefix: "/api" })
         hasChanges: !!statusResult.stdout?.trim(),
       };
     } catch (err) {
-      console.error("Error getting git diff:", err);
+      logger.error({ err }, "error getting git diff");
       set.status = 500;
       return { error: err.message };
     }
@@ -1208,7 +1209,7 @@ const router = new Elysia({ prefix: "/api" })
 
         return { original, modified, filename, language, isBinary: false };
       } catch (err) {
-        console.error("Error getting file diff:", err);
+        logger.error({ err }, "error getting file diff");
         set.status = 500;
         return { error: err.message };
       }
@@ -1335,7 +1336,7 @@ const router = new Elysia({ prefix: "/api" })
           pushOutput: pushResult.stdout,
         };
       } catch (err) {
-        console.error("Error in git commit-push:", err);
+        logger.error({ err }, "error in git commit-push");
         set.status = 500;
         return { error: err.message };
       }
@@ -1418,7 +1419,7 @@ const router = new Elysia({ prefix: "/api" })
 
       return pr;
     } catch (err) {
-      console.error("Error creating pull request:", err);
+      logger.error({ err }, "error creating pull request");
       set.status = 500;
       return { error: err.message };
     }
@@ -1470,7 +1471,7 @@ const router = new Elysia({ prefix: "/api" })
 
         return { members };
       } catch (err) {
-        console.error("Error listing workspace members:", err);
+        logger.error({ err }, "error listing workspace members");
         set.status = 500;
         return { error: err.message };
       }

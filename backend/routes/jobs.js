@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { resourcesQueue, conversationsQueue } from '../queue';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { logger } from '../logger.js';
 
 const router = new Elysia({ prefix: '/api/jobs' })
   .use(authPlugin)
@@ -97,7 +98,7 @@ router.get('/', async ({ query, status }) => {
 
     return { counts, jobs: allJobs };
   } catch (err) {
-    console.error('Error fetching jobs:', err);
+    logger.error({ err }, 'error fetching jobs');
     return status(500, { error: 'Failed to fetch jobs' });
   }
 });
@@ -135,7 +136,7 @@ router.get('/:queue/:id', async ({ params, status }) => {
       logCount: count,
     };
   } catch (err) {
-    console.error('Error fetching job details:', err);
+    logger.error({ err }, 'error fetching job details');
     return status(500, { error: 'Failed to fetch job details' });
   }
 });

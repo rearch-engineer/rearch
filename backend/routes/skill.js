@@ -3,6 +3,7 @@ import { z } from 'zod';
 import Skill from '../models/Skill.js';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { audit } from '../logger.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -60,6 +61,9 @@ const router = new Elysia({ prefix: '/api/skills' })
       const { title, description, skillsRepository, isDefault } = parsed.data;
       const newSkill = new Skill({ title, description, skillsRepository, isDefault });
       await newSkill.save();
+
+      audit.info({ event: 'admin.skill.created', skillId: newSkill._id.toString(), title }, `skill created: ${title}`);
+
       return new Response(JSON.stringify(newSkill), {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +92,9 @@ const router = new Elysia({ prefix: '/api/skills' })
       if (!updatedSkill) {
         return status(404, { error: 'Skill not found.' });
       }
+
+      audit.info({ event: 'admin.skill.updated', skillId: params.id }, `skill updated: ${params.id}`);
+
       return updatedSkill;
     } catch (err) {
       return status(400, { error: err.message });
@@ -104,6 +111,9 @@ const router = new Elysia({ prefix: '/api/skills' })
       if (!deleted) {
         return status(404, { error: 'Skill not found.' });
       }
+
+      audit.info({ event: 'admin.skill.deleted', skillId: params.id }, `skill deleted: ${params.id}`);
+
       set.status = 204;
       return '';
     } catch (err) {

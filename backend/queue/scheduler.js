@@ -1,6 +1,7 @@
 import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
 import Setting from "../models/Setting.js";
+import { queueLogger } from "../logger.js";
 
 import { resourcesQueue, addJobToQueue } from "./config.js";
 
@@ -31,12 +32,16 @@ async function triggerRebuildAll() {
       payload: {},
     });
     jobs.push(job);
-    console.log(
-      `🔄 Queued rebuild for subresource ${sub.name} (${sub._id}), job ${job.id}`,
+    queueLogger.info(
+      { subResourceName: sub.name, subResourceId: String(sub._id), jobId: job.id },
+      `Queued rebuild for subresource ${sub.name} (${sub._id}), job ${job.id}`,
     );
   }
 
-  console.log(`🔄 Triggered rebuild-all: ${jobs.length} jobs queued`);
+  queueLogger.info(
+    { jobCount: jobs.length },
+    `Triggered rebuild-all: ${jobs.length} jobs queued`,
+  );
   return jobs;
 }
 
@@ -51,12 +56,15 @@ async function scheduleDockerRebuilds(settings) {
   for (const rj of repeatableJobs) {
     if (rj.name === REBUILD_ALL_JOB_NAME) {
       await resourcesQueue.removeRepeatableByKey(rj.key);
-      console.log(`🗑️ Removed existing docker rebuild schedule: ${rj.key}`);
+      queueLogger.info(
+        { scheduleKey: rj.key },
+        `Removed existing docker rebuild schedule: ${rj.key}`,
+      );
     }
   }
 
   if (!settings.enabled) {
-    console.log("🔄 Docker rebuild schedule disabled");
+    queueLogger.info("Docker rebuild schedule disabled");
     return;
   }
 
@@ -73,8 +81,9 @@ async function scheduleDockerRebuilds(settings) {
     },
   );
 
-  console.log(
-    `🔄 Docker rebuild scheduled every ${settings.intervalHours} hours`,
+  queueLogger.info(
+    { intervalHours: settings.intervalHours, intervalMs },
+    `Docker rebuild scheduled every ${settings.intervalHours} hours`,
   );
 }
 
@@ -89,7 +98,7 @@ async function initDockerRebuildSchedule() {
       await scheduleDockerRebuilds(setting.value);
     }
   } catch (err) {
-    console.error("Failed to initialize docker rebuild schedule:", err);
+    queueLogger.error({ err }, "Failed to initialize docker rebuild schedule");
   }
 }
 

@@ -6,6 +6,7 @@ import {
   isKeycloakToken,
   extractKeycloakUserInfo,
 } from "./utils/keycloak.js";
+import { security, logger } from "./logger.js";
 
 const AUTH_MODE = () => (process.env.AUTH_MODE || "LOCAL").toUpperCase();
 
@@ -114,7 +115,7 @@ export const wsPlugin = new Elysia()
       }
 
       clients.add(ws);
-      console.log(`WS client connected (${clients.size} total)`);
+      logger.debug({ event: 'ws.connected', clientCount: clients.size }, `WS client connected (${clients.size} total)`);
     },
 
     message(ws, message) {
@@ -124,7 +125,7 @@ export const wsPlugin = new Elysia()
 
     close(ws) {
       clients.delete(ws);
-      console.log(`WS client disconnected (${clients.size} total)`);
+      logger.debug({ event: 'ws.disconnected', clientCount: clients.size }, `WS client disconnected (${clients.size} total)`);
     },
   });
 

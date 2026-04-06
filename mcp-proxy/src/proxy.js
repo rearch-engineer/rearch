@@ -5,6 +5,8 @@
  * appropriate handler, and returns a spec-compliant JSON-RPC 2.0 Response.
  */
 
+import { proxy as proxyLogger } from './logger.js';
+
 const SERVER_INFO = {
   name: 'rearch-mcp-proxy',
   version: '1.0.0',
@@ -134,7 +136,7 @@ async function dispatch(req, upstreamManager) {
         return jsonrpcError(id, -32601, `Method not found: ${method}`);
     }
   } catch (err) {
-    console.error(`[proxy] Internal error handling ${method}:`, err);
+    proxyLogger.error({ err, method }, `Internal error handling ${method}`);
     return jsonrpcError(id, -32603, 'Internal error', err.message);
   }
 }

@@ -26,6 +26,7 @@ import {
   privateRouter as fileRoutes,
   publicRouter as publicFileRoutes,
 } from "./routes/files.js";
+import { logger, access, system, getClientIp } from "./logger.js";
 
 dotenv.config();
 
@@ -36,8 +37,16 @@ const corsOrigins = process.env.FRONTEND_URL
   : true; // true = allow all origins in Elysia CORS
 
 const app = new Elysia()
-  // ─── Security headers (replaces helmet) ───────────────────────────────
-  .onRequest(({ set }) => {
+  // ─── Security headers + Request ID ─────────────────────────────────
+  .onRequest(({ set, request }) => {
+    // Generate or accept request ID for correlation
+    const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+    set.headers["X-Request-ID"] = requestId;
+
+    // Stash request metadata for access logging in onAfterHandle
+    request._startTime = performance.now();
+    request._requestId = requestId;
+
     set.headers["X-Content-Type-Options"] = "nosniff";
     set.headers["X-Frame-Options"] = "SAMEORIGIN";
     set.headers["X-XSS-Protection"] = "0";
@@ -60,13 +69,37 @@ const app = new Elysia()
     }),
   )
 
-  // ─── Mongoose document serialization ──────────────────────────────────
+  // ─── Mongoose document serialization + Access logging ──────────────
   // Elysia dispatches on response.constructor.name to decide serialization.
   // Mongoose documents have constructor.name === "model", which falls through
   // to `new Response(doc)` — Bun then produces a non-JSON inspect format.
   // This hook converts Mongoose docs to plain objects so Elysia correctly
   // uses Response.json().
-  .onAfterHandle(({ response }) => {
+  .onAfterHandle(({ response, request, set }) => {
+    // ── Access log ──────────────────────────────────────────────────────
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // Skip health check logging to reduce noise
+    if (path !== "/health") {
+      const durationMs = request._startTime
+        ? Math.round(performance.now() - request._startTime)
+        : undefined;
+      const statusCode = set.status || 200;
+      const logLevel = statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
+
+      access[logLevel]({
+        requestId: request._requestId,
+        method: request.method,
+        path,
+        status: statusCode,
+        durationMs,
+        ip: getClientIp(Object.fromEntries(request.headers)),
+        userAgent: request.headers.get("user-agent") || "",
+      }, `${request.method} ${path} ${statusCode}`);
+    }
+
+    // ── Mongoose serialization ──────────────────────────────────────────
     if (
       response &&
       typeof response?.toJSON === "function" &&
@@ -99,21 +132,28 @@ const app = new Elysia()
   })
 
   // ─── Global Error Handler ─────────────────────────────────────────────
-  .onError(({ error, code, set }) => {
-    console.error("Unhandled error:", error);
+  .onError(({ error, code, set, request }) => {
+    const requestId = request?._requestId;
+    const path = request ? new URL(request.url).pathname : undefined;
+
     if (code === "NOT_FOUND") {
       set.status = 404;
       return { error: "Not found" };
     }
     if (code === "VALIDATION") {
+      logger.warn({ requestId, path, code, err: error }, "validation error");
       set.status = 400;
       return {
         error: "Validation failed",
         details: error.message,
       };
     }
+
     const status = error.status || 500;
     set.status = status;
+
+    logger.error({ requestId, path, status, err: error }, "unhandled error");
+
     const message =
       process.env.NODE_ENV === "production"
         ? "Internal server error"
@@ -151,16 +191,16 @@ const app = new Elysia()
   // ─── Start ────────────────────────────────────────────────────────────
   .listen(PORT);
 
-console.log(`Server running on http://localhost:${PORT}`);
+system.info({ event: "system.startup", port: PORT }, `server listening on port ${PORT}`);
 
 // ─── MongoDB connection ───────────────────────────────────────────────────────
 mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/rearch")
   .then(async () => {
-    console.log("Connected to MongoDB");
+    system.info({ event: "system.db.connected" }, "connected to MongoDB");
     await bootstrapAdminUser();
   })
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .catch((err) => system.error({ event: "system.db.error", err }, "MongoDB connection error"));
 
 // ─── Admin Bootstrap ──────────────────────────────────────────────────────────
 async function bootstrapAdminUser() {
@@ -170,8 +210,8 @@ async function bootstrapAdminUser() {
 
     const adminEmail = process.env.ADMIN_EMAIL;
     if (!adminEmail) {
-      console.log(
-        "No users exist and ADMIN_EMAIL is not set. Set ADMIN_EMAIL (and ADMIN_PASSWORD for LOCAL mode) to bootstrap an admin user.",
+      system.info(
+        "no users exist and ADMIN_EMAIL is not set — set ADMIN_EMAIL (and ADMIN_PASSWORD for LOCAL mode) to bootstrap an admin user",
       );
       return;
     }
@@ -194,8 +234,8 @@ async function bootstrapAdminUser() {
     if (authMode === "LOCAL") {
       const adminPassword = process.env.ADMIN_PASSWORD;
       if (!adminPassword) {
-        console.log(
-          "ADMIN_PASSWORD is required in LOCAL mode to bootstrap the admin user.",
+        system.warn(
+          "ADMIN_PASSWORD is required in LOCAL mode to bootstrap the admin user",
         );
         return;
       }
@@ -203,19 +243,19 @@ async function bootstrapAdminUser() {
     }
 
     await User.create(adminData);
-    console.log(`Admin user bootstrapped: ${adminEmail}`);
+    system.info({ event: "system.admin.bootstrapped", email: adminEmail }, `admin user bootstrapped: ${adminEmail}`);
   } catch (err) {
-    console.error("Admin bootstrap error:", err);
+    system.error({ event: "system.admin.bootstrapped", err }, "admin bootstrap error");
   }
 }
 
 // ─── Process Error Handlers ───────────────────────────────────────────────────
 process.on("unhandledRejection", (reason) => {
-  console.error("Unhandled Rejection:", reason);
+  system.error({ event: "system.unhandledRejection", err: reason }, "unhandled promise rejection");
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
+  system.fatal({ event: "system.uncaughtException", err }, "uncaught exception — shutting down");
   process.exit(1);
 });
 

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { system } from "../logger.js";
 
 dotenv.config();
 
@@ -58,7 +59,7 @@ export const getRedisConfig = () => {
 
     return config;
   } catch (error) {
-    console.error("❌ Error creating Redis configuration:", error.message);
+    system.error({ err: error }, "Error creating Redis configuration");
     throw error;
   }
 };
@@ -69,13 +70,17 @@ export const getRedisConfig = () => {
 export const logRedisConnection = () => {
   if (process.env.REDIS_URL) {
     const urlObj = new URL(process.env.REDIS_URL);
-    console.log(
-      `📡 Redis configured via URL: ${urlObj.protocol}//${urlObj.hostname}:${urlObj.port}`,
+    system.info(
+      { redisHost: urlObj.hostname, redisPort: urlObj.port },
+      `Redis configured via URL: ${urlObj.protocol}//${urlObj.hostname}:${urlObj.port}`,
     );
   } else {
     const host = process.env.REDIS_HOST || "localhost";
     const port = process.env.REDIS_PORT || "6379";
-    console.log(`📡 Redis configured: ${host}:${port}`);
+    system.info(
+      { redisHost: host, redisPort: port },
+      `Redis configured: ${host}:${port}`,
+    );
   }
 };
 
