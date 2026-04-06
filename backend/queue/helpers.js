@@ -2,6 +2,7 @@ import Skill from "../models/Skill.js";
 import SubResource from "../models/SubResource.js";
 import Resource from "../models/Resource.js";
 import { execInContainer } from "../utils/containerExec.js";
+import { queueLogger } from "../logger.js";
 
 /**
  * Wait for OpenCode server to be ready inside the container
@@ -17,8 +18,9 @@ async function waitForOpencodeReady(url, maxAttempts = 30, delayMs = 1000) {
       if (response.ok) {
         const data = await response.json();
         if (data.healthy) {
-          console.log(
-            `✅ OpenCode server ready at ${url} (attempt ${attempt})`,
+          queueLogger.info(
+            { url, attempt },
+            `OpenCode server ready at ${url} (attempt ${attempt})`,
           );
           return true;
         }
@@ -28,8 +30,9 @@ async function waitForOpencodeReady(url, maxAttempts = 30, delayMs = 1000) {
     }
 
     if (attempt < maxAttempts) {
-      console.log(
-        `⏳ Waiting for OpenCode server at ${url} (attempt ${attempt}/${maxAttempts})`,
+      queueLogger.debug(
+        { url, attempt, maxAttempts },
+        `Waiting for OpenCode server at ${url} (attempt ${attempt}/${maxAttempts})`,
       );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }

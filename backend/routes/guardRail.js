@@ -3,6 +3,7 @@ import { z } from 'zod';
 import guardRail from '../models/GuardRail.js';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { audit } from '../logger.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -42,6 +43,9 @@ const router = new Elysia({ prefix: '/api/guard-rails' })
       const { regularExpression, reject, replaceWith } = parsed.data;
       const newGuardRail = new guardRail({ regularExpression, reject, replaceWith });
       await newGuardRail.save();
+
+      audit.info({ event: 'admin.guardrail.created', guardrailId: newGuardRail._id.toString() }, 'guard rail created');
+
       set.status = 201;
       return newGuardRail;
     } catch (err) {
@@ -71,6 +75,9 @@ const router = new Elysia({ prefix: '/api/guard-rails' })
         set.status = 404;
         return { error: 'Guard rail not found.' };
       }
+
+      audit.info({ event: 'admin.guardrail.updated', guardrailId: params.id }, `guard rail updated: ${params.id}`);
+
       return updated;
     } catch (err) {
       set.status = 400;
@@ -89,6 +96,9 @@ const router = new Elysia({ prefix: '/api/guard-rails' })
         set.status = 404;
         return { error: 'Guard rail not found.' };
       }
+
+      audit.info({ event: 'admin.guardrail.deleted', guardrailId: params.id }, `guard rail deleted: ${params.id}`);
+
       set.status = 204;
       return '';
     } catch (err) {

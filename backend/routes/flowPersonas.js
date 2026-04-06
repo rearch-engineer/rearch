@@ -3,6 +3,7 @@ import { z } from 'zod';
 import flowPersonas from '../models/FlowPersona.js';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { audit } from '../logger.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -74,6 +75,9 @@ const router = new Elysia({ prefix: '/api/flow-personas' })
         active,
       });
       await newPersona.save();
+
+      audit.info({ event: 'admin.persona.created', personaId: newPersona._id.toString(), title, slug }, `persona created: ${title}`);
+
       return new Response(JSON.stringify(newPersona), {
         status: 201,
         headers: { 'Content-Type': 'application/json' },
@@ -101,6 +105,9 @@ const router = new Elysia({ prefix: '/api/flow-personas' })
       if (!updatedPersona) {
         return status(404, { error: 'Flow persona not found.' });
       }
+
+      audit.info({ event: 'admin.persona.updated', personaId: params.id }, `persona updated: ${params.id}`);
+
       return updatedPersona;
     } catch (err) {
       return status(400, { error: err.message });
@@ -116,6 +123,9 @@ const router = new Elysia({ prefix: '/api/flow-personas' })
       if (!deleted) {
         return status(404, { error: 'Flow persona not found.' });
       }
+
+      audit.info({ event: 'admin.persona.deleted', personaId: params.id }, `persona deleted: ${params.id}`);
+
       set.status = 204;
       return '';
     } catch (err) {

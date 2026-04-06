@@ -5,6 +5,7 @@ import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
 import config from "../config.js";
 import { clearClientCache } from "../utils/opencodeContainer.js";
+import { queueLogger } from "../logger.js";
 
 import { redisConfig, docker } from "./config.js";
 import { emitJobEvent, jobLog } from "./events.js";
@@ -97,8 +98,9 @@ const conversationsWorker = new Worker(
         "conversations",
         `Setting up conversation ${conversationId}`,
       );
-      console.log(
-        `Setting up conversation ${conversationId} with repository ${repositoryId}, subResource ${subResourceId}`,
+      queueLogger.info(
+        { conversationId, repositoryId, subResourceId },
+        `Setting up conversation ${conversationId} with repository ${repositoryId}`,
       );
 
       // Get the conversation
@@ -138,7 +140,8 @@ const conversationsWorker = new Worker(
         process.env.CONVERSATION_CONTAINER_IMAGE;
       if (subResource.rearch?.dockerImage) {
         containerImage = subResource.rearch.dockerImage;
-        console.log(
+        queueLogger.info(
+          { containerImage, subResourceId: subResource._id },
           `Using custom container image from subresource: ${containerImage}`,
         );
       }
@@ -156,19 +159,18 @@ const conversationsWorker = new Worker(
         );
       }
 
-      // Log API key is set without exposing the value
-      const keyPrefix = anthropicApiKey.substring(0, 7);
-      const keyLength = anthropicApiKey.length;
-      console.log(
-        `✅ Anthropic API key configured (${keyPrefix}...${keyLength} chars)`,
-      );
+      // Log that the API key is configured without exposing its value or any derived data
+      queueLogger.debug("Anthropic API key is configured");
 
       await jobLog(
         job,
         "conversations",
         `Creating container with image: ${containerImage}`,
       );
-      console.log(`Creating container with image: ${containerImage}`);
+      queueLogger.info(
+        { containerImage, conversationId },
+        `Creating container with image: ${containerImage}`,
+      );
 
       // Get optional environment variables for Node.js app containers
       const appPort = repository.data.appPort || "3000";
@@ -284,9 +286,9 @@ const conversationsWorker = new Worker(
       };
     } catch (error) {
       await jobLog(job, "conversations", `Setup failed: ${error.message}`);
-      console.error(
-        `❌ Conversation setup job ${job.id} failed:`,
-        error.message,
+      queueLogger.error(
+        { err: error, jobId: job.id, conversationId: job.data.conversationId },
+        `Conversation setup job ${job.id} failed: ${error.message}`,
       );
 
       // Update conversation status to indicate failure
@@ -306,7 +308,10 @@ const conversationsWorker = new Worker(
           await conversation.save();
         }
       } catch (updateError) {
-        console.error("Failed to update conversation status:", updateError);
+        queueLogger.error(
+          { err: updateError, conversationId: job.data.conversationId },
+          "Failed to update conversation status",
+        );
       }
 
       throw error;
@@ -316,22 +321,23 @@ const conversationsWorker = new Worker(
 );
 
 conversationsWorker.on("active", (job) => {
-  console.log(`Conversation job ${job.id} is now active`);
+  queueLogger.debug({ jobId: job.id, queue: "conversations" }, `Conversation job ${job.id} is now active`);
   emitJobEvent("job.active", job, "conversations");
 });
 
 conversationsWorker.on("completed", (job) => {
-  console.log(`Conversation job ${job.id} has been completed`);
+  queueLogger.info({ jobId: job.id, queue: "conversations" }, `Conversation job ${job.id} completed`);
   emitJobEvent("job.completed", job, "conversations");
 });
 
 conversationsWorker.on("failed", (job, err) => {
-  console.error(
-    `Conversation job ${job.id} has failed with error: ${err.message}`,
+  queueLogger.error(
+    { jobId: job.id, queue: "conversations", error: err.message },
+    `Conversation job ${job.id} failed: ${err.message}`,
   );
   emitJobEvent("job.failed", job, "conversations", { error: err.message });
 });
 
-console.log("✅ Conversations Worker is running and listening for jobs");
+queueLogger.info("Conversations Worker is running and listening for jobs");
 
 export { conversationsWorker };

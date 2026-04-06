@@ -5,6 +5,7 @@ import { uploadFile, deleteFile } from '../utils/gridfs.js';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
 import { scheduleDockerRebuilds, triggerRebuildAll } from '../queue';
+import { audit, logger } from '../logger.js';
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export const publicRouter = new Elysia({ prefix: '/api/settings' })
         allowedDomains: value.allowedDomains || [],
       };
     } catch (err) {
-      console.error('Error fetching signup settings:', err);
+      logger.error({ event: 'settings.signup.public.error', err }, 'failed to fetch public signup settings');
       return status(500, { error: err.message });
     }
   });
@@ -131,7 +132,7 @@ const router = new Elysia({ prefix: '/api/settings' })
 
       return setting;
     } catch (err) {
-      console.error('Error uploading logo:', err);
+      logger.error({ event: 'admin.settings.logo.upload.error', err }, 'logo upload error');
       return status(500, { error: err.message });
     }
   }, {
@@ -172,9 +173,11 @@ const router = new Elysia({ prefix: '/api/settings' })
         { upsert: true, new: true },
       );
 
+      audit.info({ event: 'admin.settings.logo.icon', adminId: user.userId, iconName }, 'admin set logo icon');
+
       return setting;
     } catch (err) {
-      console.error('Error setting icon logo:', err);
+      logger.error({ event: 'admin.settings.logo.icon.error', err }, 'logo icon setting error');
       return status(500, { error: err.message });
     }
   }, {
@@ -206,9 +209,12 @@ const router = new Elysia({ prefix: '/api/settings' })
       }
 
       await Setting.deleteOne({ key: 'logo' });
+
+      audit.info({ event: 'admin.settings.logo.deleted', adminId: user.userId }, 'admin deleted logo');
+
       return { success: true };
     } catch (err) {
-      console.error('Error deleting logo:', err);
+      logger.error({ event: 'admin.settings.logo.delete.error', err }, 'logo delete error');
       return status(500, { error: err.message });
     }
   }, {
@@ -253,9 +259,11 @@ const router = new Elysia({ prefix: '/api/settings' })
         { upsert: true, new: true },
       );
 
+      audit.info({ event: 'admin.settings.signup.updated', adminId: user.userId, value }, 'admin updated signup settings');
+
       return setting;
     } catch (err) {
-      console.error('Error updating signup settings:', err);
+      logger.error({ event: 'admin.settings.signup.update.error', err }, 'signup settings update error');
       return status(500, { error: err.message });
     }
   }, {
@@ -282,7 +290,7 @@ const router = new Elysia({ prefix: '/api/settings' })
         lastTriggeredAt: value.lastTriggeredAt || null,
       };
     } catch (err) {
-      console.error('Error fetching docker rebuild settings:', err);
+      logger.error({ event: 'admin.settings.docker.get.error', err }, 'failed to fetch docker rebuild settings');
       return status(500, { error: err.message });
     }
   }, {
@@ -328,9 +336,11 @@ const router = new Elysia({ prefix: '/api/settings' })
       // Update the BullMQ repeatable job schedule
       await scheduleDockerRebuilds(value);
 
+      audit.info({ event: 'admin.settings.docker.updated', adminId: user.userId, value }, 'admin updated docker rebuild settings');
+
       return setting;
     } catch (err) {
-      console.error('Error updating docker rebuild settings:', err);
+      logger.error({ event: 'admin.settings.docker.update.error', err }, 'docker rebuild settings update error');
       return status(500, { error: err.message });
     }
   }, {
@@ -358,13 +368,15 @@ const router = new Elysia({ prefix: '/api/settings' })
         { upsert: true, new: true },
       );
 
+      audit.info({ event: 'admin.settings.docker.triggered', adminId: user.userId, jobCount: jobs.length }, 'admin triggered docker rebuild');
+
       return {
         success: true,
         jobCount: jobs.length,
         jobs: jobs.map((j) => ({ id: j.id, name: j.name })),
       };
     } catch (err) {
-      console.error('Error triggering docker rebuild:', err);
+      logger.error({ event: 'admin.settings.docker.trigger.error', err }, 'docker rebuild trigger error');
       return status(500, { error: err.message });
     }
   }, {

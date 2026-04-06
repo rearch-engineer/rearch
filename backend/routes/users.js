@@ -4,6 +4,7 @@ import { z } from "zod";
 import User from "../models/User.js";
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { audit, logger } from '../logger.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 const BCRYPT_ROUNDS = 12;
@@ -47,8 +48,6 @@ const router = new Elysia({ prefix: '/api/users' })
 
       const { search, status: userStatus, page, limit } = parsed.data;
 
-      console.log(rawQuery);
-
       const query = {};
 
       if (userStatus) {
@@ -87,7 +86,7 @@ const router = new Elysia({ prefix: '/api/users' })
         },
       };
     } catch (err) {
-      console.error("GET /users error:", err);
+      logger.error({ event: 'admin.users.list.error', err }, 'failed to list users');
       return status(500, { error: "Failed to fetch users." });
     }
   })
@@ -106,7 +105,7 @@ const router = new Elysia({ prefix: '/api/users' })
       if (!user) return status(404, { error: "User not found." });
       return user.toSafeJSON();
     } catch (err) {
-      console.error("GET /users/:id error:", err);
+      logger.error({ event: 'admin.users.get.error', targetId: params.id, err }, 'failed to fetch user');
       return status(500, { error: "Failed to fetch user." });
     }
   })
@@ -171,9 +170,17 @@ const router = new Elysia({ prefix: '/api/users' })
       }
 
       await targetUser.save();
+
+      audit.info({
+        event: 'admin.user.updated',
+        adminId: currentUser.userId,
+        targetId: params.id,
+        changes: Object.keys(parsed.data).filter(k => parsed.data[k] !== undefined),
+      }, `admin updated user ${params.id}`);
+
       return targetUser.toSafeJSON();
     } catch (err) {
-      console.error("PUT /users/:id error:", err);
+      logger.error({ event: 'admin.user.update.error', targetId: params.id, err }, 'failed to update user');
       return status(500, { error: "Failed to update user." });
     }
   })
@@ -196,9 +203,16 @@ const router = new Elysia({ prefix: '/api/users' })
       const user = await User.findByIdAndDelete(params.id);
       if (!user) return status(404, { error: "User not found." });
 
+      audit.info({
+        event: 'admin.user.deleted',
+        adminId: currentUser.userId,
+        targetId: params.id,
+        email: user.account.email,
+      }, `admin deleted user ${params.id}`);
+
       return { message: "User deleted successfully." };
     } catch (err) {
-      console.error("DELETE /users/:id error:", err);
+      logger.error({ event: 'admin.user.delete.error', targetId: params.id, err }, 'failed to delete user');
       return status(500, { error: "Failed to delete user." });
     }
   });

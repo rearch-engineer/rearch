@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import SubResource from "../models/SubResource.js";
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
+import { logger } from '../logger.js';
 
 const router = new Elysia({ prefix: '/api/usage' })
   .use(authPlugin)
@@ -99,7 +100,7 @@ router.get("/filters", async ({ status }) => {
       })),
     };
   } catch (err) {
-    console.error("Error fetching usage filters:", err);
+    logger.error({ err }, 'error fetching usage filters');
     return status(500, { error: "Failed to fetch usage filters" });
   }
 });
@@ -392,7 +393,7 @@ router.get("/", async ({ query, status }) => {
       pullRequestsList,
     };
   } catch (err) {
-    console.error("Error fetching usage data:", err);
+    logger.error({ err }, 'error fetching usage data');
     return status(500, { error: "Failed to fetch usage data" });
   }
 });

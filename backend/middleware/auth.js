@@ -7,6 +7,7 @@ import {
   extractKeycloakRoles,
   extractKeycloakUserInfo,
 } from '../utils/keycloak.js';
+import { security, tokenSuffix } from '../logger.js';
 
 const AUTH_MODE = () => (process.env.AUTH_MODE || 'LOCAL').toUpperCase();
 
@@ -20,9 +21,10 @@ async function handleKeycloakToken(token) {
     payload = await verifyKeycloakToken(token);
   } catch (err) {
     if (err.code === 'ERR_JWT_EXPIRED') {
+      security.warn({ event: 'auth.keycloak.expired', tokenHint: tokenSuffix(token) }, 'keycloak token expired');
       throw { status: 401, message: 'Token expired. Please log in again.' };
     }
-    console.error('Keycloak token verification failed:', err.message);
+    security.warn({ event: 'auth.keycloak.invalid', err, tokenHint: tokenSuffix(token) }, 'keycloak token verification failed');
     throw { status: 401, message: 'Invalid token.' };
   }
 
@@ -105,7 +107,7 @@ async function handleKeycloakToken(token) {
 async function handleAppJwt(token) {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    console.error('JWT_SECRET is not configured');
+    security.error({ event: 'auth.config.missing' }, 'JWT_SECRET is not configured');
     throw { status: 500, message: 'Server authentication misconfiguration.' };
   }
 
@@ -114,8 +116,10 @@ async function handleAppJwt(token) {
     decoded = jwt.verify(token, secret);
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
+      security.warn({ event: 'auth.jwt.expired', tokenHint: tokenSuffix(token) }, 'app JWT expired');
       throw { status: 401, message: 'Token expired. Please log in again.' };
     }
+    security.warn({ event: 'auth.jwt.invalid', err, tokenHint: tokenSuffix(token) }, 'invalid app JWT');
     throw { status: 401, message: 'Invalid token.' };
   }
 
@@ -199,7 +203,7 @@ export const authPlugin = new Elysia({ name: 'auth' })
       if (err.status) {
         throw new AuthError(err.status, err.message);
       }
-      console.error('Auth middleware error:', err);
+      security.error({ event: 'auth.middleware.error', err }, 'auth middleware unexpected error');
       throw new AuthError(500, 'Internal authentication error.');
     }
   });

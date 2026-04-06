@@ -21,6 +21,7 @@ import {
 } from "../utils/gridfs.js";
 import queue from "../queue";
 import { authPlugin } from "../middleware/auth.js";
+import { logger, audit } from "../logger.js";
 
 const router = new Elysia({ prefix: "/api/resources" }).use(authPlugin);
 
@@ -177,7 +178,7 @@ router.post("/", async ({ body, status }) => {
     resource = new Resource({ name, provider, data });
     resource = await resource.save();
 
-    console.log(`Created resource with ID: ${JSON.stringify(resource._id)}`);
+    logger.info({ resourceId: resource._id.toString() }, "resource created");
 
     // Execute create hook if it exists
     try {
@@ -192,13 +193,13 @@ router.post("/", async ({ body, status }) => {
         headers: { "Content-Type": "application/json" },
       });
     } catch (hookError) {
-      console.error("Create hook error:", hookError);
+      logger.error({ err: hookError }, "create hook error");
       // Hook failed - rollback by deleting the resource
       await Resource.findByIdAndDelete(resource._id);
       throw new Error(`Create hook failed: ${hookError.message}`);
     }
   } catch (err) {
-    console.error("Error creating resource:", err);
+    logger.error({ err }, "error creating resource");
     return status(400, { error: err.message });
   }
 });
@@ -704,9 +705,7 @@ router.post(
         payload: body,
       });
 
-      console.log(
-        `Action job ${job.id} added to queue for action '${params.action}'`,
-      );
+      logger.debug({ jobId: job.id, action: params.action }, "action job added to queue");
 
       // Return immediately with job information
       return {
@@ -746,19 +745,16 @@ router.delete("/:id/subresources/:subId", async ({ params, status }) => {
     for (const file of files) {
       try {
         await deleteFile(file.gridFsId);
-        console.log(`Deleted GridFS file: ${file.filename} (${file.gridFsId})`);
+        logger.debug({ filename: file.filename, gridFsId: file.gridFsId }, "deleted GridFS file");
       } catch (fileErr) {
         // Log error but continue with other deletions
-        console.error(
-          `Failed to delete GridFS file ${file.filename}:`,
-          fileErr.message,
-        );
+        logger.error({ err: fileErr, filename: file.filename }, "failed to delete GridFS file");
       }
     }
 
     // Delete all SubResourceFiles records
     await SubResourceFiles.deleteMany({ subResource: subresource._id });
-    console.log(`Deleted ${files.length} SubResourceFiles records`);
+    logger.debug({ count: files.length }, "deleted SubResourceFiles records");
 
     // Execute deletion hook
     await executeSubDeleteHook(parentResource, subresource);
@@ -768,7 +764,7 @@ router.delete("/:id/subresources/:subId", async ({ params, status }) => {
 
     return { success: true };
   } catch (err) {
-    console.error("Error deleting subresource:", err);
+    logger.error({ err }, "error deleting subresource");
     return status(500, { error: err.message });
   }
 });
