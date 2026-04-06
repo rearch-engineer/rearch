@@ -46,6 +46,15 @@ ReArch provides a familiar user interface where users can have AI-assisted conve
 
 ## Local Development
 
+```bash
+# This launches everything. Using docker. 
+# Press `Ctrl+C` to stop everything.
+
+./development.sh # there's also a version for windows.
+```
+
+Alternatively you can:
+
 ### 1. Start infrastructure
 
 ```bash
@@ -60,8 +69,8 @@ This starts MongoDB (port 27017) and Redis (port 6379).
 cd backend
 cp .env.example .env
 # Edit .env and fill in your values
-npm install
-npm run dev
+bun install
+bun dev
 ```
 
 The backend starts on `http://localhost:5000`.
@@ -70,21 +79,11 @@ The backend starts on `http://localhost:5000`.
 
 ```bash
 cd frontend
-npm install
-npm start
+bun install
+bun dev
 ```
 
 The frontend starts on `http://localhost:4200`.
-
-### One-command start
-
-Alternatively, use the convenience script to start all services together:
-
-```bash
-./development.sh
-```
-
-This launches everything. Using docker. Press `Ctrl+C` to stop everything.
 
 ## Backend Environment Variables
 
@@ -106,9 +105,7 @@ Copy `backend/.env.example` to `backend/.env` and configure:
 ### Authentication Modes
 
 **LOCAL** — Email and password stored in MongoDB. Default for development.
-
 **OAUTH** — Generic OpenID Connect. Set `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, `OAUTH_REDIRECT_URI`, and `OAUTH_ISSUER_URL`.
-
 **KEYCLOAK_FIREWALL** — Validates Keycloak JWTs. Set `KEYCLOAK_REALM_URL`, `KEYCLOAK_CLIENT_ID`, and `KEYCLOAK_CLIENT_SECRET`.
 
 ## Production Deployment (Docker Swarm)
@@ -117,7 +114,7 @@ Copy `backend/.env.example` to `backend/.env` and configure:
 
 ```bash
 docker network create --driver overlay --attachable rearch-net
-docker network create --driver overlay traefik-public
+docker network create --driver overlay traefik_network
 ```
 
 ### 2. Configure environment
@@ -143,18 +140,6 @@ Services are exposed at:
 
 Interactive API documentation is available at `http://localhost:5000/api-docs` (Swagger UI).
 
-### Key endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/login` | Authenticate and receive JWT |
-| `GET` | `/api/conversations` | List conversations |
-| `POST` | `/api/conversations` | Create a conversation |
-| `POST` | `/api/conversations/:id/messages` | Send a message |
-| `GET` | `/api/resources` | List Bitbucket resources |
-| `GET` | `/api/users` | List users (admin) |
-| `GET` | `/health` | Health check |
-
 ## Project Structure
 
 ```
@@ -174,6 +159,7 @@ rearch/
 │   │   ├── api/           # API client
 │   │   └── contexts/      # React contexts
 │   └── nginx.conf         # nginx config for production
+├── mcp-proxy/             # 
 ├── keycloak/              # Keycloak realm export
 ├── traefik/               # Traefik static and dynamic config
 ├── docker-compose.yml     # Production Docker Swarm stack
