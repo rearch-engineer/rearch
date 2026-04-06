@@ -1,10 +1,10 @@
 # Introduction
 
-A full-stack AI-powered chat application that connects developers with AI coding assistants running in isolated Docker containers. Each conversation spins up a dedicated [OpenCode](https://opencode.ai) container with access to a Bitbucket repository, enabling collaborative development workflows.
+A full-stack AI-powered application that connects developers with AI coding assistants running in isolated Docker containers. Each conversation spins up a dedicated [OpenCode](https://opencode.ai) container with access to a Bitbucket repository, enabling collaborative development workflows.
 
 ## Overview
 
-ReArch provides a chat interface where users can have AI-assisted conversations scoped to specific code repositories. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket and Jira for end-to-end developer workflows.
+ReArch provides a familiar user interface where users can have AI-assisted conversations scoped to specific code repositories. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket and Jira for end-to-end developer workflows.
 
 **Key capabilities:**
 
@@ -30,7 +30,7 @@ ReArch provides a chat interface where users can have AI-assisted conversations 
 
 | Service | Technology | Purpose |
 |---|---|---|
-| Frontend | React 18, MUI Joy | Chat UI |
+| Frontend | React 18, MUI Joy | UI |
 | Backend | Bun, Elysia.js | REST API + Socket.IO |
 | MongoDB | Mongo 7 | Conversations, messages, users |
 | Redis | Redis 7 | BullMQ job queue |
