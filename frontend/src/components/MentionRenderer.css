@@ -1,0 +1,18 @@
+/* Mention renderer styling - matches MessageInput mention style */
+.mention-renderer {
+  display: inline;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.mention-tag {
+  background-color: var(--accent-color);
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: inline-block;
+  font-weight: 500;
+  margin: 0 2px;
+  line-height: 1.4;
+  vertical-align: baseline;
+}

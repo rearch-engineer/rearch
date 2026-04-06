@@ -1,0 +1,14 @@
+# robots.txt for ReArch by Lab34
+# Allow indexing of public login page, block authenticated routes
+
+User-agent: *
+Allow: /login
+Allow: /auth/callback
+Disallow: /conversations
+Disallow: /resources
+Disallow: /administration
+Disallow: /account
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://lab34.es/rearch/sitemap.xml

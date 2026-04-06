@@ -1,0 +1,82 @@
+---
+/**
+ * Privacy Policy Page (default locale - English)
+ * URL: /legal/privacy-policy
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { defaultLocale } from '@/i18n/config';
+import { useTranslations } from '@/i18n/index';
+
+const locale = defaultLocale;
+const t = useTranslations(locale);
+---
+
+<PageLayout
+  title="Privacy Policy"
+  description="Privacy policy and data protection information."
+  lang={locale}
+  noindex
+>
+  <section class="py-20">
+    <div class="mx-auto max-w-3xl px-6">
+      <a href="/" class="text-sm text-foreground-muted hover:text-foreground transition-colors mb-8 inline-block">&larr; back</a>
+
+      <h1 class="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Privacy Policy</h1>
+      <p class="text-sm text-foreground-muted mb-12"><em>Last updated: April 21, 2025</em></p>
+
+      <div class="prose max-w-none space-y-10">
+
+        <div class="bg-surface-secondary border border-border rounded-xl p-6">
+          <h2 class="text-xl font-bold mb-3">In a nutshell...</h2>
+          <ol class="list-decimal pl-6 space-y-1">
+            <li>No user data is collected through the website &mdash; except for data sent via email or contact forms displayed on third-party web pages.</li>
+            <li>We do not use cookies or trackers.</li>
+            <li>We do not log IP addresses of visitors to our website.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">1. Data Controller</h2>
+          <p>The Data Controller corresponds to the owner of this website, whose complete details are provided in the <a href="/legal/legal-notice/">Legal Notice</a>.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">2. Data processed, purposes and retention periods</h2>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.1 Data processed</h3>
+          <p>For the purpose of requesting information, contact or appointment, certain data must be provided through the completion of the form provided for such purpose, which will indicate which of them are mandatory.</p>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.2 Purposes</h3>
+          <ul class="list-disc pl-6 space-y-1">
+            <li><strong>Contact:</strong> The email or telephone provided for contact will be used to effectively respond to the questions raised.</li>
+          </ul>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.3 Retention</h3>
+          <ul class="list-disc pl-6 space-y-1">
+            <li><strong>Contact:</strong> Data will be deleted once the question raised by the user has been processed and answered.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">3. Legal basis for processing</h2>
+          <p>The legal basis for processing the data provided will be the consent given by the user through the completion of the form and; (ii) the satisfaction of the legitimate interests of the Data Controller.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">4. Recipients and transfers</h2>
+          <p>No transfers or communications of data will be made, except those expressly provided by law.</p>
+          <p>International data transfers are not planned and service providers are located in the European Economic Area.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">5. Exercise of rights</h2>
+          <p>Any person has the right to obtain confirmation about whether personal data concerning them is being processed or not. Data subjects have the right to access their personal data, as well as to request the rectification of inaccurate data or, where appropriate, request its deletion when, among other reasons, the data is no longer necessary for the purposes for which it was collected.</p>
+          <p>In certain circumstances, data subjects may request the limitation of the processing of their data or object to the processing thereof, in which case we will only retain it for the exercise or defense of claims.</p>
+          <p>For this purpose, users may send a written communication to the registered address or email address that appear in the <a href="/legal/legal-notice/">Legal Notice</a>, including in both cases a photocopy of the national identity document or equivalent accrediting documentation.</p>
+          <p>In case you wish to exercise the right of portability, such data will be provided to the new Controller.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</PageLayout>

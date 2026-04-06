@@ -1,0 +1,98 @@
+---
+/**
+ * Credibility Component (i18n-aware)
+ * Scale, transparency, and trust section
+ */
+import Icon from '@/components/ui/primitives/Icon/Icon.astro';
+import { type Locale, defaultLocale, getLocaleFromPath } from '@/i18n/config';
+import { useTranslations } from '@/i18n/index';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale: localeProp } = Astro.props;
+const locale = localeProp || getLocaleFromPath(Astro.url.pathname);
+const t = useTranslations(locale);
+
+const stats = [
+  { value: t('credibility.stats.concurrency.value'), label: t('credibility.stats.concurrency.label') },
+  { value: t('credibility.stats.blackBoxes.value'), label: t('credibility.stats.blackBoxes.label') },
+  { value: t('credibility.stats.unreviewed.value'), label: t('credibility.stats.unreviewed.label') },
+];
+---
+
+<section id="credibility" class="bg-surface-invert text-on-invert py-24">
+  <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 lg:grid-cols-2 lg:gap-16">
+    <!-- Left Column - Content -->
+    <div class="order-2 lg:order-1">
+      <!-- Badge -->
+      <div
+        class="text-brand-500 mb-4 flex items-center gap-2 text-sm font-bold tracking-wide uppercase"
+      >
+        <Icon name="eye" size="sm" />
+        <span>{t('credibility.badge')}</span>
+      </div>
+
+      <h2 class="font-display mb-6 text-3xl font-bold text-balance md:text-4xl">
+        {t('credibility.title')} <span class="text-brand-500">{t('credibility.titleHighlight')}</span>
+      </h2>
+
+      <div class="text-on-invert-secondary space-y-4 text-lg leading-relaxed">
+        <p>
+          {t('credibility.paragraph1')}
+        </p>
+        <p>
+          {t('credibility.paragraph2')}
+        </p>
+
+      </div>
+
+      <!-- Stats -->
+      <div class="border-border-invert mt-10 grid grid-cols-3 gap-8 border-t pt-8">
+        {
+          stats.map((stat) => (
+            <div>
+              <div class="font-display text-on-invert text-3xl font-bold">{stat.value}</div>
+              <div class="text-on-invert-muted text-sm">{stat.label}</div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <!-- Right Column - Visual -->
+    <div class="relative order-1 lg:order-2">
+      <div
+        class="bg-surface-invert-secondary border-border-invert overflow-hidden rounded-lg border shadow-xl"
+      >
+        <!-- Terminal Header -->
+        <div
+          class="bg-surface-invert-tertiary border-border-invert flex items-center gap-2 border-b px-4 py-3"
+        >
+          <div class="flex gap-2">
+            <span class="h-3 w-3 rounded-full bg-[#FF5F56]"></span>
+            <span class="h-3 w-3 rounded-full bg-[#FFBD2E]"></span>
+            <span class="h-3 w-3 rounded-full bg-[#27C93F]"></span>
+          </div>
+          <span class="text-on-invert-muted ml-2 font-mono text-xs">terminal</span>
+        </div>
+
+        <!-- Terminal Body -->
+        <div class="p-5 font-mono text-sm leading-relaxed">
+          <div class="flex flex-col items-center justify-center h-48 text-center">
+            <span class="text-on-invert-muted text-sm mb-2">[ Product Screenshot ]</span>
+            <span class="text-on-invert font-semibold">ReArch Agent in action</span>
+            <span class="text-on-invert-muted text-xs mt-1">Coming soon</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decorative glow -->
+      <div
+        class="bg-brand-500/10 pointer-events-none absolute top-0 right-0 h-32 w-32 rounded-full blur-3xl"
+      >
+      </div>
+    </div>
+  </div>
+</section>

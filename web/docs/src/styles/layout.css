@@ -1,0 +1,72 @@
+/* ============================================
+   Layout & Typography - Directus-inspired
+   ============================================ */
+
+/* Google Fonts: Inter (body) + Poppins (headings) */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap");
+
+/* ---- Root-level Starlight overrides ---- */
+
+:root {
+  /* Typography */
+  --sl-font: "Inter", sans-serif;
+  --sl-line-height: 1.8;
+
+  /* Layout */
+  --sl-content-width: 50rem;
+  --sl-sidebar-width: 17rem;
+  --sl-content-pad-x: 2rem;
+}
+
+/* Slightly reduce heading sizes on desktop for a more refined look */
+@media (min-width: 50em) {
+  :root {
+    --sl-text-h1: 2.25rem; /* 36px (down from 42px) */
+    --sl-text-h2: 1.75rem; /* 28px (down from 35px) */
+    --sl-text-h3: 1.5rem; /* 24px (down from 29px) */
+    --sl-text-h4: 1.25rem; /* 20px (unchanged) */
+  }
+}
+
+/* ---- Headings: use Poppins ---- */
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.sl-markdown-content h5,
+.sl-markdown-content h6 {
+  font-family: "Poppins", sans-serif;
+}
+
+.sl-markdown-content h1 {
+  font-weight: 700;
+}
+
+.sl-markdown-content h2 {
+  font-weight: 600;
+}
+
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.sl-markdown-content h5,
+.sl-markdown-content h6 {
+  font-weight: 600;
+}
+
+/* Page title (outside markdown content) also uses Poppins */
+[data-page-title],
+.content-panel h1 {
+  font-family: "Poppins", sans-serif;
+}
+
+/* ---- Body text refinements ---- */
+
+.sl-markdown-content {
+  font-weight: 400;
+}
+
+.sl-markdown-content strong,
+.sl-markdown-content b {
+  font-weight: 600;
+}

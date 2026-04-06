@@ -1,0 +1,93 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Light mode colors (default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f8;
+  --bg-tertiary: #ececf1;
+  --bg-input: #ffffff;
+  --bg-hover: #ececf1;
+  --bg-active: #e5e5e5;
+  --text-primary: #000000;
+  --text-secondary: #565869;
+  --text-tertiary: #8e8ea0;
+  --border-color: #d9d9e3;
+  --accent-color: #10a37f;
+  --accent-hover: #0d8c6d;
+  --user-message-bg: #f7f7f8;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-color-heavy: rgba(0, 0, 0, 0.2);
+
+  /* Markdown-specific tokens */
+  --md-border-color: #e1e4e8;
+  --md-text-muted: #6a737d;
+  --md-link-color: #0366d6;
+  --md-code-bg: rgba(175, 184, 193, 0.2);
+  --md-pre-bg: #f6f8fa;
+  --md-blockquote-border: #dfe2e5;
+  --md-table-border: #dfe2e5;
+  --md-table-header-bg: #f6f8fa;
+  --md-table-row-bg: #ffffff;
+  --md-table-row-alt-bg: #f6f8fa;
+  --md-table-row-border: #c6cbd1;
+  --md-hr-bg: #e1e4e8;
+  --md-img-bg: #ffffff;
+}
+
+/* Dark mode: sync with MUI Joy's color scheme attribute */
+[data-joy-color-scheme="dark"] {
+  --bg-primary: #343541;
+  --bg-secondary: #202123;
+  --bg-tertiary: #40414f;
+  --bg-input: #40414f;
+  --bg-hover: #2a2b32;
+  --bg-active: #343541;
+  --text-primary: #ececf1;
+  --text-secondary: #c5c5d2;
+  --text-tertiary: #8e8ea0;
+  --border-color: #565869;
+  --accent-color: #10a37f;
+  --accent-hover: #0d8c6d;
+  --user-message-bg: #444654;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-color-heavy: rgba(0, 0, 0, 0.5);
+
+  /* Markdown-specific tokens (dark) */
+  --md-border-color: #444c56;
+  --md-text-muted: #8b949e;
+  --md-link-color: #58a6ff;
+  --md-code-bg: rgba(110, 118, 129, 0.3);
+  --md-pre-bg: #2d333b;
+  --md-blockquote-border: #444c56;
+  --md-table-border: #444c56;
+  --md-table-header-bg: #2d333b;
+  --md-table-row-bg: #1c2128;
+  --md-table-row-alt-bg: #22272e;
+  --md-table-row-border: #444c56;
+  --md-hr-bg: #444c56;
+  --md-img-bg: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+}

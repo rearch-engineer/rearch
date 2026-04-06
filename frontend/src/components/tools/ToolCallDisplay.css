@@ -1,0 +1,38 @@
+.tool-call-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tool-call-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+  width: fit-content;
+}
+
+.tool-call-header:hover {
+  background-color: var(--joy-palette-background-level1, rgba(0, 0, 0, 0.04));
+}
+
+.tool-call-header:focus-visible {
+  outline: 2px solid var(--joy-palette-primary-500, #1976d2);
+  outline-offset: 1px;
+}
+
+.tool-call-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 22px;
+  margin-bottom: 4px;
+}
+
+.tool-call-details pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

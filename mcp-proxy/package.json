@@ -1,0 +1,16 @@
+{
+  "name": "rearch-mcp-proxy",
+  "version": "1.0.0",
+  "description": "ReArch MCP proxy - Model Context Protocol proxy for AI agent tool integration",
+  "author": "Lab34 SL <hello@lab34.es> (https://rearch.engineer)",
+  "license": "BUSL-1.1",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.js",
+    "dev": "bun --watch run src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "mongoose": "^9.2.4"
+  }
+}

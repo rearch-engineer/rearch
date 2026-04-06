@@ -1,0 +1,490 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ReArch Keycloak Login Theme
+   Split layout: dark sidebar form on left, black empty area on right.
+   Matches the look and feel of frontend LoginPage.jsx screenshot.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── CSS Custom Properties ─────────────────────────────────────────────── */
+:root {
+  /* Sidebar panel (left side) */
+  --rearch-sidebar-bg: #202123;
+  /* Main area (right side) */
+  --rearch-main-bg: #000000;
+  /* Inputs */
+  --rearch-input-bg: #2a2b32;
+  --rearch-input-border: #40414f;
+  --rearch-input-focus-border: #5b8def;
+  /* Text */
+  --rearch-text-primary: #ececf1;
+  --rearch-text-secondary: #c5c5d2;
+  --rearch-text-tertiary: #8e8ea0;
+  /* Button (MUI Joy default blue) */
+  --rearch-button-bg: #4a7ede;
+  --rearch-button-hover: #3a6bc5;
+  /* Links */
+  --rearch-link-color: #5b8def;
+  --rearch-link-hover: #7aa5f5;
+  /* Divider */
+  --rearch-border-color: #40414f;
+  /* Errors */
+  --rearch-error-color: #f56565;
+  /* Misc */
+  --rearch-shadow-color: rgba(0, 0, 0, 0.3);
+  --rearch-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+  /* Sidebar width */
+  --rearch-sidebar-width: 420px;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--rearch-font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* ─── Hide default Keycloak chrome ──────────────────────────────────────── */
+#kc-header,
+#kc-header-wrapper {
+  display: none !important;
+}
+
+/* Hide locale selector */
+#kc-locale {
+  display: none !important;
+}
+
+/* ─── Full-page split layout ────────────────────────────────────────────── */
+.login-pf,
+body.login-pf {
+  background-color: var(--rearch-main-bg) !important;
+  background-image: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ─── Left sidebar panel ────────────────────────────────────────────────── */
+#kc-container-wrapper,
+.login-pf .container-fluid,
+#kc-container {
+  all: unset !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: var(--rearch-sidebar-width) !important;
+  min-width: var(--rearch-sidebar-width) !important;
+  max-width: var(--rearch-sidebar-width) !important;
+  min-height: 100vh !important;
+  background-color: var(--rearch-sidebar-bg) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#kc-content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  flex: 1 !important;
+  padding: 0 40px !important;
+  max-width: 100% !important;
+}
+
+#kc-content-wrapper {
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+#kc-form-wrapper {
+  width: 100%;
+}
+
+/* ─── Card: no card appearance ──────────────────────────────────────────── */
+#kc-form,
+.login-pf .card-pf,
+.card-pf,
+#kc-form-login {
+  all: unset !important;
+  display: block !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ─── Title ─────────────────────────────────────────────────────────────── */
+.rearch-title,
+#kc-page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--rearch-text-primary);
+  text-align: left;
+  margin-bottom: 28px;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/* ─── Form Groups ───────────────────────────────────────────────────────── */
+.rearch-form-group {
+  margin-bottom: 16px;
+}
+
+.rearch-label,
+.rearch-form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--rearch-text-primary);
+  margin-bottom: 6px;
+}
+
+/* ─── Inputs ────────────────────────────────────────────────────────────── */
+.rearch-input,
+#kc-form-login input[type="text"],
+#kc-form-login input[type="password"],
+#kc-form-login input[type="email"],
+input.pf-c-form-control {
+  width: 100% !important;
+  padding: 10px 14px !important;
+  font-size: 0.9375rem !important;
+  font-family: var(--rearch-font-family) !important;
+  color: var(--rearch-text-primary) !important;
+  background-color: var(--rearch-input-bg) !important;
+  border: 1px solid var(--rearch-input-border) !important;
+  border-radius: 8px !important;
+  outline: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.rearch-input:focus,
+#kc-form-login input[type="text"]:focus,
+#kc-form-login input[type="password"]:focus,
+#kc-form-login input[type="email"]:focus,
+input.pf-c-form-control:focus {
+  border-color: var(--rearch-input-focus-border) !important;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.15) !important;
+}
+
+.rearch-input::placeholder,
+#kc-form-login input::placeholder,
+input.pf-c-form-control::placeholder {
+  color: var(--rearch-text-tertiary) !important;
+}
+
+/* ─── Primary Button (MUI Joy default blue) ─────────────────────────────── */
+.rearch-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--rearch-font-family);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.rearch-button-primary,
+#kc-login {
+  background-color: var(--rearch-button-bg) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  font-family: var(--rearch-font-family) !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
+  margin-top: 8px !important;
+}
+
+.rearch-button-primary:hover,
+.rearch-button-primary:focus,
+#kc-login:hover,
+#kc-login:focus {
+  background-color: var(--rearch-button-hover) !important;
+  box-shadow: 0 2px 8px var(--rearch-shadow-color) !important;
+}
+
+.rearch-button-primary:active,
+#kc-login:active {
+  transform: scale(0.99);
+}
+
+/* ─── Social/SSO Buttons ────────────────────────────────────────────────── */
+.rearch-button-social {
+  background-color: var(--rearch-input-bg);
+  color: var(--rearch-text-primary);
+  border: 1px solid var(--rearch-input-border);
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.rearch-button-social:hover {
+  background-color: #343541;
+  text-decoration: none;
+  color: var(--rearch-text-primary);
+}
+
+.rearch-button-social i {
+  font-size: 1.125rem;
+}
+
+.rearch-social-providers {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Override Keycloak's default social button list styles */
+#kc-social-providers {
+  margin: 0;
+  padding: 0;
+}
+
+#kc-social-providers ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#kc-social-providers li {
+  margin-bottom: 8px;
+}
+
+#kc-social-providers a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--rearch-font-family);
+  color: var(--rearch-text-primary);
+  background-color: var(--rearch-input-bg);
+  border: 1px solid var(--rearch-input-border);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  gap: 10px;
+}
+
+#kc-social-providers a:hover {
+  background-color: #343541;
+  text-decoration: none;
+}
+
+/* ─── Divider ───────────────────────────────────────────────────────────── */
+.rearch-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.rearch-divider::before,
+.rearch-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--rearch-border-color);
+}
+
+.rearch-divider span {
+  padding: 0 16px;
+  font-size: 0.8125rem;
+  color: var(--rearch-text-tertiary);
+  white-space: nowrap;
+}
+
+/* ─── Form Options (remember me + forgot password) ──────────────────────── */
+.rearch-form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+}
+
+.rearch-remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rearch-remember-me input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rearch-button-bg);
+  cursor: pointer;
+}
+
+.rearch-remember-me label {
+  color: var(--rearch-text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+/* ─── Links ─────────────────────────────────────────────────────────────── */
+.rearch-link,
+a.rearch-link {
+  color: var(--rearch-link-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.rearch-link:hover {
+  color: var(--rearch-link-hover);
+  text-decoration: underline;
+}
+
+/* ─── Registration / Info Link (below form) ─────────────────────────────── */
+.rearch-registration-link {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--rearch-text-secondary);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rearch-border-color);
+}
+
+#kc-info-wrapper {
+  font-size: 0.875rem;
+  color: var(--rearch-text-secondary);
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rearch-border-color);
+}
+
+#kc-info-wrapper a {
+  color: var(--rearch-link-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+#kc-info-wrapper a:hover {
+  color: var(--rearch-link-hover);
+  text-decoration: underline;
+}
+
+/* ─── Error & Alert Messages ────────────────────────────────────────────── */
+.rearch-error {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--rearch-error-color);
+  margin-top: 4px;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  border: none;
+}
+
+.alert-error,
+.alert-danger {
+  background-color: rgba(245, 101, 101, 0.1);
+  color: var(--rearch-error-color);
+  border: 1px solid rgba(245, 101, 101, 0.25);
+}
+
+.alert-warning {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ffb74d;
+  border: 1px solid rgba(255, 152, 0, 0.25);
+}
+
+.alert-success {
+  background-color: rgba(16, 163, 127, 0.1);
+  color: #10a37f;
+  border: 1px solid rgba(16, 163, 127, 0.25);
+}
+
+.alert-info {
+  background-color: rgba(91, 141, 239, 0.1);
+  color: var(--rearch-link-color);
+  border: 1px solid rgba(91, 141, 239, 0.25);
+}
+
+#kc-content-wrapper > .alert,
+.kc-feedback-text {
+  font-size: 0.875rem;
+}
+
+/* ─── Keycloak default form overrides ───────────────────────────────────── */
+#kc-form-buttons {
+  margin-top: 0;
+}
+
+.pf-c-form__group,
+.form-group {
+  margin-bottom: 16px;
+}
+
+/* ─── Reset Password page overrides ─────────────────────────────────────── */
+#kc-form-options {
+  text-align: center;
+  margin-top: 16px;
+}
+
+#kc-form-options a {
+  color: var(--rearch-link-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+#kc-form-options a:hover {
+  color: var(--rearch-link-hover);
+  text-decoration: underline;
+}
+
+/* ─── Responsive: on small screens, sidebar goes full-width ─────────────── */
+@media (max-width: 600px) {
+  #kc-container-wrapper,
+  .login-pf .container-fluid,
+  #kc-container {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #kc-content {
+    padding: 0 24px !important;
+  }
+}
+
+/* ─── Transitions ───────────────────────────────────────────────────────── */
+.rearch-button,
+.rearch-input,
+.rearch-link {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}

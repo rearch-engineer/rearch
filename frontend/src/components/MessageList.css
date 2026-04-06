@@ -1,0 +1,138 @@
+.message-list {
+  width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message.user {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.message.user .message-content-wrapper {
+  background-color: var(--user-message-bg);
+  padding: 16px;
+  border-radius: 12px;
+  align-items: flex-end;
+  flex: unset;
+  max-width: 70%;
+}
+
+.message.assistant .message-content-wrapper {
+}
+
+.message-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+word-wrap: break-word;
+position: relative;
+
+.message.user .message-content:hover .edit-hint {
+  opacity: 1;
+}
+
+.edit-hint {
+  opacity: 0;
+  margin-left: 8px;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.message-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.edit-textarea:focus {
+  outline: none;
+  border-color: var(--text-tertiary);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.save-btn {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.save-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.cancel-btn {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.cancel-btn:hover {
+  background-color: var(--text-tertiary);
+}
+
+.tool-call-row {
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeIn 0.3s ease-in;
+  /* Reduce the gap from the previous message */
+  margin-top: -12px;
+}
+
+.tool-invocations {
+  margin-top: 8px;
+}

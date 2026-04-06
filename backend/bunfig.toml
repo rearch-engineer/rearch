@@ -1,0 +1,13 @@
+[test]
+# Only discover test files within the backend source tree.
+# This prevents bun test from crawling cloned repositories in the data/ directory.
+include = [
+  "**/*.test.js",
+  "**/*.test.ts",
+  "**/*.spec.js",
+  "**/*.spec.ts"
+]
+exclude = [
+  "data/**",
+  "node_modules/**"
+]

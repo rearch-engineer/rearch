@@ -1,0 +1,60 @@
+---
+title: "Lesson 2: What is a Token?"
+description: Learn what tokens are, how text is split into them, and why they are the fundamental unit of every language model.
+---
+
+import LearningProgress from "../../../../components/LearningProgress.tsx";
+
+## The basic unit
+
+A **token** is the basic unit an AI model works with. It is not a word — it is a chunk of text. Every piece of text the model reads or writes is first broken down into tokens through a process called **tokenisation**.
+
+## How tokenisation works
+
+Consider the word "understanding":
+
+- It might be split into `["under", "stand", "ing"]` — three tokens
+- A shorter word like "cat" is typically a single token
+- Numbers, punctuation, and spaces are also tokens
+
+The exact split depends on the model's **tokeniser** — a fixed vocabulary of token patterns learned during training. Different model families use different tokenisers, so the same text may produce different token counts.
+
+## Why tokens matter
+
+Tokens matter because:
+
+1. **Pricing** — Most AI APIs charge per token (input + output)
+2. **Context limits** — Every model has a maximum number of tokens it can handle at once
+3. **Speed** — More tokens means longer processing time
+4. **Quality** — How text is tokenised affects the model's ability to understand and generate it
+
+## Rules of thumb
+
+- 1 token is roughly **4 characters** in English or **¾ of a word**
+- 100 tokens is roughly **75 words**
+- A typical page of text is around **300-400 tokens**
+- Code tends to use more tokens than prose because of syntax, indentation, and special characters
+
+## Practical impact
+
+When working with AI tools, awareness of tokens helps you:
+
+- **Estimate costs** before running expensive operations
+- **Stay within limits** by keeping prompts focused
+- **Understand errors** when a model says your input is too long
+- **Optimise performance** by reducing unnecessary context
+
+---
+
+<LearningProgress
+  client:only="react"
+  courseSlug="generative-ai-fundamentals"
+  lessonSlug="02-tokens"
+  totalLessons={5}
+  lessonOrder={2}
+  courseTitle="Generative AI Fundamentals"
+  prevLessonSlug="01-what-is-generative-ai"
+  prevLessonTitle="What is Generative AI?"
+  nextLessonSlug="03-next-token-prediction"
+  nextLessonTitle="Predict the Next Token"
+/>

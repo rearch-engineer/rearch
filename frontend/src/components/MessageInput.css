@@ -1,0 +1,92 @@
+/* react-mentions styling */
+.mentions-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.message-input-mentions {
+  width: 100%;
+}
+
+.message-input-mentions textarea {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  font-size: 16px !important;
+  font-family: inherit !important;
+  resize: none !important;
+  outline: none !important;
+  line-height: 1.5 !important;
+  width: 100% !important;
+  min-height: 24px !important;
+}
+
+.message-input-mentions textarea::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+.message-input-mentions textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Override react-mentions default styles */
+.message-input-mentions__control {
+  font-size: 16px !important;
+  font-family: inherit !important;
+}
+
+.message-input-mentions__highlighter {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.message-input-mentions__input {
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Suggestions dropdown */
+.message-input-mentions__suggestions {
+  z-index: 9999 !important;
+}
+
+.message-input-mentions__suggestions__list {
+  background-color: var(--bg-input) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px var(--shadow-color-heavy) !important;
+  padding: 8px !important;
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}
+
+.message-input-mentions__suggestions__item {
+  padding: 10px 14px !important;
+  color: var(--text-primary) !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  transition: background-color 0.2s !important;
+  font-size: 14px !important;
+  margin: 2px 0 !important;
+}
+
+.message-input-mentions__suggestions__item--focused {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+}
+
+/* Microphone blue glow animation when actively listening */
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 8px 2px rgba(25, 118, 210, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 16px 6px rgba(25, 118, 210, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 8px 2px rgba(25, 118, 210, 0.5);
+  }
+}

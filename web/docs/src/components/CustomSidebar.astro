@@ -1,0 +1,194 @@
+---
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+import { Icon } from '@astrojs/starlight/components';
+
+const { sidebar } = Astro.locals.starlightRoute;
+
+// Inline type definitions (not publicly exported by Starlight)
+type SidebarLink = {
+  type: 'link';
+  label: string;
+  href: string;
+  isCurrent: boolean;
+  badge: any;
+  attrs: Record<string, any>;
+};
+
+type SidebarGroup = {
+  type: 'group';
+  label: string;
+  entries: SidebarEntry[];
+  collapsed: boolean;
+  badge: any;
+};
+
+type SidebarEntry = SidebarLink | SidebarGroup;
+
+// Recursively flatten a sidebar tree into just links
+function flattenSidebar(entries: SidebarEntry[]): SidebarLink[] {
+  return entries.flatMap((entry) =>
+    entry.type === 'group' ? flattenSidebar(entry.entries) : [entry]
+  );
+}
+
+// Map top-level group labels to Starlight icon names
+const topLevelIconMap: Record<string, string> = {
+  Guides: 'open-book',
+  Reference: 'setting',
+  Learning: 'rocket',
+};
+
+// Map sub-group labels to icons (for the accordion items in the bottom section)
+const subGroupIconMap: Record<string, string> = {
+  // Guides sub-items don't have sub-groups, they're direct links
+  // Learning sub-groups:
+  'Getting Started with ReArch': 'rocket',
+  'Advanced AI Workflows': 'setting',
+  'Team Collaboration': 'comment',
+  // Reference sub-items are direct links
+  // Fallback used for any unmapped entries
+};
+
+const defaultIcon = 'document';
+
+// Determine which top-level group is active (contains the current page)
+function isGroupActive(entry: SidebarEntry): boolean {
+  if (entry.type === 'link') return entry.isCurrent;
+  return flattenSidebar(entry.entries).some((link) => link.isCurrent);
+}
+
+// Check if a sub-entry contains the current page
+function containsCurrent(entry: SidebarEntry): boolean {
+  if (entry.type === 'link') return entry.isCurrent;
+  return flattenSidebar(entry.entries).some((link) => link.isCurrent);
+}
+
+// Find the first link in a group
+function getFirstLink(entry: SidebarEntry): string | null {
+  if (entry.type === 'link') return entry.href;
+  for (const child of entry.entries) {
+    const link = getFirstLink(child);
+    if (link) return link;
+  }
+  return null;
+}
+
+// Get the active group index
+const activeIndex = sidebar.findIndex((entry: SidebarEntry) => isGroupActive(entry));
+const activeGroup = activeIndex >= 0 ? sidebar[activeIndex] : null;
+
+// Determine which single sub-entry should be expanded.
+// If a sub-group contains the current page, that one wins.
+// Otherwise, the first sub-group is expanded.
+// Only ONE accordion is ever open at a time.
+let defaultOpenIndex = -1;
+if (activeGroup && activeGroup.type === 'group') {
+  const currentIdx = activeGroup.entries.findIndex((e: SidebarEntry) => e.type === 'group' && containsCurrent(e));
+  if (currentIdx >= 0) {
+    defaultOpenIndex = currentIdx;
+  } else {
+    // No sub-group contains the current page; open the first group entry
+    defaultOpenIndex = activeGroup.entries.findIndex((e: SidebarEntry) => e.type === 'group');
+  }
+}
+---
+
+<nav class="custom-sidebar" aria-label="Main navigation">
+  {/* Top-level sections */}
+  <ul class="custom-sidebar-sections">
+    {sidebar.map((entry, i) => {
+      const active = i === activeIndex;
+      const iconName = topLevelIconMap[entry.label] || defaultIcon;
+      const href = entry.type === 'link' ? entry.href : getFirstLink(entry);
+      return (
+        <li>
+          <a
+            class="custom-sidebar-section"
+            data-active={active ? 'true' : 'false'}
+            href={href || '#'}
+          >
+            <span class="custom-sidebar-icon">
+              <Icon name={iconName as any} size="1rem" />
+            </span>
+            <span>{entry.label}</span>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+
+  {/* Divider + sub-items for active section */}
+  {activeGroup && activeGroup.type === 'group' && (
+    <>
+      <hr class="custom-sidebar-divider" />
+
+      {/* Sub-items rendered as accordion entries */}
+      <ul class="custom-sidebar-subnav">
+        {activeGroup.entries.map((entry: SidebarEntry, i: number) => {
+          if (entry.type === 'link') {
+            // Direct link entry (no children, no chevron)
+            const iconName = subGroupIconMap[entry.label] || defaultIcon;
+            return (
+              <li class="custom-sidebar-subnav-item">
+                <a
+                  class="custom-sidebar-subnav-link"
+                  href={entry.href}
+                  aria-current={entry.isCurrent ? 'page' : undefined}
+                  {...entry.attrs}
+                >
+                  <span class="custom-sidebar-subnav-icon">
+                    <Icon name={iconName as any} size="0.9rem" />
+                  </span>
+                  <span class="custom-sidebar-subnav-label">{entry.label}</span>
+                </a>
+              </li>
+            );
+          }
+
+          // Group entry: collapsible accordion with icon + chevron
+          const iconName = subGroupIconMap[entry.label] || defaultIcon;
+          const isOpen = i === defaultOpenIndex;
+
+          return (
+            <li class="custom-sidebar-subnav-item">
+              <details open={isOpen} class="custom-sidebar-accordion">
+                <summary class="custom-sidebar-subnav-trigger">
+                  <span class="custom-sidebar-subnav-icon">
+                    <Icon name={iconName as any} size="0.9rem" />
+                  </span>
+                  <span class="custom-sidebar-subnav-label">{entry.label}</span>
+                  <svg class="custom-sidebar-chevron" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1.004 1.004 0 0 0-1.42 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/>
+                  </svg>
+                </summary>
+                <ul class="custom-sidebar-accordion-items">
+                  {entry.entries.map((subEntry: SidebarEntry) => {
+                    if (subEntry.type === 'link') {
+                      return (
+                        <li>
+                          <a
+                            class="custom-sidebar-accordion-link"
+                            href={subEntry.href}
+                            aria-current={subEntry.isCurrent ? 'page' : undefined}
+                            {...subEntry.attrs}
+                          >
+                            {subEntry.label}
+                          </a>
+                        </li>
+                      );
+                    }
+                    return null;
+                  })}
+                </ul>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  )}
+</nav>
+
+<div class="md:sl-hidden">
+  <MobileMenuFooter />
+</div>

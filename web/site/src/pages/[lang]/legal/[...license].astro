@@ -1,0 +1,210 @@
+---
+/**
+ * License Page (i18n version)
+ * URL: /{lang}/legal/license (en), /{lang}/legal/licencia (es)
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { locales, defaultLocale, isValidLocale, type Locale } from '@/i18n/config';
+import { useTranslations, routes, getLocalizedPath } from '@/i18n/index';
+
+export function getStaticPaths() {
+  const paths = [];
+
+  for (const lang of locales) {
+    if (lang === defaultLocale) continue;
+
+    const slug = routes['license'][lang].replace('legal/', '');
+    paths.push({
+      params: { lang, license: slug },
+    });
+  }
+
+  return paths;
+}
+
+const { lang } = Astro.params;
+
+if (!lang || !isValidLocale(lang)) {
+  return Astro.redirect('/legal/license/');
+}
+
+const locale = lang as Locale;
+const t = useTranslations(locale);
+const contactHref = getLocalizedPath('contact', locale);
+---
+
+<PageLayout
+  title="Licencia"
+  description="Business Source License 1.1 para ReArch."
+  lang={locale}
+  noindex
+>
+  <section class="py-10">
+    <div class="mx-auto max-w-6xl px-6">
+
+      <h1 class="font-display text-foreground mb-2 text-4xl font-bold md:text-5xl">Licencia</h1>
+      <p class="text-foreground-muted mb-10 text-sm"><em>Business Source License 1.1</em></p>
+
+      <div class="grid grid-cols-1 gap-12 lg:grid-cols-3">
+
+        <!-- Main content: 2/3 -->
+        <div class="prose max-w-none space-y-10 lg:col-span-2">
+          <div class="bg-surface-secondary border-border space-y-3 rounded-xl border p-6">
+            <dl class="space-y-2 text-sm">
+              <div class="flex flex-col sm:flex-row sm:gap-2">
+                <dt class="min-w-[10rem] font-semibold">Licenciante:</dt>
+                <dd>Lab34 SL.</dd>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:gap-2">
+                <dt class="min-w-[10rem] font-semibold">Trabajo Licenciado:</dt>
+                <dd>ReArch</dd>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:gap-2">
+                <dt class="min-w-[10rem] font-semibold">Fecha de Cambio:</dt>
+                <dd>Cuatro a&ntilde;os desde la fecha de publicaci&oacute;n</dd>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:gap-2">
+                <dt class="min-w-[10rem] font-semibold">Licencia de Cambio:</dt>
+                <dd>GNU General Public License (GPL) v3</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div>
+            <h2 class="mb-4 text-2xl font-bold">Concesi&oacute;n de Uso Adicional</h2>
+            <p>
+              Puede utilizar el Trabajo Licenciado en producci&oacute;n siempre que sus Finanzas
+              Totales no superen los 1.000.000 EUR en el per&iacute;odo de 12 meses m&aacute;s
+              reciente, con la condici&oacute;n de que Lab34 SL. no ser&aacute; responsable ante usted
+              de ninguna manera, incluyendo da&ntilde;os generales, especiales, incidentales o
+              consecuentes, derivados de dicho uso.
+            </p>
+            <p class="mt-4">
+              Las referencias a: &ldquo;Finanzas Totales&rdquo; significan la mayor de sus ingresos
+              brutos agregados, presupuesto total y/o financiaci&oacute;n (sin importar la fuente);
+              &ldquo;usted&rdquo; y &ldquo;su&rdquo; incluyen (sin limitaci&oacute;n) a cualquier
+              individuo o entidad que acepte estos t&eacute;rminos y a cualquier afiliado de dicho
+              individuo o entidad; y &ldquo;producci&oacute;n&rdquo; significa cualquier uso que no
+              sea (i) desarrollo (incluida la evaluaci&oacute;n del Trabajo Licenciado),
+              depuraci&oacute;n o prueba de sus ofertas, o (ii) poner el Trabajo Licenciado a
+              disposici&oacute;n de forma independiente en formato de c&oacute;digo objeto sin
+              modificar.
+            </p>
+          </div>
+
+          <div>
+            <p class="text-foreground-muted text-sm">
+              Para informaci&oacute;n sobre acuerdos de licencia alternativos para el Software,
+              visite: <a href="/pricing" class="text-brand-500 hover:underline"
+                >https://rearch.engineer/pricing</a>
+            </p>
+          </div>
+
+          <hr class="border-border" />
+
+          <div>
+            <h2 class="mb-4 text-2xl font-bold">T&eacute;rminos</h2>
+            <p>
+              El Licenciante le concede el derecho de copiar, modificar, crear trabajos derivados,
+              redistribuir y hacer uso no productivo del Trabajo Licenciado. El Licenciante puede
+              hacer una Concesi&oacute;n de Uso Adicional, arriba, permitiendo uso productivo
+              limitado.
+            </p>
+            <p class="mt-4">
+              A partir de la Fecha de Cambio, o el cuarto aniversario de la primera
+              distribuci&oacute;n p&uacute;blicamente disponible de una versi&oacute;n
+              espec&iacute;fica del Trabajo Licenciado bajo esta Licencia, lo que ocurra primero, el
+              Licenciante le concede derechos bajo los t&eacute;rminos de la Licencia de Cambio, y los
+              derechos concedidos en el p&aacute;rrafo anterior terminan.
+            </p>
+            <p class="mt-4">
+              Si su uso del Trabajo Licenciado no cumple con los requisitos actualmente vigentes
+              descritos en esta Licencia, debe adquirir una licencia comercial del Licenciante, sus
+              entidades afiliadas o revendedores autorizados, o debe abstenerse de usar el Trabajo
+              Licenciado.
+            </p>
+            <p class="mt-4">
+              Todas las copias del Trabajo Licenciado original y modificado, y los trabajos derivados
+              del Trabajo Licenciado, est&aacute;n sujetos a esta Licencia. Esta Licencia se aplica
+              por separado para cada versi&oacute;n del Trabajo Licenciado y la Fecha de Cambio puede
+              variar para cada versi&oacute;n del Trabajo Licenciado publicada por el Licenciante.
+            </p>
+            <p class="mt-4">
+              Debe mostrar de manera visible esta Licencia en cada copia original o modificada del
+              Trabajo Licenciado. Si recibe el Trabajo Licenciado en forma original o modificada de un
+              tercero, los t&eacute;rminos y condiciones establecidos en esta Licencia se aplican a su
+              uso de ese trabajo.
+            </p>
+            <p class="mt-4">
+              Cualquier uso del Trabajo Licenciado en violaci&oacute;n de esta Licencia
+              terminar&aacute; autom&aacute;ticamente sus derechos bajo esta Licencia para la
+              versi&oacute;n actual y todas las dem&aacute;s versiones del Trabajo Licenciado.
+            </p>
+            <p class="mt-4">
+              Esta Licencia no le otorga ning&uacute;n derecho sobre ninguna marca comercial o
+              logotipo del Licenciante o sus afiliados (siempre que pueda usar una marca comercial o
+              logotipo del Licenciante seg&uacute;n lo expresamente requerido por esta Licencia).
+            </p>
+            <p class="mt-4">
+              EN LA MEDIDA PERMITIDA POR LA LEY APLICABLE, EL TRABAJO LICENCIADO SE PROPORCIONA
+              &ldquo;TAL CUAL&rdquo;. EL LICENCIANTE RENUNCIA A TODAS LAS GARANT&Iacute;AS Y
+              CONDICIONES, EXPRESAS O IMPL&Iacute;CITAS, INCLUYENDO (SIN LIMITACI&Oacute;N)
+              GARANT&Iacute;AS DE COMERCIABILIDAD, IDONEIDAD PARA UN PROP&Oacute;SITO PARTICULAR, NO
+              INFRACCI&Oacute;N Y T&Iacute;TULO.
+            </p>
+            <p class="mt-4">
+              MariaDB le concede permiso para usar el texto de esta Licencia para licenciar sus
+              trabajos, y para referirse a ella usando la marca comercial &ldquo;Business Source
+              License&rdquo;, siempre que cumpla con los Compromisos del Licenciante a
+              continuaci&oacute;n.
+            </p>
+          </div>
+
+          <div>
+            <h2 class="mb-4 text-2xl font-bold">Compromisos del Licenciante</h2>
+            <p>
+              En consideraci&oacute;n del derecho a usar el texto de esta Licencia y el nombre y marca
+              comercial &ldquo;Business Source License&rdquo;, el Licenciante se compromete con
+              MariaDB, y con todos los dem&aacute;s destinatarios del trabajo licenciado que
+              proporcionar&aacute; el Licenciante:
+            </p>
+            <ol class="mt-4 list-decimal space-y-3 pl-6">
+              <li>
+                A especificar como Licencia de Cambio la GPL Versi&oacute;n 2.0 o cualquier
+                versi&oacute;n posterior, o una licencia compatible con la GPL Versi&oacute;n 2.0 o
+                una versi&oacute;n posterior, donde &ldquo;compatible&rdquo; significa que el software
+                proporcionado bajo la Licencia de Cambio puede incluirse en un programa con software
+                proporcionado bajo la GPL Versi&oacute;n 2.0 o una versi&oacute;n posterior. El
+                Licenciante puede especificar Licencias de Cambio adicionales sin limitaci&oacute;n.
+              </li>
+              <li>
+                A: (a) especificar una concesi&oacute;n adicional de derechos de uso que no imponga
+                ninguna restricci&oacute;n adicional sobre el derecho concedido en esta Licencia, como
+                la Concesi&oacute;n de Uso Adicional; o (b) insertar el texto &ldquo;Ninguno&rdquo;.
+              </li>
+              <li>A especificar una Fecha de Cambio.</li>
+              <li>A no modificar esta Licencia de ninguna otra manera.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Sidebar: 1/3 -->
+        <aside class="lg:col-span-1">
+          <div class="bg-surface-secondary border-border sticky top-24 rounded-xl border p-6">
+            <h3 class="text-foreground mb-3 text-lg font-semibold">&iquest;Necesita una licencia comercial?</h3>
+            <p class="text-foreground-muted mb-6 text-sm">
+              &iquest;Cumple los requisitos de la licencia? Cont&aacute;ctenos para obtener una licencia.
+            </p>
+            <a
+              href={contactHref}
+              class="bg-brand-500 hover:bg-brand-600 inline-block w-full rounded-lg px-5 py-2.5 text-center text-sm font-medium text-white transition-colors"
+            >
+              Contactar
+            </a>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+</PageLayout>

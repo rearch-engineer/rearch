@@ -1,0 +1,212 @@
+[
+  {
+    "id": "context7",
+    "icon": "MenuBook",
+    "title": "Context7",
+    "description": "Up-to-date documentation and code examples pulled directly from libraries and frameworks. Keeps LLM context accurate and version-aware.",
+    "examples": [
+      "Look up the latest React Server Components API",
+      "Find Tailwind CSS v4 migration guide",
+      "Get the current Next.js App Router docs"
+    ],
+    "type": "remote",
+    "url": "https://mcp.context7.com/mcp",
+    "headers": {}
+  },
+  {
+    "id": "github",
+    "icon": "GitHub",
+    "title": "GitHub",
+    "description": "Interact with GitHub repositories, issues, pull requests, and more. Search code, manage workflows, and automate GitHub tasks.",
+    "examples": [
+      "Search for open issues labeled 'bug' in my repo",
+      "Create a pull request with a summary",
+      "List recent commits on the main branch"
+    ],
+    "type": "remote",
+    "url": "https://api.githubcopilot.com/mcp/",
+    "headers": {}
+  },
+  {
+    "id": "sentry",
+    "icon": "BugReport",
+    "title": "Sentry",
+    "description": "Access error tracking and performance monitoring data from Sentry. Search issues, view stack traces, and analyze error trends.",
+    "examples": [
+      "Show me the most frequent unresolved errors",
+      "Get the stack trace for issue PROJ-1234",
+      "List errors from the last 24 hours"
+    ],
+    "type": "remote",
+    "url": "https://mcp.sentry.dev/sse",
+    "headers": {}
+  },
+  {
+    "id": "gh-grep",
+    "icon": "Search",
+    "title": "Grep by Vercel",
+    "description": "Search across millions of open source repositories on GitHub. Find code patterns, usage examples, and implementation references.",
+    "examples": [
+      "Find examples of useOptimistic hook usage",
+      "Search for Stripe webhook handler patterns",
+      "Look up GraphQL resolver implementations"
+    ],
+    "type": "remote",
+    "url": "https://mcp.grep.app/mcp",
+    "headers": {}
+  },
+  {
+    "id": "brave-search",
+    "icon": "TravelExplore",
+    "title": "Brave Search",
+    "description": "Web and local search powered by Brave. Get real-time search results, news, and local business information without tracking.",
+    "examples": [
+      "Search for the latest Node.js security advisories",
+      "Find restaurants near the office",
+      "Look up the current AWS status page"
+    ],
+    "type": "remote",
+    "url": "https://mcp.brave.com/mcp",
+    "headers": {}
+  },
+  {
+    "id": "linear",
+    "icon": "ViewKanban",
+    "title": "Linear",
+    "description": "Manage issues, projects, and cycles in Linear. Create tickets, update statuses, and track project progress directly from your AI assistant.",
+    "examples": [
+      "Create a bug report for the login page crash",
+      "List my assigned issues in the current sprint",
+      "Update ticket ENG-456 status to In Review"
+    ],
+    "type": "remote",
+    "url": "https://mcp.linear.app/sse",
+    "headers": {}
+  },
+  {
+    "id": "figma",
+    "icon": "Palette",
+    "title": "Figma",
+    "description": "Read and inspect Figma design files. Extract layout information, design tokens, and component properties to assist with implementation.",
+    "examples": [
+      "Get the color palette from the design system file",
+      "Inspect the spacing of the header component",
+      "List all text styles used in the project"
+    ],
+    "type": "remote",
+    "url": "https://modelcontextprotocol.ai/figma/mcp",
+    "headers": {}
+  },
+  {
+    "id": "supabase",
+    "icon": "Storage",
+    "title": "Supabase",
+    "description": "Manage Supabase projects, databases, and edge functions. Run SQL queries, manage auth settings, and interact with the Supabase platform.",
+    "examples": [
+      "List all tables in my database",
+      "Run a SQL query to count active users",
+      "Create a new edge function"
+    ],
+    "type": "remote",
+    "url": "https://mcp.supabase.com/mcp",
+    "headers": {}
+  },
+  {
+    "id": "cloudflare",
+    "icon": "Cloud",
+    "title": "Cloudflare",
+    "description": "Manage Cloudflare Workers, KV stores, R2 buckets, and DNS settings. Deploy and monitor your Cloudflare infrastructure.",
+    "examples": [
+      "List all Workers in my account",
+      "Deploy a new KV namespace",
+      "Check DNS records for my domain"
+    ],
+    "type": "remote",
+    "url": "https://mcp.cloudflare.com/sse",
+    "headers": {}
+  },
+  {
+    "id": "browserbase",
+    "icon": "WebAsset",
+    "title": "Browserbase",
+    "description": "Cloud browser automation for web scraping, testing, and interaction. Navigate pages, extract content, and take screenshots.",
+    "examples": [
+      "Take a screenshot of our production homepage",
+      "Extract all product prices from this page",
+      "Fill out and submit a test form"
+    ],
+    "type": "remote",
+    "url": "https://mcp.browserbase.com/mcp",
+    "headers": {}
+  },
+  {
+    "id": "neon",
+    "icon": "Dns",
+    "title": "Neon Postgres",
+    "description": "Manage Neon serverless Postgres databases. Create branches, run queries, and manage database schemas with AI assistance.",
+    "examples": [
+      "Create a new database branch for testing",
+      "Run a migration to add a users table",
+      "Show me the current schema for the orders table"
+    ],
+    "type": "remote",
+    "url": "https://mcp.neon.tech/sse",
+    "headers": {}
+  },
+  {
+    "id": "stripe",
+    "icon": "CreditCard",
+    "title": "Stripe",
+    "description": "Interact with Stripe payment infrastructure. Manage customers, view transactions, create payment links, and query billing data.",
+    "examples": [
+      "List recent failed payments",
+      "Look up customer by email",
+      "Create a payment link for $49.99"
+    ],
+    "type": "remote",
+    "url": "https://mcp.stripe.com/mcp",
+    "headers": {}
+  },
+  {
+    "id": "slack",
+    "icon": "Forum",
+    "title": "Slack",
+    "description": "Read and send messages in Slack channels. Search conversations, manage channels, and automate team communication workflows.",
+    "examples": [
+      "Post a deployment notification to #engineering",
+      "Search for messages about the API outage",
+      "List all channels I'm a member of"
+    ],
+    "type": "remote",
+    "url": "https://mcp.slack.com/sse",
+    "headers": {}
+  },
+  {
+    "id": "notion",
+    "icon": "Description",
+    "title": "Notion",
+    "description": "Access and manage Notion workspaces, pages, and databases. Search content, create pages, and update database entries.",
+    "examples": [
+      "Search for meeting notes from last week",
+      "Create a new project brief page",
+      "Update the status of items in the tasks database"
+    ],
+    "type": "remote",
+    "url": "https://mcp.notion.so/mcp",
+    "headers": {}
+  },
+  {
+    "id": "vercel",
+    "icon": "RocketLaunch",
+    "title": "Vercel",
+    "description": "Manage Vercel deployments, projects, and environment variables. Monitor builds, check deployment status, and configure project settings.",
+    "examples": [
+      "List recent deployments for my project",
+      "Check the build logs for the latest deploy",
+      "Add an environment variable to production"
+    ],
+    "type": "remote",
+    "url": "https://mcp.vercel.com/mcp",
+    "headers": {}
+  }
+]

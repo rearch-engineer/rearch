@@ -1,0 +1,35 @@
+.main-menu-wrapper {
+  width: 280px;
+  min-width: 280px;
+  overflow: hidden;
+  height: 100%;
+}
+
+.conversations-page {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.natural-html * {
+  white-space: normal;
+  max-width: 100%;
+}
+
+.natural-html {
+  img {
+    border-radius: 2px;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--border-color) !important;
+  }
+  p:empty {display: none;}
+  p {
+    margin: 0 0 10px 0;
+    padding: 0;
+  }
+  li {
+    margin: 0 0 0 20px;
+  }
+}

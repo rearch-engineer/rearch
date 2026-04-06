@@ -1,0 +1,118 @@
+---
+title: Usage Analytics
+description: Monitor and analyze usage metrics across your ReArch organization.
+---
+
+Usage Analytics provides administrators with a centralized dashboard to monitor platform activity, track AI costs, and analyze conversation and pull request trends across your organization. The dashboard aggregates data from all conversations and presents it through summary cards, time-series charts, breakdown visualizations, and detail tables.
+
+**Admin only.** Usage Analytics is available exclusively to users with the `admin` role. Non-admin users will not see the dashboard in the navigation menu, and the underlying API endpoints return a 403 error for unauthorized roles.
+
+## Accessing Usage Analytics
+
+Navigate to **Administration > Usage** in the sidebar. The dashboard loads with a default date range of the last 7 days and no user or repository filters applied.
+
+## Summary Cards
+
+The top of the dashboard displays six key performance indicators (KPIs) that provide a high-level snapshot of platform usage within the selected date range:
+
+| Metric | Description |
+|---|---|
+| **Total Cost** | Sum of AI usage costs across all filtered conversations, displayed in USD. |
+| **Conversations** | Total number of conversations created in the selected period. |
+| **Avg Cost / Conversation** | The total cost divided by the number of conversations. |
+| **Active Conversations** | Conversations that have been updated within the last 24 hours. |
+| **Pull Requests** | Total number of pull requests created during the selected period. |
+| **Conversations with PRs** | Number of conversations that produced at least one pull request, shown with a percentage of total conversations. |
+
+## Charts
+
+Below the summary cards, three time-series charts visualize daily trends across the selected date range. Days with no activity are displayed as zero.
+
+### Cost Over Time
+
+A line chart showing daily AI usage cost. Use this to identify spending trends and detect cost spikes.
+
+### Conversations Over Time
+
+A bar chart showing the number of conversations created each day. This helps you understand how actively your team is using the platform.
+
+### Pull Requests Over Time
+
+A bar chart showing the number of pull requests created each day. Use this to track output and correlate it with conversation volume.
+
+## Cost Breakdowns
+
+Two horizontal bar charts provide cost attribution across users and repositories:
+
+### Cost per User
+
+Displays total AI cost grouped by user, sorted from highest to lowest. Each bar is labeled with the user's display name.
+
+### Cost per Repository
+
+Displays total AI cost grouped by repository, sorted from highest to lowest. Repository names use the format `Workspace / Repository` to indicate their parent resource.
+
+## Detail Tables
+
+At the bottom of the dashboard, two tables provide row-level detail for the filtered data.
+
+### Conversations Table
+
+Lists individual conversations matching the current filters:
+
+| Column | Description |
+|---|---|
+| **Title** | The conversation name. |
+| **User** | The user who created the conversation, shown with their avatar. |
+| **Repository** | The linked repository. |
+| **Cost** | Total AI usage cost for this conversation in USD. |
+| **PRs** | Number of pull requests created from this conversation. |
+| **Created** | The date and time the conversation was created. |
+
+### Pull Requests Table
+
+Lists individual pull requests matching the current filters:
+
+| Column | Description |
+|---|---|
+| **Title** | The pull request title, linked to the external PR URL. |
+| **Branch** | The source branch name. |
+| **Conversation** | The conversation that produced this pull request. |
+| **Created By** | The user who created the pull request. |
+| **Created** | The date and time the pull request was created. |
+
+## Filtering Data
+
+The dashboard provides several controls to narrow down the displayed data.
+
+### Quick Date Ranges
+
+Three preset buttons let you quickly select common time windows:
+
+- **7d** — Last 7 days (default).
+- **30d** — Last 30 days.
+- **90d** — Last 90 days.
+
+The active preset is visually highlighted. Selecting a custom date range deactivates the preset highlight.
+
+### Custom Date Range
+
+Two date pickers (From and To) allow you to define an arbitrary date range. The From date is constrained to not exceed the To date, and vice versa.
+
+### User Filter
+
+A dropdown populated with all active users in your organization. Select a user to view only their conversations and associated costs. The default value is **All users**.
+
+### Repository Filter
+
+A dropdown populated with all available repositories, grouped by their parent workspace. Select a repository to view only conversations linked to it. The default value is **All repositories**.
+
+**Filters apply globally.** Changing any filter or date range automatically refreshes all summary cards, charts, and tables on the dashboard.
+
+## How Data Is Collected
+
+Usage Analytics does not rely on a separate analytics pipeline. All metrics are derived from existing conversation data at query time.
+
+1. **Cost tracking** — Each time an AI agent finishes processing a prompt, ReArch calculates the session cost from the model provider's usage data (input tokens, output tokens, and reasoning tokens) and stores it on the conversation record.
+2. **Pull request tracking** — When a pull request is created from a conversation, it is stored as part of that conversation's data, including the PR title, URL, source branch, and creation metadata.
+3. **Aggregation** — When you load the dashboard, the backend queries the conversations collection with your selected date range and filters, then aggregates the results into the summary metrics, time-series buckets, and breakdown charts returned to the frontend.

@@ -1,0 +1,21 @@
+name: CLA Bot Check
+
+# We use pull_request_target so the bot has permission to comment on PRs from forks
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write # Required to post a comment on the PR
+
+jobs:
+  check-cla:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check CLA Signatures
+        uses: lab34-es/cla-bot@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,159 @@
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  Alert,
+  Card,
+} from '@mui/joy';
+
+import InfoIcon from '@mui/icons-material/Info';
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../api/client';
+import { useToast } from '../../contexts/ToastContext';
+
+export default function ChangePassword() {
+  const { authMode } = useAuth();
+  const toast = useToast();
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (authMode === 'OAUTH') {
+    return (
+      <Box
+        sx={{
+          flex: 1,
+          p: { xs: 2, sm: 3, md: 4 },
+          bgcolor: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          overflow: 'auto',
+        }}
+      >
+        <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+          <Box sx={{ mb: 4 }}>
+            <Typography
+              level="h2"
+              sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
+            >
+              Security
+            </Typography>
+          </Box>
+          <Alert
+            variant="soft"
+            color="neutral"
+            startDecorator={<InfoIcon />}
+          >
+            Your password is managed by your identity provider. Please use your
+            provider's settings to change your password.
+          </Alert>
+        </Box>
+      </Box>
+    );
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirmation do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await api.changePassword(currentPassword, newPassword);
+      toast.success(result.message || 'Password changed successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error || 'Failed to change password. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        p: { xs: 2, sm: 3, md: 4 },
+        bgcolor: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        overflow: 'auto',
+      }}
+    >
+      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            level="h2"
+            sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
+          >
+            Security
+          </Typography>
+        </Box>
+
+        <Card variant="outlined" sx={{ width: '100%' }}>
+          <Typography level="title-md" sx={{ mb: 2 }}>
+            Change Password
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <FormControl required>
+                <FormLabel>Current Password</FormLabel>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                />
+              </FormControl>
+
+              <FormControl required>
+                <FormLabel>New Password</FormLabel>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter your new password"
+                />
+              </FormControl>
+
+              <FormControl required>
+                <FormLabel>Confirm New Password</FormLabel>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your new password"
+                />
+              </FormControl>
+
+              <Button
+                type="submit"
+                loading={loading}
+                sx={{ alignSelf: 'flex-start', mt: 1 }}
+              >
+                Update Password
+              </Button>
+            </Box>
+          </form>
+        </Card>
+      </Box>
+    </Box>
+  );
+}

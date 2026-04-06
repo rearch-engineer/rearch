@@ -1,0 +1,7 @@
+{
+  "question": "¿Qué es ReArch?",
+  "answer": "ReArch es un agente de IA en segundo plano que escribe, prueba y despliega código. Se ejecuta en máquinas virtuales aisladas y crea pull requests automáticamente, permitiendo que todos en tu equipo contribuyan código — no solo los ingenieros.",
+  "category": "general",
+  "order": 1,
+  "locale": "es"
+}

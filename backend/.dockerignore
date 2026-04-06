@@ -1,0 +1,8 @@
+node_modules
+.env
+data
+npm-debug.log
+coverage
+bunfig.toml
+**/*.test.js
+**/*.spec.js

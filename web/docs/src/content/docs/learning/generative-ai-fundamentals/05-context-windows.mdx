@@ -1,0 +1,81 @@
+---
+title: "Lesson 5: Context Windows & Limits"
+description: Learn what context windows are, how to monitor usage, and the practical limits you must respect.
+---
+
+import LearningProgress from "../../../../components/LearningProgress.tsx";
+
+## What is a context window?
+
+The **context window** is the total amount of tokens the model can handle in a single conversation — input and output combined. Think of it as the model's working memory. Everything it can "see" must fit inside this window.
+
+Every model has a **knowledge cut-off date** — the point in time where its training data ends. The model does not know anything that happened after that date unless you provide it as context.
+
+**Context** is what you give the model right now: your prompt, your documents, your instructions. The model combines its trained knowledge with the context you provide to generate a response.
+
+## Context utilisation zones
+
+Not all of the context window is equally useful. Here is how to think about it:
+
+| Utilisation | Zone | What happens |
+|---|---|---|
+| **~40%** | Safe zone | The model performs well. Recall and output quality are reliable. |
+| **~60%** | Danger zone | Quality starts to degrade. The model may lose track of earlier information. |
+| **~80%+** | No-go zone | The model will drop context, hallucinate, or produce unreliable output. |
+
+This is the single most practical takeaway from this course. Just because a model advertises a 128K or 200K context window does not mean you should fill it.
+
+## Practical guidelines
+
+### Monitor your context usage
+
+Most AI tools provide a way to see how many tokens you have used. Pay attention to it — context exhaustion is the #1 cause of degraded output quality.
+
+### Keep conversations focused
+
+- One topic per conversation
+- Start fresh conversations for new tasks instead of continuing old ones
+- Do not dump entire codebases into context when only a few files are relevant
+
+### Split large tasks
+
+Instead of asking the model to refactor an entire application in one go:
+
+1. Break the work into focused, independent tasks
+2. Provide only the relevant files for each task
+3. Review outputs incrementally
+
+### Be strategic about what you include
+
+- Include only the files the model needs to read or modify
+- Provide architecture context (like `ARCHITECTURE.md`) rather than raw code dumps
+- Use specific references ("see `src/utils/auth.ts` lines 40-60") instead of pasting entire files
+
+## Watch out
+
+Do not assume the model remembers everything you gave it — especially as you approach the limits. If output quality suddenly drops or the model starts contradicting earlier instructions, you have likely hit context-window pressure. The fix is always the same: start a new conversation with focused, relevant context.
+
+## Course summary
+
+Congratulations — you have completed the **Generative AI Fundamentals** course. You now understand:
+
+- What generative AI is and what it is not
+- How tokenisation works and why it matters
+- The next-token prediction mechanic that powers every LLM
+- The major model families and how to choose between them
+- Context windows, their limits, and how to work within them
+
+These concepts apply to every AI tool you use, including ReArch. With this foundation, you are well equipped to make informed decisions about when, where, and how to use AI in your work.
+
+---
+
+<LearningProgress
+  client:only="react"
+  courseSlug="generative-ai-fundamentals"
+  lessonSlug="05-context-windows"
+  totalLessons={5}
+  lessonOrder={5}
+  courseTitle="Generative AI Fundamentals"
+  prevLessonSlug="04-model-families"
+  prevLessonTitle="Families of Models"
+/>

@@ -1,0 +1,16 @@
+{
+  "name": "rearch-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end browser automation tests for ReArch",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.0"
+  }
+}

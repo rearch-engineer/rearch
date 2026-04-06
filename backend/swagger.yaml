@@ -1,0 +1,4064 @@
+openapi: 3.0.3
+info:
+  title: ReArch API
+  description: API documentation for ReArch by Lab34 — an AI SDLC Agency platform with conversation management, AI-powered messaging, resource handling, and tool integration
+  version: 0.1.0
+  contact:
+    name: Lab34
+    url: https://lab34.co
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Server health check endpoints
+  - name: Authentication
+    description: Login, registration, OAuth endpoints, and self-service profile/avatar management
+  - name: Users
+    description: User management endpoints (admin only)
+  - name: Conversations
+    description: Conversation management endpoints
+  - name: Messages
+    description: Message handling and AI interaction endpoints
+  - name: Agent Control
+    description: OpenCode agent management (status, commands, abort, providers, agents)
+  - name: Git
+    description: Git operations (diff, commit, push, pull requests) inside conversation containers
+  - name: Files
+    description: File upload and download endpoints (GridFS-backed)
+  - name: Resources
+    description: Resource management including Jira and Bitbucket repositories
+  - name: SubResources
+    description: Sub-resource management (import, actions, files) within resources
+  - name: Tools
+    description: Available AI tools endpoints
+  - name: Flow Personas
+    description: Flow persona management (admin only)
+  - name: Guard Rails
+    description: Guard rail management (admin only)
+  - name: Skills
+    description: Skill management (admin only)
+  - name: Settings
+    description: Application settings management (logo, etc.)
+  - name: Jobs
+    description: BullMQ job queue monitoring (admin only)
+  - name: Usage
+    description: Usage analytics and reporting (admin only)
+  - name: Admin
+    description: Admin UI endpoints (BullBoard queue dashboard)
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ParticipantUser:
+      type: object
+      description: Populated user data returned as part of conversation participants
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439015
+          description: MongoDB ObjectId
+        profile:
+          type: object
+          properties:
+            display_name:
+              type: string
+              example: Jane Smith
+            avatar_fileId:
+              type: string
+              description: GridFS file ID for the user's uploaded avatar image (256×256 WebP). Use /api/files/public/{fileId} to serve it.
+              example: 507f1f77bcf86cd799439099
+              nullable: true
+        account:
+          type: object
+          properties:
+            username:
+              type: string
+              example: jsmith
+            email:
+              type: string
+              format: email
+              example: jane@example.com
+
+    Conversation:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+          description: MongoDB ObjectId
+        title:
+          type: string
+          example: New Conversation
+          default: New Conversation
+        createdBy:
+          type: string
+          example: 507f1f77bcf86cd799439015
+          description: MongoDB ObjectId reference to the User who created the conversation
+        participants:
+          type: array
+          description: >
+            Users who have participated in this conversation (sent at least one message).
+            The creator is automatically included. When fetched via GET /api/conversations/{id},
+            this array is populated with ParticipantUser objects.
+          items:
+            oneOf:
+              - type: string
+                description: ObjectId reference (in list endpoints)
+              - $ref: "#/components/schemas/ParticipantUser"
+                description: Populated user object (in single-conversation fetch)
+        repository:
+          type: string
+          example: 507f1f77bcf86cd799439013
+          description: Reference to a Resource of type bitbucket
+        subResource:
+          type: string
+          example: 507f1f77bcf86cd799439014
+          description: Reference to a SubResource (bitbucket-repository)
+        contextUsage:
+          type: object
+          properties:
+            used:
+              type: number
+              default: 0
+            limit:
+              type: number
+              default: 0
+            percent:
+              type: number
+              default: 0
+        cost:
+          type: object
+          properties:
+            total:
+              type: number
+              default: 0
+            currency:
+              type: string
+              default: USD
+        environment:
+          type: object
+          properties:
+            container:
+              type: string
+              description: Docker container ID
+            status:
+              type: string
+              enum: [running, stopped, starting, error]
+              default: stopped
+            opencodeUrl:
+              type: string
+              description: OpenCode server URL for ACP communication
+            opencodeSessionId:
+              type: string
+              description: OpenCode session ID for conversation continuity
+            hostPort:
+              type: integer
+              description: Host port mapped to container
+            errorMessage:
+              type: string
+              description: Error message if container failed
+            codeServerUrl:
+              type: string
+              description: Code server URL (for Node.js template containers)
+            codeServerPort:
+              type: integer
+            appUrl:
+              type: string
+            appPort:
+              type: integer
+            postgresPort:
+              type: integer
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:35:00.000Z"
+
+    Message:
+      type: object
+      required:
+        - conversationId
+        - role
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439012
+          description: MongoDB ObjectId
+        conversationId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+          description: Reference to parent conversation
+        userId:
+          type: string
+          example: 507f1f77bcf86cd799439015
+          description: Reference to the user who sent the message (user role messages only)
+          nullable: true
+        user:
+          type: object
+          nullable: true
+          description: Populated user data (only present in API responses for messages with userId)
+          properties:
+            _id:
+              type: string
+              example: 507f1f77bcf86cd799439015
+            profile:
+              type: object
+              properties:
+                display_name:
+                  type: string
+                  example: John Doe
+        role:
+          type: string
+          enum: [user, assistant, tool]
+          example: user
+        content:
+          description: Message content (string or structured object depending on role)
+          oneOf:
+            - type: string
+            - type: object
+          default: ""
+        files:
+          type: array
+          description: Attached files
+          items:
+            type: object
+            properties:
+              fileId:
+                type: string
+              filename:
+                type: string
+              contentType:
+                type: string
+              size:
+                type: integer
+        providerOptions:
+          type: object
+          description: Provider-specific options (model, agent, etc.)
+        opencode:
+          type: object
+          description: OpenCode tracking metadata
+          properties:
+            messageId:
+              type: string
+            partId:
+              type: string
+            sessionId:
+              type: string
+        toolState:
+          type: string
+          enum: [pending, running, completed, error]
+          description: State of tool execution (for tool messages)
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    Resource:
+      type: object
+      required:
+        - name
+        - provider
+        - data
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439013
+          description: MongoDB ObjectId
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Project Documentation
+        provider:
+          type: string
+          enum: [file, jira, bitbucket]
+          example: bitbucket
+        data:
+          type: object
+          description: Provider-specific data structure
+          oneOf:
+            - $ref: "#/components/schemas/FileResourceData"
+            - $ref: "#/components/schemas/JiraResourceData"
+            - $ref: "#/components/schemas/BitbucketResourceData"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    SubResource:
+      type: object
+      required:
+        - resource
+        - name
+        - type
+        - data
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439014
+          description: MongoDB ObjectId
+        resource:
+          type: string
+          description: Reference to parent Resource
+        externalId:
+          type: string
+          description: External system identifier
+        imported:
+          type: boolean
+          default: false
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+          default: ""
+        type:
+          type: string
+          description: Sub-resource type (e.g. bitbucket-repository)
+        data:
+          type: object
+          description: Provider-specific data
+        rearch:
+          type: object
+          properties:
+            dockerImageFromBranch:
+              type: string
+              default: ""
+            dockerImage:
+              type: string
+              default: ""
+            services:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  internalPort:
+                    type: integer
+        flow:
+          type: array
+          items:
+            type: object
+            properties:
+              persona:
+                type: string
+                description: Reference to FlowPersona
+              slug:
+                type: string
+              output:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SubResourceFile:
+      type: object
+      required:
+        - subResource
+        - filename
+        - mimeType
+        - size
+        - gridFsId
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        subResource:
+          type: string
+          description: Reference to parent SubResource
+        filename:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+          minimum: 0
+          description: File size in bytes
+        gridFsId:
+          type: string
+          description: Reference to GridFS stored file
+        externalId:
+          type: string
+          description: ID from external system (e.g. Jira attachment ID)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FileResourceData:
+      type: object
+      required:
+        - fileId
+        - filename
+        - size
+        - mimeType
+      properties:
+        fileId:
+          type: string
+          example: 507f1f77bcf86cd799439014
+          description: GridFS file ID
+        filename:
+          type: string
+          example: document.pdf
+        size:
+          type: integer
+          example: 1024000
+          description: File size in bytes
+        mimeType:
+          type: string
+          example: application/pdf
+        uploadDate:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000Z"
+
+    JiraResourceData:
+      type: object
+      required:
+        - projectKey
+        - issueType
+        - url
+      properties:
+        projectKey:
+          type: string
+          example: PROJ
+        issueType:
+          type: string
+          example: Task
+        url:
+          type: string
+          format: uri
+          example: https://company.atlassian.net/browse/PROJ
+
+    BitbucketResourceData:
+      type: object
+      description: Bitbucket workspace connection data
+      properties:
+        workspace:
+          type: string
+          example: my-workspace
+        appPassword:
+          type: string
+          description: Bitbucket app password for API access
+        username:
+          type: string
+          description: Bitbucket username
+
+    FlowPersona:
+      type: object
+      required:
+        - title
+        - slug
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        title:
+          type: string
+        slug:
+          type: string
+          description: URL-safe identifier (lowercase alphanumeric, hyphens, underscores)
+        systemPrompt:
+          type: string
+          default: ""
+        prompt:
+          type: string
+          default: ""
+        code:
+          type: boolean
+          default: false
+        active:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GuardRail:
+      type: object
+      required:
+        - regularExpression
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        regularExpression:
+          type: string
+        reject:
+          type: boolean
+          default: false
+        replaceWith:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Skill:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        title:
+          type: string
+        description:
+          type: string
+        skillsRepository:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Setting:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        key:
+          type: string
+          description: Unique setting key
+          example: logo
+        value:
+          type: object
+          description: Setting value (structure depends on the key)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LogoSettingValue:
+      type: object
+      description: Value stored for the "logo" setting key
+      properties:
+        fileId:
+          type: string
+          description: GridFS file ID for the logo image
+          example: 507f1f77bcf86cd799439020
+        filename:
+          type: string
+          example: company-logo.png
+        contentType:
+          type: string
+          example: image/png
+        size:
+          type: integer
+          description: File size in bytes
+          example: 24576
+
+    SignupSettingValue:
+      type: object
+      description: Value stored for the "signup" setting key. Controls user registration restrictions in LOCAL auth mode.
+      properties:
+        restrictSignups:
+          type: boolean
+          description: When true, new user registrations are completely disabled
+          default: false
+          example: false
+        allowedDomains:
+          type: array
+          description: >
+            List of allowed email domains (e.g. ["example.com", "company.org"]).
+            When non-empty, only emails matching one of these domains can register.
+            An empty array means all domains are accepted.
+          items:
+            type: string
+          default: []
+          example: ["example.com", "company.org"]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: An error occurred
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ===========================================================================
+  # Health
+  # ===========================================================================
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check if the server is running
+      security: []
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: Server is running
+
+  # ===========================================================================
+  # Authentication
+  # ===========================================================================
+
+  /api/auth/mode:
+    get:
+      tags:
+        - Authentication
+      summary: Get authentication mode
+      description: Returns the configured authentication mode (LOCAL or OAUTH)
+      security: []
+      responses:
+        "200":
+          description: Authentication mode
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mode:
+                    type: string
+                    enum: [LOCAL, OAUTH, KEYCLOAK_FIREWALL]
+
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user (LOCAL mode only)
+      description: Creates a new user with pending_verification status. Admin must activate.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                password:
+                  type: string
+                  minLength: 8
+                display_name:
+                  type: string
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  user:
+                    type: object
+        "400":
+          description: Validation error or wrong auth mode
+        "403":
+          description: Registration is disabled by admin or email domain is not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Email or username already exists
+
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with email and password (LOCAL mode only)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful, returns JWT token and user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+        "400":
+          description: Wrong auth mode or missing fields
+        "401":
+          description: Invalid credentials
+        "403":
+          description: Account not active
+
+  /api/auth/change-password:
+    post:
+      tags:
+        - Authentication
+      summary: Change own password (LOCAL mode only)
+      description: Allows an authenticated user to change their own password. Only available when AUTH_MODE is LOCAL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword:
+                  type: string
+                  description: The user's current password
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: The new password (minimum 8 characters)
+      responses:
+        "200":
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password changed successfully.
+        "400":
+          description: Wrong auth mode, missing fields, or password too short
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Current password is incorrect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: |
+        Returns the authenticated user's full profile (without password hash).
+        The response includes `profile.avatar_fileId` (GridFS file ID for the uploaded
+        avatar, if any) which can be served via `GET /api/files/public/{fileId}`.
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Full user document without password_hash (toSafeJSON)
+        "401":
+          description: Not authenticated
+        "404":
+          description: User not found
+
+  /api/auth/profile:
+    patch:
+      tags:
+        - Authentication
+      summary: Update own profile preferences
+      description: Allows an authenticated user to update their own profile preferences (e.g. voice recognition language, theme).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                voice_language:
+                  type: string
+                  description: >
+                    BCP-47 language tag for voice recognition (e.g. en-US, es, pt-BR).
+                    Send an empty string to revert to browser default.
+                  example: en-US
+                theme:
+                  type: string
+                  enum: [light, dark, system]
+                  description: UI theme preference
+                  example: dark
+      responses:
+        "200":
+          description: Updated user profile (without password hash)
+          content:
+            application/json:
+              schema:
+                type: object
+        "400":
+          description: Validation error (invalid voice_language format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+        "404":
+          description: User not found
+
+  /api/auth/avatar:
+    post:
+      tags:
+        - Authentication
+      summary: Upload or replace own avatar image
+      description: |
+        Uploads an image file as the authenticated user's avatar.
+        The image is resized to 256×256 (cover fit) and stored as WebP in GridFS
+        with `metadata.public = true`, making it accessible via `/api/files/public/{fileId}`.
+        If the user already has an avatar, the old GridFS file is deleted first.
+        The new `avatar_fileId` is saved on `user.profile.avatar_fileId`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - avatar
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: Image file (max 2 MB, image/* content types only). Will be resized to 256×256 WebP.
+      responses:
+        "200":
+          description: Avatar uploaded. Returns the updated user profile (without password hash).
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Full user document (toSafeJSON)
+        "400":
+          description: No image file provided or invalid file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Not authenticated
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Upload or resize failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Authentication
+      summary: Remove own avatar image
+      description: |
+        Deletes the authenticated user's avatar from GridFS and clears `profile.avatar_fileId`.
+        If the user has no avatar, this is a no-op (still returns 200).
+      responses:
+        "200":
+          description: Avatar removed. Returns the updated user profile (without password hash).
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Full user document (toSafeJSON)
+        "401":
+          description: Not authenticated
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/oauth/authorize:
+    get:
+      tags:
+        - Authentication
+      summary: Get OIDC authorization URL (OAUTH mode only)
+      security: []
+      responses:
+        "200":
+          description: Authorization URL and state token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                  stateToken:
+                    type: string
+        "400":
+          description: Wrong auth mode
+
+  /api/auth/oauth/callback:
+    post:
+      tags:
+        - Authentication
+      summary: Exchange OIDC authorization code for JWT (OAUTH mode only)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, state, stateToken]
+              properties:
+                code:
+                  type: string
+                state:
+                  type: string
+                stateToken:
+                  type: string
+      responses:
+        "200":
+          description: Login successful, returns JWT token and user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+        "400":
+          description: Missing fields, invalid state token, or wrong auth mode
+        "403":
+          description: Account pending verification
+
+  /api/auth/keycloak/config:
+    get:
+      tags:
+        - Authentication
+      summary: Get Keycloak configuration (KEYCLOAK_FIREWALL mode only)
+      description: Returns the Keycloak configuration needed by the frontend to initialize the keycloak-js adapter.
+      security: []
+      responses:
+        "200":
+          description: Keycloak configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Keycloak base URL
+                    example: https://auth.example.com
+                  realm:
+                    type: string
+                    description: Keycloak realm name
+                    example: rearch
+                  clientId:
+                    type: string
+                    description: Keycloak client ID
+                    example: rearch-app
+        "400":
+          description: Wrong auth mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: KEYCLOAK_REALM_URL not configured or invalid format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/keycloak/token-exchange:
+    post:
+      tags:
+        - Authentication
+      summary: Exchange Keycloak token for app JWT (KEYCLOAK_FIREWALL mode only)
+      description: Accepts a Keycloak access token, validates it, syncs the user to MongoDB, and returns an app-issued JWT.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [keycloakToken]
+              properties:
+                keycloakToken:
+                  type: string
+                  description: Keycloak access token
+      responses:
+        "200":
+          description: Token exchange successful, returns app JWT and user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+        "400":
+          description: Wrong auth mode or missing keycloakToken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Invalid or expired Keycloak token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Account not active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  status:
+                    type: string
+
+  # ===========================================================================
+  # Users (Admin only)
+  # ===========================================================================
+
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: List all users (admin only)
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by email, username, or display name
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, suspended, pending_verification]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+        "403":
+          description: Admin role required
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get user details (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User details (without password hash)
+        "404":
+          description: User not found
+    put:
+      tags:
+        - Users
+      summary: Update user (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [active, suspended, pending_verification]
+                roles:
+                  type: array
+                  items:
+                    type: string
+                display_name:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Updated user
+        "400":
+          description: Cannot modify own admin role/status or password too short
+        "404":
+          description: User not found
+    delete:
+      tags:
+        - Users
+      summary: Delete user (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User deleted successfully.
+        "400":
+          description: Cannot delete own account
+        "404":
+          description: User not found
+
+  # ===========================================================================
+  # Conversations
+  # ===========================================================================
+
+  /api/conversations/search:
+    get:
+      tags:
+        - Conversations
+      summary: Search conversations by title
+      description: Searches the current user's conversations by title (case-insensitive regex match)
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Search query string to match against conversation titles
+      responses:
+        "200":
+          description: List of matching conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations:
+    post:
+      tags:
+        - Conversations
+      summary: Create a new conversation
+      description: |
+        Creates a new conversation linked to a Bitbucket repository and sub-resource.
+        Triggers a BullMQ job for container setup.
+        The authenticated user is automatically added to the `participants` array as the creator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - repository
+                - subResource
+              properties:
+                title:
+                  type: string
+                  example: New Conversation
+                  description: Optional title for the conversation
+                repository:
+                  type: string
+                  example: 507f1f77bcf86cd799439013
+                  description: ID of a Resource with provider 'bitbucket'
+                subResource:
+                  type: string
+                  example: 507f1f77bcf86cd799439014
+                  description: ID of a SubResource of type 'bitbucket-repository' belonging to the resource
+      responses:
+        "200":
+          description: Conversation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Missing required fields, invalid resource type, or subResource mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource or SubResource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    get:
+      tags:
+        - Conversations
+      summary: Get all conversations
+      description: Retrieves all conversations sorted by most recently updated
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}:
+    get:
+      tags:
+        - Conversations
+      summary: Get conversation details
+      description: |
+        Retrieves a specific conversation's details (without messages).
+        The `participants` array is **populated** — each element is a `ParticipantUser` object
+        (not a plain ObjectId), containing `profile.display_name`, `profile.avatar_fileId`,
+        `account.username`, and `account.email`.
+
+        Use `GET /api/conversations/{id}/messages` to fetch messages separately.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Conversation details with populated participants
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Conversation"
+                  - type: object
+                    properties:
+                      participants:
+                        type: array
+                        description: Populated participant user objects
+                        items:
+                          $ref: "#/components/schemas/ParticipantUser"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      tags:
+        - Conversations
+      summary: Rename conversation
+      description: Updates the title of a specific conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: My Renamed Conversation
+                  description: The new title for the conversation
+      responses:
+        "200":
+          description: Conversation renamed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+        "400":
+          description: Validation error (missing or invalid title, invalid ID format)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Conversations
+      summary: Delete conversation
+      description: Deletes a conversation and all its associated messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Conversation deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Messages
+  # ===========================================================================
+
+  /api/conversations/{id}/messages:
+    get:
+      tags:
+        - Messages
+      summary: Get conversation messages
+      description: |
+        Retrieves all messages for a conversation from the OpenCode session.
+        Returns an empty array if the container is not running or the OpenCode server is not reachable.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Array of messages from the OpenCode session
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+        "400":
+          description: Invalid ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Messages
+      summary: Send message and get AI response
+      description: |
+        Sends a user message and streams back the AI response using Server-Sent Events (SSE).
+        The container must be in 'running' state with a healthy OpenCode server.
+
+        The authenticated user is automatically added to the conversation's `participants` array
+        (using `$addToSet`, so no duplicates).
+
+        **Response Format (SSE):**
+        - `data: {"type": "text", "content": "chunk"}` - Text chunk from AI
+        - `data: {"type": "tool", ...}` - Tool execution results
+        - `data: {"type": "done"}` - Stream completion
+        - `data: {"type": "error", "error": "..."}` - Error message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  example: What's the weather like today?
+                  description: The user's message content
+                model:
+                  type: object
+                  description: Optional model selection
+                  properties:
+                    providerID:
+                      type: string
+                    modelID:
+                      type: string
+                agent:
+                  type: string
+                  description: Optional agent identifier
+                files:
+                  type: array
+                  description: Optional file references to include with the message
+                  items:
+                    type: object
+                    properties:
+                      fileId:
+                        type: string
+                      filename:
+                        type: string
+                      contentType:
+                        type: string
+                      size:
+                        type: integer
+      responses:
+        "200":
+          description: Server-Sent Events stream with AI response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: SSE stream with JSON events
+        "400":
+          description: Content is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Container not ready or OpenCode server not healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+  # ===========================================================================
+  # Agent Control
+  # ===========================================================================
+
+  /api/conversations/{id}/question/{requestId}/reply:
+    post:
+      tags:
+        - Agent Control
+      summary: Reply to a question asked by the OpenCode agent
+      description: Sends answers to a question that the OpenCode agent asked during execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+        - name: requestId
+          in: path
+          required: true
+          description: The question request ID from the agent
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - answers
+              properties:
+                answers:
+                  type: array
+                  description: Array of answer arrays (each answer is an array of selected labels)
+                  items:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        "200":
+          description: Reply sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        "400":
+          description: answers array is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Agent not available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  containerStatus:
+                    type: string
+                  serverHealthy:
+                    type: boolean
+
+  /api/conversations/{id}/question/{requestId}/reject:
+    post:
+      tags:
+        - Agent Control
+      summary: Reject (dismiss) a question asked by the OpenCode agent
+      description: Dismisses a question that the OpenCode agent asked, causing it to proceed without an answer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+        - name: requestId
+          in: path
+          required: true
+          description: The question request ID from the agent
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Question rejected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+        "503":
+          description: Agent not available
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  containerStatus:
+                    type: string
+                  serverHealthy:
+                    type: boolean
+
+  /api/conversations/{id}/providers:
+    get:
+      tags:
+        - Agent Control
+      summary: Get available AI providers and models
+      description: Returns the list of available providers and models from the conversation's container
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of providers and models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "503":
+          description: Container not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/agents:
+    get:
+      tags:
+        - Agent Control
+      summary: Get available agents
+      description: Returns the list of available agents from the conversation's container
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "503":
+          description: Container not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/session-info:
+    get:
+      tags:
+        - Agent Control
+      summary: Get session info
+      description: Returns session information including repo name, context window usage, and cost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session information
+          content:
+            application/json:
+              schema:
+                type: object
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/services:
+    get:
+      tags:
+        - Agent Control
+      summary: Get available services for a running container
+      description: Joins SubResource service definitions with live Docker port mappings to return accessible service URLs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of available services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        label:
+                          type: string
+                          example: Frontend
+                        icon:
+                          type: string
+                          example: Web
+                        internalPort:
+                          type: integer
+                          example: 3000
+                        hostPort:
+                          type: integer
+                          example: 32768
+                        url:
+                          type: string
+                          example: http://localhost:32768
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Git Operations
+  # ===========================================================================
+
+  /api/conversations/{id}/git-files:
+    get:
+      tags:
+        - Git
+      summary: Get changed git files with line counts
+      description: Returns per-file additions and deletions from inside the conversation's container. Suitable for polling.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of changed files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filename:
+                          type: string
+                          example: src/index.js
+                        added:
+                          type: integer
+                          example: 15
+                        deleted:
+                          type: integer
+                          example: 3
+                        isNew:
+                          type: boolean
+                          description: True if the file is untracked (new)
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/git-diff:
+    get:
+      tags:
+        - Git
+      summary: Get git diff from container
+      description: Returns the working tree diff (uncommitted changes) including untracked files as pseudo-diffs
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Git diff output
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  diff:
+                    type: string
+                    description: Combined diff output (tracked changes + untracked file content)
+                  status:
+                    type: string
+                    description: Output of git status --porcelain
+                  hasChanges:
+                    type: boolean
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Container not running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/git-diff-file:
+    post:
+      tags:
+        - Git
+      summary: Get diff for a single file
+      description: Returns original (HEAD) and modified (working tree) content for a specific file, suitable for Monaco DiffEditor. Supports new, modified, and deleted files. Uses POST to avoid URL-encoding issues with file paths.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - filename
+              properties:
+                filename:
+                  type: string
+                  description: File path relative to repository root (supports nested paths)
+                  example: src/index.js
+      responses:
+        "200":
+          description: Original and modified file contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  original:
+                    type: string
+                    description: File content at HEAD (empty for new files)
+                  modified:
+                    type: string
+                    description: Current working tree content (empty for deleted files)
+                  filename:
+                    type: string
+                  language:
+                    type: string
+                    description: Detected language for syntax highlighting
+                    example: javascript
+                  isBinary:
+                    type: boolean
+                    description: True if the file is binary
+        "400":
+          description: Filename is required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Container not running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/git-commit-push:
+    post:
+      tags:
+        - Git
+      summary: Commit and push changes to a new branch
+      description: Creates a new git branch, stages all changes, commits, and pushes to origin from inside the container
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - branchName
+                - commitMessage
+              properties:
+                branchName:
+                  type: string
+                  description: Branch name (alphanumeric, dots, hyphens, underscores, slashes only)
+                  example: feature/add-auth
+                commitMessage:
+                  type: string
+                  description: Commit message
+                  example: "feat: add user authentication"
+      responses:
+        "200":
+          description: Commit and push successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  branch:
+                    type: string
+                  commitMessage:
+                    type: string
+                  commitOutput:
+                    type: string
+                  pushOutput:
+                    type: string
+        "400":
+          description: Missing fields, invalid branch name, or no changes to commit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Container not running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/create-pr:
+    post:
+      tags:
+        - Git
+      summary: Create a Bitbucket pull request
+      description: Creates a pull request on Bitbucket for the conversation's repository using the specified source branch
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - sourceBranch
+              properties:
+                title:
+                  type: string
+                  description: Pull request title
+                description:
+                  type: string
+                  description: Pull request description (optional)
+                sourceBranch:
+                  type: string
+                  description: The branch to create the PR from
+                reviewers:
+                  type: array
+                  description: Optional list of Bitbucket user UUIDs to assign as PR reviewers
+                  items:
+                    type: string
+                  maxItems: 20
+      responses:
+        "200":
+          description: Pull request created
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Bitbucket pull request response object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  state:
+                    type: string
+                  sourceBranch:
+                    type: string
+                  destinationBranch:
+                    type: string
+                  author:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+                  createdOn:
+                    type: string
+                    format: date-time
+                  reviewers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                        displayName:
+                          type: string
+        "400":
+          description: Missing fields or conversation has no linked repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/conversations/{id}/bitbucket-members:
+    get:
+      tags:
+        - Git
+      summary: List Bitbucket workspace members
+      description: >
+        Returns workspace members from the Bitbucket workspace linked to this conversation's repository.
+        Useful for selecting PR reviewers. Supports searching by display name via the `search` query parameter.
+        Auto-paginates through all Bitbucket pages (up to 1000 members).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Conversation ID
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: Search term to filter members by display name or nickname (case-insensitive partial match, filtered server-side)
+          schema:
+            type: string
+            example: jane
+      responses:
+        "200":
+          description: List of workspace members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  members:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          example: "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
+                        displayName:
+                          type: string
+                          example: Jane Smith
+                        accountId:
+                          type: string
+                        nickname:
+                          type: string
+                        avatarUrl:
+                          type: string
+                          format: uri
+        "400":
+          description: Conversation has no linked repository or cannot determine workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to fetch workspace members from Bitbucket
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Files
+  # ===========================================================================
+
+  /api/files/upload:
+    post:
+      tags:
+        - Files
+      summary: Upload files to GridFS
+      description: Uploads up to 10 files (25MB each) to GridFS storage. Returns file metadata for each uploaded file.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Files to upload (max 10, 25MB each)
+      responses:
+        "200":
+          description: Files uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    fileId:
+                      type: string
+                    filename:
+                      type: string
+                    contentType:
+                      type: string
+                    size:
+                      type: integer
+        "400":
+          description: No files provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/files/{fileId}:
+    get:
+      tags:
+        - Files
+      summary: Download/stream a file from GridFS
+      description: Serves a file from GridFS with appropriate content type headers
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: GridFS file ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Type:
+              schema:
+                type: string
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Length:
+              schema:
+                type: integer
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/files/public/{fileId}:
+    get:
+      tags:
+        - Files
+      summary: Download/stream a public file from GridFS (no authentication required)
+      description: >
+        Serves a file from GridFS without requiring authentication.
+        Only files whose metadata includes `public: true` are accessible
+        through this endpoint. Returns 403 if the file exists but is not
+        flagged as public.
+      security: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: GridFS file ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Type:
+              schema:
+                type: string
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Length:
+              schema:
+                type: integer
+        "403":
+          description: File is not flagged as public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Resources
+  # ===========================================================================
+
+  /api/resources:
+    get:
+      tags:
+        - Resources
+      summary: Get all resources
+      description: Retrieves all resources sorted by most recently created
+      responses:
+        "200":
+          description: List of resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - Resources
+      summary: Create resource (non-file)
+      description: Creates a new resource for Jira or Bitbucket providers (not for file uploads). Executes a create hook if available.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - provider
+                - data
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: My Bitbucket Workspace
+                provider:
+                  type: string
+                  enum: [jira, bitbucket]
+                  example: bitbucket
+                data:
+                  type: object
+                  description: Provider-specific data structure
+                  oneOf:
+                    - $ref: "#/components/schemas/JiraResourceData"
+                    - $ref: "#/components/schemas/BitbucketResourceData"
+      responses:
+        "201":
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (validation error, file provider used, or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/upload:
+    post:
+      tags:
+        - Resources
+      summary: Upload file and create file resource
+      description: Uploads a file to GridFS and creates a file resource. Executes a create hook if available.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - file
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: Project Documentation
+                  description: Resource name
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+      responses:
+        "201":
+          description: File uploaded and resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (no file, missing name, or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}:
+    get:
+      tags:
+        - Resources
+      summary: Get single resource
+      description: Retrieves a specific resource by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Resource ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Resource details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Resources
+      summary: Update resource
+      description: Updates a resource's name and data. Executes an update hook if available. Rolls back on hook failure.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Resource ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: Updated Resource Name
+                data:
+                  type: object
+                  description: Updated provider-specific data
+      responses:
+        "200":
+          description: Resource updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (validation error or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Resources
+      summary: Delete resource
+      description: Deletes a resource. Executes a delete hook before deletion. Also deletes the associated GridFS file for file resources.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Resource ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Delete hook failed, resource was not deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/file/{fileId}:
+    get:
+      tags:
+        - Resources
+      summary: Download/stream file from GridFS (resource files)
+      description: Downloads or streams a resource file from GridFS storage
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: GridFS file ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: application/pdf
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="document.pdf"
+            Content-Length:
+              schema:
+                type: integer
+                example: 1024000
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Resources
+      summary: Delete file from GridFS
+      description: Deletes a file from GridFS storage
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: GridFS file ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # SubResources
+  # ===========================================================================
+
+  /api/resources/{id}/subresources:
+    get:
+      tags:
+        - SubResources
+      summary: List imported subresources
+      description: Returns all subresources with imported=true for the given resource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of imported subresources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubResource"
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/{subId}:
+    get:
+      tags:
+        - SubResources
+      summary: Get single subresource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: SubResource details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResource"
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      tags:
+        - SubResources
+      summary: Update subresource
+      description: Updates subresource fields (name, description, data, rearch)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                data:
+                  type: object
+                rearch:
+                  type: object
+                  properties:
+                    dockerImageFromBranch:
+                      type: string
+                    dockerImage:
+                      type: string
+                    services:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          label:
+                            type: string
+                          internalPort:
+                            type: integer
+      responses:
+        "200":
+          description: Updated subresource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResource"
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - SubResources
+      summary: Delete subresource
+      description: Deletes a subresource, its associated GridFS files, and SubResourceFiles records. Executes a deletion hook.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Subresource deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/import/search:
+    post:
+      tags:
+        - SubResources
+      summary: Search for importable items
+      description: Executes a provider-specific search hook to find items available for import
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Provider-specific search criteria
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "400":
+          description: Search hook error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Parent resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/import/import:
+    post:
+      tags:
+        - SubResources
+      summary: Import a subresource
+      description: Creates a new subresource and executes an import hook to populate it with data from the external system
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - externalId
+                - name
+                - type
+              properties:
+                externalId:
+                  type: string
+                  description: External system identifier
+                name:
+                  type: string
+                type:
+                  type: string
+                  description: SubResource type (e.g. bitbucket-repository)
+      responses:
+        "201":
+          description: SubResource imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResource"
+        "400":
+          description: Already imported or import hook failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Parent resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/{subId}/action/{action}:
+    post:
+      tags:
+        - SubResources
+      summary: Execute an action on a subresource
+      description: Queues an action job in BullMQ for async processing
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          description: Action to execute
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Action-specific payload
+      responses:
+        "200":
+          description: Action queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+        "400":
+          description: Error queuing action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/{subId}/files:
+    get:
+      tags:
+        - SubResources
+      summary: List files for a subresource
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of subresource files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubResourceFile"
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/{subId}/files/{fileId}:
+    get:
+      tags:
+        - SubResources
+      summary: Get subresource file metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          description: SubResourceFile ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResourceFile"
+        "403":
+          description: File does not belong to this subresource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource, subresource, or file not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/resources/{id}/subresources/{subId}/files/{fileId}/download:
+    get:
+      tags:
+        - SubResources
+      summary: Download subresource file content
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          description: SubResourceFile ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Type:
+              schema:
+                type: string
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Length:
+              schema:
+                type: integer
+        "403":
+          description: File does not belong to this subresource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Resource, subresource, file, or file content not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Tools
+  # ===========================================================================
+
+  /api/tools:
+    get:
+      tags:
+        - Tools
+      summary: Get all available tools
+      description: Retrieves a list of all AI tools available for use in conversations
+      responses:
+        "200":
+          description: List of available tools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: weather
+                    description:
+                      type: string
+                      example: Get current weather information for a location
+
+  # ===========================================================================
+  # Flow Personas (Admin only)
+  # ===========================================================================
+
+  /api/flow-personas:
+    get:
+      tags:
+        - Flow Personas
+      summary: List all flow personas (admin only)
+      responses:
+        "200":
+          description: List of flow personas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FlowPersona"
+        "403":
+          description: Admin role required
+
+    post:
+      tags:
+        - Flow Personas
+      summary: Create a flow persona (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - slug
+              properties:
+                title:
+                  type: string
+                slug:
+                  type: string
+                  description: URL-safe identifier (lowercase alphanumeric, hyphens, underscores). Cannot be "description".
+                prompt:
+                  type: string
+                systemPrompt:
+                  type: string
+                code:
+                  type: boolean
+                active:
+                  type: boolean
+      responses:
+        "201":
+          description: Flow persona created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowPersona"
+        "403":
+          description: Admin role required
+
+  /api/flow-personas/{id}:
+    put:
+      tags:
+        - Flow Personas
+      summary: Update a flow persona (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                slug:
+                  type: string
+                prompt:
+                  type: string
+                systemPrompt:
+                  type: string
+                code:
+                  type: boolean
+                active:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated flow persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowPersona"
+        "403":
+          description: Admin role required
+
+    delete:
+      tags:
+        - Flow Personas
+      summary: Delete a flow persona (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Flow persona deleted
+        "403":
+          description: Admin role required
+
+  # ===========================================================================
+  # Guard Rails (Admin only)
+  # ===========================================================================
+
+  /api/guard-rails:
+    get:
+      tags:
+        - Guard Rails
+      summary: List all guard rails (admin only)
+      responses:
+        "200":
+          description: List of guard rails
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GuardRail"
+        "403":
+          description: Admin role required
+
+    post:
+      tags:
+        - Guard Rails
+      summary: Create a guard rail (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - regularExpression
+              properties:
+                regularExpression:
+                  type: string
+                reject:
+                  type: boolean
+                replaceWith:
+                  type: string
+      responses:
+        "201":
+          description: Guard rail created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardRail"
+        "403":
+          description: Admin role required
+
+  /api/guard-rails/{id}:
+    put:
+      tags:
+        - Guard Rails
+      summary: Update a guard rail (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                regularExpression:
+                  type: string
+                reject:
+                  type: boolean
+                replaceWith:
+                  type: string
+      responses:
+        "200":
+          description: Updated guard rail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardRail"
+        "403":
+          description: Admin role required
+
+    delete:
+      tags:
+        - Guard Rails
+      summary: Delete a guard rail (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Guard rail deleted
+        "403":
+          description: Admin role required
+
+  # ===========================================================================
+  # Skills (Admin only)
+  # ===========================================================================
+
+  /api/skills:
+    get:
+      tags:
+        - Skills
+      summary: List all skills (admin only)
+      responses:
+        "200":
+          description: List of skills
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Skill"
+        "403":
+          description: Admin role required
+
+    post:
+      tags:
+        - Skills
+      summary: Create a skill (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                skillsRepository:
+                  type: string
+      responses:
+        "201":
+          description: Skill created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Skill"
+        "403":
+          description: Admin role required
+
+  /api/skills/{id}:
+    get:
+      tags:
+        - Skills
+      summary: Get a skill by ID (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Skill details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Skill"
+        "403":
+          description: Admin role required
+        "404":
+          description: Skill not found
+
+    put:
+      tags:
+        - Skills
+      summary: Update a skill (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                skillsRepository:
+                  type: string
+      responses:
+        "200":
+          description: Updated skill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Skill"
+        "403":
+          description: Admin role required
+
+    delete:
+      tags:
+        - Skills
+      summary: Delete a skill (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Skill deleted
+        "403":
+          description: Admin role required
+
+  # ===========================================================================
+  # Settings
+  # ===========================================================================
+
+  /api/settings:
+    get:
+      tags:
+        - Settings
+      summary: Get all settings
+      description: Retrieves all application settings. Available to any authenticated user.
+      responses:
+        "200":
+          description: List of settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+
+  /api/settings/logo:
+    post:
+      tags:
+        - Settings
+      summary: Upload application logo (admin only)
+      description: |
+        Uploads an image file as the application logo. The image is stored in GridFS
+        and a reference is saved in the settings collection with key "logo".
+        If a logo already exists, the old file is deleted from GridFS before storing the new one.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - logo
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                  description: Image file (max 2MB, image/* content types only)
+      responses:
+        "200":
+          description: Logo uploaded and setting saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+        "400":
+          description: No image file provided or invalid file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+    delete:
+      tags:
+        - Settings
+      summary: Delete application logo (admin only)
+      description: Removes the logo setting and deletes the associated image file from GridFS.
+      responses:
+        "200":
+          description: Logo deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "404":
+          description: No logo setting found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/settings/signup:
+    put:
+      tags:
+        - Settings
+      summary: Update signup restriction settings (admin only)
+      description: >
+        Sets signup restriction options for LOCAL auth mode. When restrictSignups is true,
+        registration is completely disabled. When allowedDomains is non-empty, only
+        emails matching one of the listed domains can register.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                restrictSignups:
+                  type: boolean
+                  description: When true, new user registrations are completely disabled
+                allowedDomains:
+                  type: array
+                  description: List of allowed email domains (empty array means all domains are allowed)
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Signup settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/settings/signup/public:
+    get:
+      tags:
+        - Settings
+      summary: Get signup restriction settings (public)
+      description: >
+        Returns the current signup restriction settings without requiring authentication.
+        Used by the login page to determine whether to show the registration form.
+      security: []
+      responses:
+        "200":
+          description: Signup restriction settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restrictSignups:
+                    type: boolean
+                    description: Whether signups are disabled
+                    example: false
+                  allowedDomains:
+                    type: array
+                    description: Allowed email domains (empty means all)
+                    items:
+                      type: string
+                    example: []
+
+  # ===========================================================================
+  # Jobs (Admin only)
+  # ===========================================================================
+
+  /api/jobs:
+    get:
+      tags:
+        - Jobs
+      summary: Get aggregated job counts and job list (admin only)
+      description: Returns aggregated job counts and a combined list of jobs across all BullMQ queues (resources, conversations) and statuses.
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Comma-separated list of statuses to include (default all). Allowed values are active, waiting, completed, failed.
+          example: active,failed
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+          description: Max jobs per status per queue (default 50, max 200)
+      responses:
+        "200":
+          description: Job counts and list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    properties:
+                      active:
+                        type: integer
+                      waiting:
+                        type: integer
+                      completed:
+                        type: integer
+                      failed:
+                        type: integer
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        queue:
+                          type: string
+                          enum: [resources, conversations]
+                        data:
+                          type: object
+                        status:
+                          type: string
+                          enum: [active, waiting, completed, failed]
+                        returnvalue:
+                          type: object
+                          nullable: true
+                        failedReason:
+                          type: string
+                          nullable: true
+                        timestamp:
+                          type: integer
+                        processedOn:
+                          type: integer
+                          nullable: true
+                        finishedOn:
+                          type: integer
+                          nullable: true
+                        attemptsMade:
+                          type: integer
+                        progress:
+                          type: integer
+        "403":
+          description: Admin role required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/jobs/{queue}/{id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get single job details with logs (admin only)
+      description: Returns details for a single job including its current state and logs
+      parameters:
+        - name: queue
+          in: path
+          required: true
+          description: Queue name
+          schema:
+            type: string
+            enum: [resources, conversations]
+        - name: id
+          in: path
+          required: true
+          description: Job ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details with logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  queue:
+                    type: string
+                  data:
+                    type: object
+                  state:
+                    type: string
+                    description: Current job state
+                  returnvalue:
+                    type: object
+                    nullable: true
+                  failedReason:
+                    type: string
+                    nullable: true
+                  stacktrace:
+                    type: array
+                    items:
+                      type: string
+                  timestamp:
+                    type: integer
+                  processedOn:
+                    type: integer
+                    nullable: true
+                  finishedOn:
+                    type: integer
+                    nullable: true
+                  attemptsMade:
+                    type: integer
+                  progress:
+                    type: integer
+                  logs:
+                    type: array
+                    items:
+                      type: string
+                  logCount:
+                    type: integer
+        "400":
+          description: Unknown queue name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Usage Analytics (Admin only)
+  # ===========================================================================
+
+  /api/usage/filters:
+    get:
+      tags:
+        - Usage
+      summary: Get available filter options for usage dashboard (admin only)
+      description: Returns the list of active users and sub-resources (repositories) available for filtering in the usage dashboard.
+      responses:
+        "200":
+          description: Filter options
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        displayName:
+                          type: string
+                        avatarFileId:
+                          type: string
+                          nullable: true
+                          description: GridFS file ID for the user's avatar image. Use /api/files/public/{fileId} to serve it.
+                  subResources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        name:
+                          type: string
+                        resourceName:
+                          type: string
+        "403":
+          description: Admin role required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/usage:
+    get:
+      tags:
+        - Usage
+      summary: Get aggregated usage analytics (admin only)
+      description: |
+        Returns aggregated usage data for the admin dashboard including KPIs,
+        cost over time, per-user costs, per-resource costs, conversations list,
+        and pull request analytics.
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+          description: Start date (ISO string, default 7 days ago)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+          description: End date (ISO string, default now)
+        - in: query
+          name: userId
+          schema:
+            type: string
+          description: Filter by user ID (ObjectId)
+        - in: query
+          name: subResource
+          schema:
+            type: string
+          description: Filter by sub-resource/repository ID (ObjectId)
+      responses:
+        "200":
+          description: Aggregated usage data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      totalCost:
+                        type: number
+                      totalConversations:
+                        type: integer
+                      avgCostPerConversation:
+                        type: number
+                      activeConversations:
+                        type: integer
+                      totalPullRequests:
+                        type: integer
+                      conversationsWithPRs:
+                        type: integer
+                      currency:
+                        type: string
+                        example: USD
+                  costOverTime:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          example: "2024-01-15"
+                        cost:
+                          type: number
+                  conversationsOverTime:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                        count:
+                          type: integer
+                  pullRequestsOverTime:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                        count:
+                          type: integer
+                  costPerUser:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId:
+                          type: string
+                        name:
+                          type: string
+                        avatarFileId:
+                          type: string
+                          nullable: true
+                          description: GridFS file ID for the user's avatar image. Use /api/files/public/{fileId} to serve it.
+                        cost:
+                          type: number
+                  costPerResource:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        subResourceId:
+                          type: string
+                        name:
+                          type: string
+                        cost:
+                          type: number
+                  conversationsList:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        title:
+                          type: string
+                        user:
+                          type: string
+                          description: Display name of the conversation's owner
+                        userAvatarFileId:
+                          type: string
+                          nullable: true
+                          description: GridFS file ID for the owner's avatar. Use /api/files/public/{fileId} to serve it.
+                        repository:
+                          type: string
+                        cost:
+                          type: number
+                        pullRequestsCount:
+                          type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+                  pullRequestsList:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        sourceBranch:
+                          type: string
+                        conversationTitle:
+                          type: string
+                        conversationId:
+                          type: string
+                        createdBy:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+        "403":
+          description: Admin role required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"

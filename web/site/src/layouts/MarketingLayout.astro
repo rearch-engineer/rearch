@@ -1,0 +1,52 @@
+---
+/**
+ * MarketingLayout
+ * Layout wrapper for marketing pages
+ * Uses the same Navbar + LandingFooter as all other pages for consistency
+ */
+import BaseLayout from './BaseLayout.astro';
+import Navbar from '@/components/landing/Navbar.astro';
+import LandingFooter from '@/components/landing/LandingFooter.astro';
+import { type Locale, defaultLocale, getLocaleFromPath } from '@/i18n/config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  imageAlt?: string;
+  noindex?: boolean;
+  nofollow?: boolean;
+  includeOrgSchema?: boolean;
+  lang?: Locale;
+}
+
+const {
+  title,
+  description,
+  image,
+  imageAlt,
+  noindex = false,
+  nofollow = false,
+  includeOrgSchema = false,
+  lang,
+} = Astro.props;
+
+const locale = lang || getLocaleFromPath(Astro.url.pathname);
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  image={image}
+  imageAlt={imageAlt}
+  noindex={noindex}
+  nofollow={nofollow}
+  includeOrgSchema={includeOrgSchema}
+  lang={locale}
+>
+  <Navbar slot="header" locale={locale} />
+
+  <slot />
+
+  <LandingFooter slot="footer" locale={locale} />
+</BaseLayout>

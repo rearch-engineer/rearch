@@ -1,0 +1,455 @@
+version: "3.8"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ReArch Full Stack - Docker Swarm Deployment
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Architecture:
+#   [Existing Traefik on portainer_default] → *.rearch.engineer
+#     ├── app.rearch.engineer        → frontend
+#     ├── api.rearch.engineer        → backend
+#     ├── auth.rearch.engineer       → keycloak (no forward-auth)
+#     └── conv-*.rearch.engineer     → conversation containers (dynamic)
+#
+# All services except Keycloak are protected by oauth2-proxy forward-auth.
+# TLS is handled by the existing Traefik instance (certresolver: leresolver).
+#
+# Usage:
+#   docker stack deploy -c docker-compose.stack.yml rearch
+#
+# Prerequisites:
+#   - Create overlay network: docker network create --driver overlay --attachable rearch
+#   - Existing Traefik must be on the "portainer_default" network
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─── Website (Astro marketing site via nginx) ──────────────────────────────
+  website:
+    image: git.lab34.es/rearch/website:latest
+    build:
+      context: ./web/site
+      dockerfile: Dockerfile
+      args:
+        - SITE_URL=https://rearch.engineer
+    networks:
+      - rearch
+      - portainer_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      - traefik.http.routers.rearch_website.rule=Host(`rearch.engineer`)
+      - traefik.http.routers.rearch_website.entrypoints=websecure
+      - traefik.http.routers.rearch_website.service=rearch_website
+      - traefik.http.routers.rearch_website.tls=true
+      - traefik.http.routers.rearch_website.tls.certresolver=leresolver
+      - traefik.http.routers.rearch_website.middlewares=rearch-security-headers@docker
+      - traefik.http.routers.rearch_website.priority=1
+      - traefik.http.services.rearch_website.loadbalancer.server.port=80
+      - traefik.http.services.rearch_website.loadBalancer.sticky.cookie=false
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_website_http.entrypoints=web
+      - traefik.http.routers.rearch_website_http.rule=Host(`rearch.engineer`)
+      - traefik.http.routers.rearch_website_http.middlewares=rearch_website_https
+      - traefik.http.middlewares.rearch_website_https.redirectscheme.scheme=https
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:80/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # ─── Website Docs (Starlight docs via nginx at /docs/) ─────────────────────
+  website-docs:
+    image: git.lab34.es/rearch/website-docs:latest
+    build:
+      context: ./web/docs
+      dockerfile: Dockerfile
+    networks:
+      - rearch
+      - portainer_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      - traefik.http.routers.rearch_website_docs.rule=Host(`rearch.engineer`) && PathPrefix(`/docs`)
+      - traefik.http.routers.rearch_website_docs.entrypoints=websecure
+      - traefik.http.routers.rearch_website_docs.service=rearch_website_docs
+      - traefik.http.routers.rearch_website_docs.tls=true
+      - traefik.http.routers.rearch_website_docs.tls.certresolver=leresolver
+      - traefik.http.routers.rearch_website_docs.middlewares=rearch-security-headers@docker
+      - traefik.http.routers.rearch_website_docs.priority=10
+      - traefik.http.services.rearch_website_docs.loadbalancer.server.port=80
+      - traefik.http.services.rearch_website_docs.loadBalancer.sticky.cookie=false
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_website_docs_http.entrypoints=web
+      - traefik.http.routers.rearch_website_docs_http.rule=Host(`rearch.engineer`) && PathPrefix(`/docs`)
+      - traefik.http.routers.rearch_website_docs_http.middlewares=rearch_website_docs_https
+      - traefik.http.middlewares.rearch_website_docs_https.redirectscheme.scheme=https
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:80/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # ─── Frontend (React SPA via nginx) ────────────────────────────────────────
+  frontend:
+    image: git.lab34.es/rearch/frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - API_BASE_URL=https://api.rearch.engineer/api
+      - SOCKET_URL=https://api.rearch.engineer
+      - KEYCLOAK_URL=https://auth.rearch.engineer
+      - KEYCLOAK_REALM=rearch
+      - KEYCLOAK_CLIENT_ID=rearch-app
+    networks:
+      - rearch
+      - portainer_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      - traefik.http.routers.rearch_frontend.rule=Host(`app.rearch.engineer`)
+      - traefik.http.routers.rearch_frontend.entrypoints=websecure
+      - traefik.http.services.rearch_frontend.loadbalancer.server.port=80
+      - traefik.http.services.rearch_frontend.loadBalancer.sticky.cookie=false
+      - traefik.http.routers.rearch_frontend.service=rearch_frontend
+      - traefik.http.routers.rearch_frontend.tls=true
+      - traefik.http.routers.rearch_frontend.tls.certresolver=leresolver
+      - traefik.http.routers.rearch_frontend.middlewares=rearch-security-headers@docker
+      # Note: No forward-auth on the frontend — the SPA handles authentication
+      # directly via keycloak-js (PKCE flow). Forward-auth is used on the
+      # conversation containers (via the inner Traefik) instead.
+      # keycloak-auth middleware definition (kept here for other services/containers to reference)
+      - traefik.http.middlewares.rearch-keycloak-auth.forwardauth.address=http://oauth2-proxy:4180/oauth2/auth
+      - traefik.http.middlewares.rearch-keycloak-auth.forwardauth.trustForwardHeader=true
+      - traefik.http.middlewares.rearch-keycloak-auth.forwardauth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Groups,X-Auth-Request-Access-Token,Authorization
+      # security-headers middleware (defined here for the Portainer Traefik)
+      - traefik.http.middlewares.rearch-security-headers.headers.browserXssFilter=true
+      - traefik.http.middlewares.rearch-security-headers.headers.contentTypeNosniff=true
+      - traefik.http.middlewares.rearch-security-headers.headers.frameDeny=true
+      - traefik.http.middlewares.rearch-security-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.rearch-security-headers.headers.stsPreload=true
+      - traefik.http.middlewares.rearch-security-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.rearch-security-headers.headers.customFrameOptionsValue=SAMEORIGIN
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_frontend_http.entrypoints=web
+      - traefik.http.routers.rearch_frontend_http.rule=Host(`app.rearch.engineer`)
+      - traefik.http.routers.rearch_frontend_http.middlewares=rearch_frontend_https
+      - traefik.http.middlewares.rearch_frontend_https.redirectscheme.scheme=https
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:80/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # ─── Backend (Express.js API via Bun) ──────────────────────────────────────
+  backend:
+    image: git.lab34.es/rearch/backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/rearch
+      - REDIS_URL=redis://redis:6379
+      - AUTH_MODE=KEYCLOAK_FIREWALL
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=${JWT_EXPIRY:-24h}
+      - KEYCLOAK_REALM_URL=https://auth.rearch.engineer/realms/rearch
+      - KEYCLOAK_CLIENT_ID=rearch-backend
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_BACKEND_CLIENT_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CONVERSATION_CONTAINER_IMAGE=${CONVERSATION_CONTAINER_IMAGE:-vscode-opencode:latest}
+      - DOCKER_NETWORK=rearch
+      - APP_DOMAIN=rearch.engineer
+      - FRONTEND_URL=https://app.rearch.engineer
+      - MCP_PROXY_URL=http://mcp-proxy:3100
+      - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - backend-data:/app/data
+    networks:
+      - rearch
+      - portainer_default
+    depends_on:
+      - mongodb
+      - redis
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      # API routes
+      - traefik.http.routers.rearch_backend.rule=Host(`api.rearch.engineer`)
+      - traefik.http.routers.rearch_backend.entrypoints=websecure
+      - traefik.http.routers.rearch_backend.service=rearch_backend
+      - traefik.http.routers.rearch_backend.tls=true
+      - traefik.http.routers.rearch_backend.tls.certresolver=leresolver
+      - traefik.http.routers.rearch_backend.middlewares=rearch-security-headers@docker
+      - traefik.http.services.rearch_backend.loadbalancer.server.port=5000
+      - traefik.http.services.rearch_backend.loadBalancer.sticky.cookie=false
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_backend_http.entrypoints=web
+      - traefik.http.routers.rearch_backend_http.rule=Host(`api.rearch.engineer`)
+      - traefik.http.routers.rearch_backend_http.middlewares=rearch_backend_https
+      - traefik.http.middlewares.rearch_backend_https.redirectscheme.scheme=https
+    healthcheck:
+      test: ["CMD-SHELL", "wget -f -s http://127.0.0.1:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # ─── Keycloak (Identity Provider) ──────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start
+    environment:
+      - KC_HOSTNAME=auth.rearch.engineer
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      # Import realm on first boot
+      - KC_IMPORT=/opt/keycloak/data/import/realm-export.json
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+      - ./keycloak/themes/rearch:/opt/keycloak/themes/rearch:ro
+    networks:
+      - rearch
+      - portainer_default
+    depends_on:
+      - keycloak-db
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      # Keycloak is NOT behind forward-auth (it IS the auth provider)
+      - traefik.http.routers.rearch_keycloak.rule=Host(`auth.rearch.engineer`)
+      - traefik.http.routers.rearch_keycloak.entrypoints=websecure
+      - traefik.http.routers.rearch_keycloak.service=rearch_keycloak
+      - traefik.http.routers.rearch_keycloak.tls=true
+      - traefik.http.routers.rearch_keycloak.tls.certresolver=leresolver
+      - traefik.http.routers.rearch_keycloak.middlewares=rearch-security-headers@docker
+      - traefik.http.services.rearch_keycloak.loadbalancer.server.port=8080
+      - traefik.http.services.rearch_keycloak.loadBalancer.sticky.cookie=false
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_keycloak_http.entrypoints=web
+      - traefik.http.routers.rearch_keycloak_http.rule=Host(`auth.rearch.engineer`)
+      - traefik.http.routers.rearch_keycloak_http.middlewares=rearch_keycloak_https
+      - traefik.http.middlewares.rearch_keycloak_https.redirectscheme.scheme=https
+    deploy:
+      replicas: 1
+
+  # ─── Keycloak PostgreSQL ───────────────────────────────────────────────────
+  keycloak-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD:-keycloak}
+    volumes:
+      - keycloak-db-data:/var/lib/postgresql/data
+    networks:
+      - rearch
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── OAuth2 Proxy (Traefik forward-auth for Keycloak) ──────────────────────
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    environment:
+      - OAUTH2_PROXY_PROVIDER=keycloak-oidc
+      - OAUTH2_PROXY_CLIENT_ID=rearch-proxy
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET}
+      - OAUTH2_PROXY_OIDC_ISSUER_URL=https://auth.rearch.engineer/realms/rearch
+      - OAUTH2_PROXY_REDIRECT_URL=https://app.rearch.engineer/oauth2/callback
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET}
+      - OAUTH2_PROXY_COOKIE_SECURE=true
+      - OAUTH2_PROXY_COOKIE_DOMAINS=.rearch.engineer
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+      - OAUTH2_PROXY_REVERSE_PROXY=true
+      - OAUTH2_PROXY_SET_XAUTHREQUEST=true
+      - OAUTH2_PROXY_PASS_ACCESS_TOKEN=true
+      - OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER=true
+      - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
+      - OAUTH2_PROXY_WHITELIST_DOMAINS=.rearch.engineer
+      - OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST=true
+      - OAUTH2_PROXY_COOKIE_CSRF_EXPIRE=5m
+      - OAUTH2_PROXY_SKIP_AUTH_ROUTES=^/health$$
+    networks:
+      - rearch
+      - portainer_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=portainer_default
+      # OAuth2 proxy callback/sign-in routes (public, no forward-auth on these)
+      - traefik.http.routers.rearch_oauth2proxy.rule=Host(`app.rearch.engineer`) && PathPrefix(`/oauth2`)
+      - traefik.http.routers.rearch_oauth2proxy.entrypoints=websecure
+      - traefik.http.routers.rearch_oauth2proxy.service=rearch_oauth2proxy
+      - traefik.http.routers.rearch_oauth2proxy.tls=true
+      - traefik.http.routers.rearch_oauth2proxy.tls.certresolver=leresolver
+      - traefik.http.services.rearch_oauth2proxy.loadbalancer.server.port=4180
+      - traefik.http.services.rearch_oauth2proxy.loadBalancer.sticky.cookie=false
+      # HTTP → HTTPS redirect
+      - traefik.http.routers.rearch_oauth2proxy_http.entrypoints=web
+      - traefik.http.routers.rearch_oauth2proxy_http.rule=Host(`app.rearch.engineer`) && PathPrefix(`/oauth2`)
+      - traefik.http.routers.rearch_oauth2proxy_http.middlewares=rearch_oauth2proxy_https
+      - traefik.http.middlewares.rearch_oauth2proxy_https.redirectscheme.scheme=https
+    deploy:
+      replicas: 1
+
+  # ─── MCP Proxy (centralized MCP server for conversation containers) ───────
+  mcp-proxy:
+    image: git.lab34.es/rearch/mcp-proxy:latest
+    build:
+      context: ./mcp-proxy
+      dockerfile: Dockerfile
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/rearch
+      - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
+      - MCP_PROXY_PORT=3100
+    networks:
+      - rearch
+    depends_on:
+      - mongodb
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3100/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+
+  # ─── Redis (BullMQ job queue) ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - rearch
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── MongoDB (application data) ────────────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    volumes:
+      - mongodb-data:/data/db
+    command: mongod --quiet --logpath /dev/null
+    networks:
+      - rearch
+    deploy:
+      replicas: 1
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+networks:
+  rearch:
+  portainer_default:
+    external: true
+
+volumes:
+  redis-data:
+  mongodb-data:
+  keycloak-db-data:
+  backend-data:

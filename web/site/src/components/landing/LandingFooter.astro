@@ -1,0 +1,73 @@
+---
+/**
+ * LandingFooter Component (i18n-aware)
+ * Footer for landing pages with translations
+ */
+import Logo from '@/components/ui/marketing/Logo/Logo.astro';
+import { type Locale, defaultLocale, getLocaleFromPath } from '@/i18n/config';
+import { useTranslations, getLocalizedPath } from '@/i18n/index';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale: localeProp } = Astro.props;
+
+// Get locale from prop or infer from URL
+const locale = localeProp || getLocaleFromPath(Astro.url.pathname);
+const t = useTranslations(locale);
+
+const links = [
+  { label: t('nav.docs'), href: '/docs/' },
+  { label: t('nav.contact'), href: getLocalizedPath('contact', locale) },
+  { label: t('footer.links.license'), href: getLocalizedPath('license', locale) },
+];
+
+const legalLinks = [
+  { label: t('footer.legal.legalNotice'), href: getLocalizedPath('legal-notice', locale) },
+  { label: t('footer.legal.privacyPolicy'), href: getLocalizedPath('privacy-policy', locale) },
+  { label: t('footer.legal.license'), href: getLocalizedPath('license', locale) },
+];
+---
+
+<footer class="border-t border-border bg-background-secondary py-12">
+  <div class="mx-auto max-w-6xl px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+    <!-- Logo & Attribution -->
+    <div class="flex flex-col gap-2">
+      <a href={getLocalizedPath('home', locale)} class="flex items-center gap-2">
+        <Logo size="sm" />
+        <span class="font-display text-lg font-bold text-brand-500">{t('site.name')}</span>
+      </a>
+      <p class="text-sm text-foreground-muted">{t('site.description')}</p>
+    </div>
+
+    <!-- Links -->
+    <nav class="flex flex-wrap justify-center gap-6 md:gap-8 text-sm text-foreground-muted font-medium">
+      {links.map((link) => (
+        <a
+          href={link.href}
+          class="hover:text-foreground transition-colors"
+          target={link.href.startsWith('http') ? '_blank' : undefined}
+          rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+
+  <!-- Legal Links -->
+  <div class="mx-auto max-w-6xl px-6 mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-sm text-foreground-muted">&copy; {new Date().getFullYear()} {t('site.name')}. All rights reserved.</p>
+    <div class="flex items-center gap-6">
+      {legalLinks.map((link) => (
+        <a
+          href={link.href}
+          class="text-sm text-foreground-muted hover:text-foreground transition-colors"
+        >
+          {link.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</footer>

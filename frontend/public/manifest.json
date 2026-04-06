@@ -1,0 +1,18 @@
+{
+  "short_name": "ReArch",
+  "name": "ReArch - AI Agent for Software Development",
+  "description": "An AI background agent that empowers non-technical teams to collaborate on software development projects.",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/login",
+  "display": "standalone",
+  "theme_color": "#1a1a1a",
+  "background_color": "#ffffff",
+  "categories": ["productivity", "developer tools"],
+  "orientation": "any"
+}

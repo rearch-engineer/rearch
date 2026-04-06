@@ -1,0 +1,103 @@
+---
+/**
+ * Privacy Policy Page (i18n version)
+ * URL: /{lang}/legal/privacy-policy (en), /{lang}/legal/politica-de-privacidad (es)
+ */
+import PageLayout from '@/layouts/PageLayout.astro';
+import { locales, defaultLocale, isValidLocale, type Locale } from '@/i18n/config';
+import { useTranslations, routes } from '@/i18n/index';
+
+export function getStaticPaths() {
+  const paths = [];
+
+  for (const lang of locales) {
+    if (lang === defaultLocale) continue;
+
+    const slug = routes['privacy-policy'][lang].replace('legal/', '');
+    paths.push({
+      params: { lang, privacyPolicy: slug },
+    });
+  }
+
+  return paths;
+}
+
+const { lang } = Astro.params;
+
+if (!lang || !isValidLocale(lang)) {
+  return Astro.redirect('/legal/privacy-policy/');
+}
+
+const locale = lang as Locale;
+const t = useTranslations(locale);
+---
+
+<PageLayout
+  title="Política de Privacidad"
+  description="Política de privacidad e información sobre protección de datos."
+  lang={locale}
+  noindex
+>
+  <section class="py-20">
+    <div class="mx-auto max-w-3xl px-6">
+      <a href={`/${locale}/`} class="text-sm text-foreground-muted hover:text-foreground transition-colors mb-8 inline-block">&larr; volver</a>
+
+      <h1 class="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">Política de Privacidad</h1>
+      <p class="text-sm text-foreground-muted mb-12"><em>Última actualización: 21 de abril de 2025</em></p>
+
+      <div class="prose max-w-none space-y-10">
+
+        <div class="bg-surface-secondary border border-border rounded-xl p-6">
+          <h2 class="text-xl font-bold mb-3">En resumen...</h2>
+          <ol class="list-decimal pl-6 space-y-1">
+            <li>No se recopilan datos de usuario a través del sitio web &mdash; salvo los datos enviados por correo electrónico o formularios de contacto mostrados en páginas web de terceros.</li>
+            <li>No utilizamos cookies ni rastreadores.</li>
+            <li>No registramos las direcciones IP de los visitantes de nuestro sitio web.</li>
+          </ol>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">1. Responsable del tratamiento</h2>
+          <p>El Responsable del tratamiento se corresponde con el titular de este sitio web, cuyos datos completos se facilitan en el <a href={`/${locale}/legal/aviso-legal/`}>Aviso Legal</a>.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">2. Datos tratados, finalidades y plazos de conservación</h2>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.1 Datos tratados</h3>
+          <p>A efectos de solicitar información, contacto o cita, será necesario facilitar determinados datos a través de la cumplimentación del formulario habilitado a tal efecto, en el que se indicará cuáles de ellos son obligatorios.</p>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.2 Finalidades</h3>
+          <ul class="list-disc pl-6 space-y-1">
+            <li><strong>Contacto:</strong> El correo electrónico o teléfono facilitado para contacto se utilizará para responder eficazmente a las cuestiones planteadas.</li>
+          </ul>
+
+          <h3 class="text-xl font-semibold mb-3 mt-6">2.3 Conservación</h3>
+          <ul class="list-disc pl-6 space-y-1">
+            <li><strong>Contacto:</strong> Los datos se eliminarán una vez tramitada y respondida la consulta planteada por el usuario.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">3. Base legal del tratamiento</h2>
+          <p>La base legal para el tratamiento de los datos facilitados será el consentimiento otorgado por el usuario a través de la cumplimentación del formulario y; (ii) la satisfacción de los intereses legítimos del Responsable del tratamiento.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">4. Destinatarios y transferencias</h2>
+          <p>No se realizarán cesiones ni comunicaciones de datos, salvo las expresamente previstas por ley.</p>
+          <p>No están previstas transferencias internacionales de datos y los proveedores de servicios se encuentran ubicados en el Espacio Económico Europeo.</p>
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold mb-4">5. Ejercicio de derechos</h2>
+          <p>Toda persona tiene derecho a obtener confirmación sobre si se están tratando o no datos personales que le conciernan. Los interesados tienen derecho a acceder a sus datos personales, así como a solicitar la rectificación de los datos inexactos o, en su caso, solicitar su supresión cuando, entre otros motivos, los datos ya no sean necesarios para los fines para los que fueron recogidos.</p>
+          <p>En determinadas circunstancias, los interesados podrán solicitar la limitación del tratamiento de sus datos u oponerse al tratamiento de los mismos, en cuyo caso únicamente los conservaremos para el ejercicio o la defensa de reclamaciones.</p>
+          <p>A tal efecto, los usuarios podrán dirigir una comunicación escrita a la dirección postal o correo electrónico que figuran en el <a href={`/${locale}/legal/aviso-legal/`}>Aviso Legal</a>, incluyendo en ambos casos fotocopia del documento nacional de identidad o documentación acreditativa equivalente.</p>
+          <p>En caso de que desee ejercer el derecho de portabilidad, dichos datos serán facilitados al nuevo Responsable.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</PageLayout>
