@@ -1,7 +1,0 @@
-{
-  "question": "What is ReArch?",
-  "answer": "ReArch is an AI background agent that writes, tests, and ships code. It runs in sandboxed virtual machines and creates pull requests automatically, enabling everyone on your team to contribute code — not just engineers.",
-  "category": "general",
-  "order": 1,
-  "locale": "en"
-}
