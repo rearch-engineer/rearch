@@ -42,7 +42,7 @@ ReArch provides a chat interface where users can have AI-assisted conversations 
 - bun 1.3.10
 - Docker and Docker Compose
 - A Bitbucket workspace (for repository integration)
-- An Anthropic and/or Google Generative AI API key
+- An Anthropic AI API key
 
 ## Local Development
 
