@@ -5,8 +5,7 @@
 import { resolve } from "node:path";
 import logUpdate from "log-update";
 import chalk from "chalk";
-import { renderBanner } from "./banner.js";
-import { renderDashboard, getTotalPages } from "./dashboard.js";
+import { renderDashboard, getVisualPageOrder } from "./dashboard.js";
 import { checkPorts } from "./ports.js";
 import { ServiceManager, SERVICE_DEFINITIONS } from "./services.js";
 import type { DashboardState } from "./types.js";
@@ -26,7 +25,7 @@ let renderInterval: ReturnType<typeof setInterval> | null = null;
 
 const state: DashboardState = {
   services: [],
-  activePage: 2, // Default to MCP Proxy logs (first local service)
+  activePage: 0, // Will be set to "All Logs" once services are loaded
   restarting: false,
   statusMessage: null,
   combinedLogs: [],
@@ -36,9 +35,6 @@ const state: DashboardState = {
 // ── Entry ────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  // Show splash banner
-  console.log(renderBanner());
-
   // Pre-flight: check port availability
   console.log(dim("  Checking port availability..."));
 
@@ -50,12 +46,12 @@ async function main(): Promise<void> {
     const svc = SERVICE_DEFINITIONS.find((s) => s.port === port);
     if (!available) {
       console.log(
-        `  ${chalk.red("✗")} Port ${chalk.bold(String(port))} (${svc?.name}) is already in use`
+        `  ${chalk.red("✗")} Port ${chalk.bold(String(port))} (${svc?.name}) is already in use`,
       );
       blocked = true;
     } else {
       console.log(
-        `  ${chalk.green("✓")} Port ${chalk.bold(String(port))} (${svc?.name}) is available`
+        `  ${chalk.green("✓")} Port ${chalk.bold(String(port))} (${svc?.name}) is available`,
       );
     }
   }
@@ -64,8 +60,8 @@ async function main(): Promise<void> {
     console.log("");
     console.log(
       chalk.red(
-        "  One or more required ports are occupied. Free them and try again."
-      )
+        "  One or more required ports are occupied. Free them and try again.",
+      ),
     );
     process.exit(1);
   }
@@ -78,6 +74,9 @@ async function main(): Promise<void> {
   const manager = new ServiceManager(PROJECT_ROOT);
   state.services = manager.getStates();
   state.combinedLogs = manager.getCombinedLogs();
+
+  // Default to "All Logs" page
+  state.activePage = state.services.length + 1;
 
   // Start Docker services first, then local services
   await manager.startDockerServices();
@@ -165,19 +164,22 @@ function setupKeyboardInput(manager: ServiceManager): void {
       return;
     }
 
-    // Arrow keys — switch page
+    // Arrow keys — switch page in visual bar order
     // Left: \x1b[D (27, 91, 68)   Right: \x1b[C (27, 91, 67)
     if (data.length === 3 && data[0] === 27 && data[1] === 91) {
-      const totalPages = getTotalPages(state.services.length);
+      const visualOrder = getVisualPageOrder(state.services.length);
+      const currentVisualIdx = visualOrder.indexOf(state.activePage);
+      const pos = currentVisualIdx === -1 ? 0 : currentVisualIdx;
+
       if (data[2] === 67) {
-        // Right arrow — next page
-        state.activePage = (state.activePage + 1) % totalPages;
+        // Right arrow — next page in visual order
+        state.activePage = visualOrder[(pos + 1) % visualOrder.length];
         return;
       }
       if (data[2] === 68) {
-        // Left arrow — previous page
+        // Left arrow — previous page in visual order
         state.activePage =
-          (state.activePage - 1 + totalPages) % totalPages;
+          visualOrder[(pos - 1 + visualOrder.length) % visualOrder.length];
         return;
       }
     }

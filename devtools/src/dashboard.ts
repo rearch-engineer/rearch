@@ -31,6 +31,18 @@ export function getTotalPages(serviceCount: number): number {
   return serviceCount + 3; // service logs + services table + all logs + docker sessions
 }
 
+/**
+ * Returns page indices in the visual order they appear in the service bar:
+ * All Logs → [service 0 .. N-1] → Services table → Docker
+ */
+export function getVisualPageOrder(serviceCount: number): number[] {
+  const serviceIndices = Array.from({ length: serviceCount }, (_, i) => i);
+  const allLogsIdx = serviceCount + 1;
+  const servicesIdx = serviceCount + 0;
+  const dockerIdx = serviceCount + 2;
+  return [allLogsIdx, ...serviceIndices, servicesIdx, dockerIdx];
+}
+
 function getPageTitle(
   pageIndex: number,
   services: ServiceState[],
@@ -94,6 +106,14 @@ function statusText(status: string): string {
   }
 }
 
+// ── ANSI-aware padding ───────────────────────────────────────
+
+function pad(s: string, w: number): string {
+  const visible = s.replace(/\x1b\[[0-9;]*m/g, "");
+  const padding = Math.max(0, w - visible.length);
+  return s + " ".repeat(padding);
+}
+
 // ── Uptime formatting ────────────────────────────────────────
 
 function formatUptime(startedAt: number | null): string {
@@ -120,22 +140,36 @@ function renderServiceBar(
 ): string {
   const header = `${brandBold("ReArch")} ${dim(`(${gitSha})`)}`;
   const activeServiceIndex = activePage < services.length ? activePage : -1;
-  const allServicesPage = activePage === services.length + 1;
 
   const serviceParts = services.map((svc, i) => {
     const icon = statusIcon(svc.status);
-    const isActive = i === activeServiceIndex || allServicesPage;
+    const isActive = i === activeServiceIndex;
     const name = isActive
       ? chalk.white.bold(svc.definition.name)
       : dim(svc.definition.name);
     return `${icon} ${name}`;
   });
 
-  if (serviceParts.length === 0) {
-    return `  ${header}`;
-  }
+  // Extra page tab helper
+  const extraTab = (label: string, offset: number) => {
+    const pageIdx = services.length + offset;
+    const isActive = activePage === pageIdx;
+    return isActive ? chalk.white.bold(label) : dim(label);
+  };
 
-  return `  ${header}      ${serviceParts.join("      ")}`;
+  // "All Logs" before the service list, then Services + Docker after
+  const allLogsTab = extraTab("All Logs", 1);
+  const trailingTabs = [extraTab("Services", 0), extraTab("Docker", 2)];
+
+  const parts = [
+    allLogsTab,
+    dim("|"),
+    ...serviceParts,
+    dim("|"),
+    ...trailingTabs,
+  ];
+
+  return `  ${header}  ${parts.join("  ")}`;
 }
 
 // ── Page: Service logs ───────────────────────────────────────
@@ -179,13 +213,6 @@ function renderServicesTablePage(
     address: 20,
     pid: 8,
     uptime: 10,
-  };
-
-  const pad = (s: string, w: number) => {
-    // Strip ANSI to measure visible length
-    const visible = s.replace(/\x1b\[[0-9;]*m/g, "");
-    const padding = Math.max(0, w - visible.length);
-    return s + " ".repeat(padding);
   };
 
   // Header
@@ -258,12 +285,6 @@ function renderDockerSessionsPage(
 
   const cols = { id: 14, name: 32, image: 24, status: 20 };
 
-  const pad = (s: string, w: number) => {
-    const visible = s.replace(/\x1b\[[0-9;]*m/g, "");
-    const padding = Math.max(0, w - visible.length);
-    return s + " ".repeat(padding);
-  };
-
   // Header
   lines.push(
     `  ${dim(pad("ID", cols.id))}${dim(pad("Name", cols.name))}${dim(pad("Image", cols.image))}${dim("Status")}`,
@@ -309,8 +330,10 @@ export function renderDashboard(state: DashboardState): string {
 
   // ── 2. Page header ─────────────────────────────────────────
   const pageInfo = getPageTitle(state.activePage, state.services);
+  const visualOrder = getVisualPageOrder(state.services.length);
+  const visualPos = visualOrder.indexOf(state.activePage);
   lines.push(
-    `  ${pageInfo.label} ${dim(`(${state.activePage + 1}/${totalPages})`)}`,
+    `  ${pageInfo.label} ${dim(`(${(visualPos !== -1 ? visualPos : state.activePage) + 1}/${totalPages})`)}`,
   );
   lines.push(`  ${dim("─".repeat(sepWidth))}`);
 
@@ -319,8 +342,9 @@ export function renderDashboard(state: DashboardState): string {
   // top: service bar (1) + blank (1) = 2
   // page header: title (1) + separator (1) = 2
   // footer: separator (1) + status message (0 or 1) + options (1) = 2-3
+  // log-update appends a trailing newline, so reserve 1 extra line
   const footerSize = state.statusMessage ? 3 : 2;
-  const availableLines = Math.max(5, termHeight - 4 - footerSize);
+  const availableLines = Math.max(5, termHeight - 4 - footerSize - 1);
 
   let contentLines: string[];
 
@@ -353,6 +377,12 @@ export function renderDashboard(state: DashboardState): string {
       default:
         contentLines = [`  ${dim("Unknown page")}`];
     }
+  }
+
+  // Truncate content to available space so the service bar and footer
+  // always remain visible regardless of how many lines a page produces.
+  if (contentLines.length > availableLines) {
+    contentLines = contentLines.slice(-availableLines);
   }
 
   lines.push(...contentLines);

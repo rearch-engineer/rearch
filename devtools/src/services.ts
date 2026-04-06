@@ -4,7 +4,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import { spawn, type Subprocess } from "bun";
-import { existsSync } from "node:fs";
+import { existsSync, copyFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { isPortResponding } from "./ports.js";
 import type {
@@ -338,9 +338,27 @@ export class ServiceManager {
     }
   }
 
+  // ── Environment file setup ───────────────────────────────
+
+  private ensureBackendEnv(): void {
+    const backendDir = resolve(this.rootDir, "backend");
+    const envFile = join(backendDir, ".env");
+    const envExample = join(backendDir, ".env.example");
+
+    if (!existsSync(envFile) && existsSync(envExample)) {
+      copyFileSync(envExample, envFile);
+      const backendState = this.getState("Backend");
+      this.appendLog(
+        backendState.definition.name,
+        "Copied .env.example → .env (no .env file found)"
+      );
+    }
+  }
+
   // ── Local services ───────────────────────────────────────
 
   async startLocalServices(): Promise<void> {
+    this.ensureBackendEnv();
     await this.ensureDependencies();
 
     const localServices = this.states.filter(
