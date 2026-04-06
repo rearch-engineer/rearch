@@ -159,11 +159,10 @@ const conversationsWorker = new Worker(
         );
       }
 
-      // Log API key is set without exposing the value
-      const keyPrefix = anthropicApiKey.substring(0, 7);
+      // Log that the API key is configured without exposing its value
       const keyLength = anthropicApiKey.length;
       queueLogger.debug(
-        { keyPrefix, keyLength },
+        { keyLength },
         "Anthropic API key configured",
       );
 
