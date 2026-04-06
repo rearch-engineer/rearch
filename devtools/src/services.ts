@@ -4,6 +4,7 @@
 // ──────────────────────────────────────────────────────────────
 
 import { spawn, type Subprocess } from "bun";
+import { existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { isPortResponding } from "./ports.js";
 import type {
@@ -273,15 +274,83 @@ export class ServiceManager {
     }
   }
 
+  // ── Dependency installation ──────────────────────────────
+
+  private async ensureDependencies(): Promise<void> {
+    const localServices = this.states.filter(
+      (s) => s.definition.type === "local"
+    );
+
+    const installTasks = localServices
+      .filter((svc) => {
+        const cwd = resolve(this.rootDir, svc.definition.cwd!);
+        const nodeModulesPath = join(cwd, "node_modules");
+        return !existsSync(nodeModulesPath);
+      })
+      .map((svc) => this.installDependencies(svc));
+
+    if (installTasks.length > 0) {
+      await Promise.all(installTasks);
+    }
+  }
+
+  private async installDependencies(svc: ServiceState): Promise<void> {
+    const def = svc.definition;
+    const cwd = resolve(this.rootDir, def.cwd!);
+
+    this.appendLog(
+      def.name,
+      "node_modules not found. Installing dependencies..."
+    );
+
+    try {
+      const proc = spawn({
+        cmd: ["bun", "install"],
+        stdout: "pipe",
+        stderr: "pipe",
+        cwd,
+      });
+
+      this.readStream(proc.stdout, (line) => {
+        this.appendLog(def.name, line);
+      });
+      this.readStream(proc.stderr, (line) => {
+        this.appendLog(def.name, line);
+      });
+
+      const exitCode = await proc.exited;
+
+      if (exitCode === 0) {
+        this.appendLog(def.name, "Dependencies installed successfully.");
+      } else {
+        svc.status = "error";
+        this.appendLog(
+          def.name,
+          `bun install failed with exit code ${exitCode}`
+        );
+      }
+    } catch (err) {
+      svc.status = "error";
+      this.appendLog(
+        def.name,
+        `Failed to install dependencies: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
   // ── Local services ───────────────────────────────────────
 
   async startLocalServices(): Promise<void> {
+    await this.ensureDependencies();
+
     const localServices = this.states.filter(
       (s) => s.definition.type === "local"
     );
 
     for (const svc of localServices) {
-      this.startLocalService(svc);
+      if (svc.status !== "error") {
+        this.startLocalService(svc);
+      }
     }
   }
 
