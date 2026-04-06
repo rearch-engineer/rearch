@@ -180,7 +180,7 @@ const conversationsWorker = new Worker(
         );
       }
 
-      console.log(`✅ LLM API key configured (${llmApiKey.length} chars)`);
+      console.log(`✅ LLM API key configured`);
 
       await jobLog(
         job,

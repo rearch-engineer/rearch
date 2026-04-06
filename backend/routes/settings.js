@@ -72,7 +72,7 @@ export const LLM_PROVIDERS = {
   },
 };
 
-const validProviderIds = Object.keys(LLM_PROVIDERS);
+const validProviderIds = /** @type {const} */ (['anthropic', 'openai', 'google', 'groq', 'xai']);
 
 const llmSettingsSchema = z.object({
   provider: z.enum(validProviderIds, {
