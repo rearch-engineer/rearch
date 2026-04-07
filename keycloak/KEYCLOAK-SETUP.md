@@ -382,7 +382,6 @@ The following features require the `admin` role:
 
 - User management (`/api/users`)
 - Flow personas configuration (`/api/flow-personas`)
-- Guard rails configuration (`/api/guard-rails`)
 - Skills management (`/api/skills`)
 - Job queue dashboard (`/api/jobs`)
 - Usage analytics (`/api/usage`)

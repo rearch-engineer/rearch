@@ -36,8 +36,6 @@ tags:
     description: Available AI tools endpoints
   - name: Flow Personas
     description: Flow persona management (admin only)
-  - name: Guard Rails
-    description: Guard rail management (admin only)
   - name: Skills
     description: Skill management (admin only)
   - name: Settings
@@ -504,27 +502,7 @@ components:
           type: string
           format: date-time
 
-    GuardRail:
-      type: object
-      required:
-        - regularExpression
-      properties:
-        _id:
-          type: string
-          description: MongoDB ObjectId
-        regularExpression:
-          type: string
-        reject:
-          type: boolean
-          default: false
-        replaceWith:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
+
 
     Skill:
       type: object
@@ -3298,106 +3276,6 @@ paths:
       responses:
         "204":
           description: Flow persona deleted
-        "403":
-          description: Admin role required
-
-  # ===========================================================================
-  # Guard Rails (Admin only)
-  # ===========================================================================
-
-  /api/guard-rails:
-    get:
-      tags:
-        - Guard Rails
-      summary: List all guard rails (admin only)
-      responses:
-        "200":
-          description: List of guard rails
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/GuardRail"
-        "403":
-          description: Admin role required
-
-    post:
-      tags:
-        - Guard Rails
-      summary: Create a guard rail (admin only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - regularExpression
-              properties:
-                regularExpression:
-                  type: string
-                reject:
-                  type: boolean
-                replaceWith:
-                  type: string
-      responses:
-        "201":
-          description: Guard rail created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GuardRail"
-        "403":
-          description: Admin role required
-
-  /api/guard-rails/{id}:
-    put:
-      tags:
-        - Guard Rails
-      summary: Update a guard rail (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                regularExpression:
-                  type: string
-                reject:
-                  type: boolean
-                replaceWith:
-                  type: string
-      responses:
-        "200":
-          description: Updated guard rail
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GuardRail"
-        "403":
-          description: Admin role required
-
-    delete:
-      tags:
-        - Guard Rails
-      summary: Delete a guard rail (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Guard rail deleted
         "403":
           description: Admin role required
 

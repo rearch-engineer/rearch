@@ -16,7 +16,6 @@ import {
   Typography,
   Badge,
 } from "@mui/joy";
-import SecurityIcon from "@mui/icons-material/Security";
 import PersonIcon from "@mui/icons-material/Person";
 import ArticleIcon from "@mui/icons-material/Article";
 import PeopleIcon from "@mui/icons-material/People";
@@ -26,7 +25,6 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
 import HubIcon from "@mui/icons-material/Hub";
 import GeneralSettings from "../components/Administration/GeneralSettings";
-import GuardRailsSettings from "../components/Administration/GuardRailsSettings";
 import FlowPersonasSettings from "../components/Administration/FlowPersonasSettings";
 import SkillsSettings from "../components/Administration/SkillsSettings";
 import SkillEditPage from "../components/Administration/SkillEditPage";
@@ -55,11 +53,6 @@ export default function AdministrationPage() {
       label: "Users",
       path: "/administration/users",
       icon: <PeopleIcon />,
-    },
-    {
-      label: "Guardrails",
-      path: "/administration/guardrails",
-      icon: <SecurityIcon />,
     },
     {
       label: "Flow Personas",
@@ -158,7 +151,6 @@ export default function AdministrationPage() {
           />
           <Route path="/general" element={<GeneralSettings />} />
           <Route path="/users" element={<UsersSettings />} />
-          <Route path="/guardrails" element={<GuardRailsSettings />} />
           <Route path="/flow-personas" element={<FlowPersonasSettings />} />
           <Route path="/skills" element={<SkillsSettings />} />
           <Route path="/skills/:id" element={<SkillEditPage />} />

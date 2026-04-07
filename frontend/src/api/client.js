@@ -642,27 +642,6 @@ export const api = {
     return response.data;
   },
 
-  // Guard Rails
-  getGuardRails: async () => {
-    const response = await axios.get(`${API_BASE_URL}/guard-rails`);
-    return response.data;
-  },
-
-  createGuardRail: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/guard-rails`, data);
-    return response.data;
-  },
-
-  updateGuardRail: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/guard-rails/${id}`, data);
-    return response.data;
-  },
-
-  deleteGuardRail: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/guard-rails/${id}`);
-    return response.data;
-  },
-
   // Skills
   getSkills: async () => {
     const response = await axios.get(`${API_BASE_URL}/skills`);
