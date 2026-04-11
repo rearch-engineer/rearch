@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Dropdown from "@mui/joy/Dropdown";
 import Menu from "@mui/joy/Menu";
@@ -7,18 +7,19 @@ import MenuItem from "@mui/joy/MenuItem";
 import ListDivider from "@mui/joy/ListDivider";
 import ListItemDecorator from "@mui/joy/ListItemDecorator";
 import CircularProgress from "@mui/joy/CircularProgress";
+import Typography from "@mui/joy/Typography";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonOutlined from "@mui/icons-material/PersonOutlined";
 import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import StorageOutlined from "@mui/icons-material/StorageOutlined";
+import SearchIcon from "@mui/icons-material/Search";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ForumIcon from "@mui/icons-material/Forum";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
-import { api } from "../api/client";
 import UserAvatar from "./UserAvatar";
 import "./MainMenu.css";
 
@@ -40,32 +41,13 @@ const MainMenu = () => {
   const { user, isAdmin, logout } = useAuth();
   const { conversations, busyConversationIds, unreadConversationIds, handleDeleteConversation, handleRenameConversation, markRead } = useConversations();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState(null);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef(null);
 
-  // Debounced search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults(null);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const results = await api.searchConversations(searchQuery.trim());
-        setSearchResults(results);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const openCommandPalette = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("open-command-palette"));
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -114,9 +96,6 @@ const MainMenu = () => {
   const userDisplayName =
     user?.profile?.display_name || user?.email || user?.username || "?";
   const userEmail = user?.email || "";
-
-  const displayedConversations =
-    searchResults !== null ? searchResults : conversations;
 
   return (
     <div className="main-menu">
@@ -211,32 +190,48 @@ const MainMenu = () => {
         </div>
       </div>
 
-      {/* ── Search ── */}
+      {/* ── Search trigger ── */}
       <div className="main-menu-search">
-        <input
-          type="text"
-          className="main-menu-search-input"
-          placeholder="Search sessions..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div
+          className="main-menu-search-trigger"
+          onClick={openCommandPalette}
+          title="Search (Ctrl+P)"
+        >
+          <SearchIcon sx={{ fontSize: 16, color: "var(--text-tertiary)" }} />
+          <Typography
+            level="body-sm"
+            sx={{ color: "var(--text-tertiary)", flex: 1, userSelect: "none" }}
+          >
+            Search...
+          </Typography>
+          <Typography
+            level="body-xs"
+            sx={{
+              color: "var(--text-tertiary)",
+              bgcolor: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
+              borderRadius: "4px",
+              px: 0.6,
+              py: 0.1,
+              fontSize: "11px",
+              fontFamily: "inherit",
+              lineHeight: 1.4,
+            }}
+          >
+            Ctrl+P
+          </Typography>
+        </div>
       </div>
 
       {/* ── Conversation list ── */}
       <div className="conversations">
-        {displayedConversations.length === 0 ? (
+        {conversations.length === 0 ? (
           <div className="empty-state">
-            {searchQuery.trim() ? (
-              <p>{searchLoading ? "Searching…" : "No results"}</p>
-            ) : (
-              <>
-                <p>No conversations yet</p>
-                <p className="empty-hint">Click + to start</p>
-              </>
-            )}
+            <p>No conversations yet</p>
+            <p className="empty-hint">Click + to start</p>
           </div>
         ) : (
-          displayedConversations.map((conv) => (
+          conversations.map((conv) => (
             <div
               key={conv._id}
               className={`conversation-item ${location.pathname === `/conversations/${conv._id}` ? "active" : ""}`}

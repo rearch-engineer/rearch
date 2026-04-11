@@ -34,8 +34,6 @@ tags:
     description: Sub-resource management (import, actions, files) within resources
   - name: Tools
     description: Available AI tools endpoints
-  - name: Flow Personas
-    description: Flow persona management (admin only)
   - name: Skills
     description: Skill management (admin only)
   - name: Settings

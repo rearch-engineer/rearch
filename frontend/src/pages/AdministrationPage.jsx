@@ -25,7 +25,9 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import HubIcon from "@mui/icons-material/Hub";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import GeneralSettings from "../components/Administration/GeneralSettings";
+import SuggestedPromptsSettings from "../components/Administration/SuggestedPromptsSettings";
 import SkillsSettings from "../components/Administration/SkillsSettings";
 import SkillEditPage from "../components/Administration/SkillEditPage";
 import UsersSettings from "../components/Administration/UsersSettings";
@@ -56,11 +58,6 @@ export default function AdministrationPage() {
       icon: <PeopleIcon />,
     },
     {
-      label: "Flow Personas",
-      path: "/administration/flow-personas",
-      icon: <PersonIcon />,
-    },
-    {
       label: "Skills",
       path: "/administration/skills",
       icon: <ArticleIcon />,
@@ -85,6 +82,11 @@ export default function AdministrationPage() {
       label: "MCP Servers",
       path: "/administration/mcp-servers",
       icon: <HubIcon fontSize="small" />,
+    },
+    {
+      label: "Suggested Prompts",
+      path: "/administration/suggested-prompts",
+      icon: <LightbulbIcon />,
     },
     {
       label: "Usage",
@@ -172,6 +174,7 @@ export default function AdministrationPage() {
             element={<McpServersManualPage />}
           />
           <Route path="/mcp-servers/:id" element={<McpServersEditPage />} />
+          <Route path="/suggested-prompts" element={<SuggestedPromptsSettings />} />
           <Route path="/usage" element={<UsageSettings />} />
         </Routes>
       </Box>

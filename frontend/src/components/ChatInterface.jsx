@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import WelcomeScreen from "./WelcomeScreen";
 import { api } from "../api/client";
 import Button from "@mui/joy/Button";
 import CircularProgress from "@mui/joy/CircularProgress";
@@ -55,6 +56,7 @@ const ChatInterface = ({
   const [isCreating, setIsCreating] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState(null);
   const [pendingPermission, setPendingPermission] = useState(null);
+  const [conversationSubResourceId, setConversationSubResourceId] = useState(null);
 
   // Model and agent state
   const [providers, setProviders] = useState(null);
@@ -136,6 +138,7 @@ const ChatInterface = ({
       setAgents([]);
       setSelectedModel(getSavedModel());
       setSelectedAgent(getSavedAgent());
+      setConversationSubResourceId(null);
     }
 
     return () => {
@@ -215,6 +218,21 @@ const ChatInterface = ({
         const repos = await api.getAllSubResources("bitbucket-repository");
         const enabledRepos = repos.filter((repo) => repo.rearch?.enabled);
         setAllRepositories(enabledRepos);
+
+        // Check for pre-selected repo from the command palette
+        try {
+          const preselect = sessionStorage.getItem("command_palette_preselect_repo");
+          if (preselect) {
+            sessionStorage.removeItem("command_palette_preselect_repo");
+            const { subResourceId, resourceId } = JSON.parse(preselect);
+            if (subResourceId && enabledRepos.some((r) => r._id === subResourceId)) {
+              setSelectedSubResource(subResourceId);
+              setSelectedRepoResourceId(resourceId);
+            }
+          }
+        } catch {
+          // ignore parse errors
+        }
       } catch (error) {
         console.error("Error loading repositories:", error);
         setAllRepositories([]);
@@ -224,6 +242,13 @@ const ChatInterface = ({
     };
 
     fetchAllRepositories();
+
+    // Listen for repo-preselected events (when palette selects while already on /new)
+    const handleRepoPreselected = () => {
+      fetchAllRepositories();
+    };
+    window.addEventListener("repo-preselected", handleRepoPreselected);
+    return () => window.removeEventListener("repo-preselected", handleRepoPreselected);
   }, [conversationId]);
 
   useEffect(() => {
@@ -251,8 +276,18 @@ const ChatInterface = ({
   const loadConversation = async () => {
     setIsLoadingMessages(true);
     try {
-      const messages = await api.getMessages(conversationId);
+      const [messages, convData] = await Promise.all([
+        api.getMessages(conversationId),
+        api.getConversation(conversationId),
+      ]);
       setMessages(messages);
+      if (convData?.subResource) {
+        setConversationSubResourceId(
+          typeof convData.subResource === "object"
+            ? convData.subResource._id
+            : convData.subResource,
+        );
+      }
     } catch (error) {
       console.error("Error loading conversation:", error);
     } finally {
@@ -716,6 +751,38 @@ const ChatInterface = ({
           selectedAgent={null}
           onAgentChange={() => {}}
         />
+      </div>
+    );
+  }
+
+  // Show welcome screen when conversation exists but has no messages yet
+  const showWelcome =
+    !isLoadingMessages &&
+    messages.length === 0 &&
+    !streamingMessage &&
+    !isLoading;
+
+  if (showWelcome) {
+    return (
+      <div className="chat-interface">
+        <WelcomeScreen
+          subResourceId={conversationSubResourceId}
+          onPromptClick={(promptText) => {
+            handleSendMessage(promptText);
+          }}
+        >
+          <MessageInput
+            ref={messageInputRef}
+            onSendMessage={handleSendMessage}
+            disabled={isLoading || !!pendingQuestion || !!pendingPermission}
+            providers={providers}
+            agents={agents}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            selectedAgent={selectedAgent}
+            onAgentChange={setSelectedAgent}
+          />
+        </WelcomeScreen>
       </div>
     );
   }

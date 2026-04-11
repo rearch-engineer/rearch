@@ -1,174 +1,116 @@
+/* ── Backdrop ─────────────────────────────────────────────── */
 .command-palette-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
   z-index: 1300;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 10vh;
+  padding-top: 8vh;
+  animation: cp-backdrop-in 0.12s ease-out;
 }
 
+@keyframes cp-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Dialog container ────────────────────────────────────── */
 .command-palette {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  width: min(95vw, 580px);
-  max-height: 70vh;
+  border-radius: 16px;
+  width: min(94vw, 560px);
+  max-height: 72vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 48px var(--shadow-color-heavy);
+  box-shadow: 0 20px 60px var(--shadow-color-heavy),
+              0 0 0 1px var(--border-color);
   overflow: hidden;
-  animation: command-palette-fade-in 0.15s ease-out;
+  animation: cp-slide-in 0.15s ease-out;
 }
 
-@keyframes command-palette-fade-in {
+@keyframes cp-slide-in {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-12px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-/* Header */
-.command-palette-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px 10px 20px;
-}
-
-.command-palette-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.command-palette-back-hint {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-tertiary);
-  padding: 2px 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-family: inherit;
-}
-
-.command-palette-esc {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  padding: 2px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-}
-
-/* Search */
-.command-palette-search {
-  padding: 8px 20px;
-}
-
-.command-palette-search input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-size: 14px;
-  padding: 4px 0;
-  font-family: inherit;
-}
-
-.command-palette-search input::placeholder {
-  color: var(--text-tertiary);
-}
-
-/* Divider between search and list */
-.command-palette-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 0 20px;
-}
-
-/* Command list */
+/* ── Scrollable list area ────────────────────────────────── */
 .command-palette-list {
   overflow-y: auto;
-  padding: 8px 0;
   flex: 1;
   min-height: 0;
+  padding: 4px 0 8px;
 }
 
-/* Section header */
-.command-palette-section {
-  padding: 12px 20px 4px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-color);
-  user-select: none;
+/* Styled scrollbar */
+.command-palette-list::-webkit-scrollbar {
+  width: 6px;
 }
 
-.command-palette-section:first-child {
-  padding-top: 4px;
+.command-palette-list::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
 }
 
-/* Command item */
+.command-palette-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.command-palette-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ── Item row ────────────────────────────────────────────── */
 .command-palette-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 8px 20px;
   cursor: pointer;
-  color: var(--text-primary);
-  font-size: 14px;
-  transition: background 0.1s;
+  transition: background-color 0.08s;
+  min-height: 40px;
 }
 
 .command-palette-item:hover,
 .command-palette-item.selected {
-  background: var(--accent-color);
-  color: #ffffff;
+  background-color: var(--bg-hover);
 }
 
-.command-palette-item-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.command-palette-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--text-secondary);
 }
 
-.command-palette-item-shortcut {
-  font-size: 12px;
+.command-palette-item-icon.repo {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.command-palette-item-icon.conversation {
   color: var(--text-tertiary);
-  margin-left: 16px;
-  white-space: nowrap;
 }
 
-.command-palette-item:hover .command-palette-item-shortcut,
-.command-palette-item.selected .command-palette-item-shortcut {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Sub-view items (conversations, models) */
-.command-palette-item-subtitle {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.command-palette-item:hover .command-palette-item-subtitle,
-.command-palette-item.selected .command-palette-item-subtitle {
-  color: rgba(255, 255, 255, 0.7);
+.command-palette-item-icon.action {
+  color: var(--accent-color);
 }
 
 .command-palette-item-details {
@@ -176,36 +118,21 @@
   min-width: 0;
 }
 
-/* Empty state */
+.command-palette-item-badge {
+  flex-shrink: 0;
+}
+
+/* ── Empty / loading states ──────────────────────────────── */
 .command-palette-empty {
-  padding: 20px;
+  padding: 32px 20px;
   text-align: center;
-  color: var(--text-tertiary);
-  font-size: 13px;
 }
 
-/* Loading state */
 .command-palette-loading {
-  padding: 20px;
+  padding: 32px 20px;
   text-align: center;
-  color: var(--text-tertiary);
-  font-size: 13px;
-}
-
-/* Active model indicator */
-.command-palette-item-active {
-  font-size: 11px;
-  color: var(--accent-color);
-  margin-left: 8px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.command-palette-item:hover .command-palette-item-active,
-.command-palette-item.selected .command-palette-item-active {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.command-palette-group-spacer {
-  height: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }

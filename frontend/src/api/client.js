@@ -870,4 +870,55 @@ export const api = {
     const response = await axios.post(`${API_BASE_URL}/mcp/reload`);
     return response.data;
   },
+
+  // Suggested Prompt Categories
+  getSuggestedPromptCategories: async () => {
+    const response = await axios.get(`${API_BASE_URL}/suggested-prompts/categories`);
+    return response.data;
+  },
+
+  createSuggestedPromptCategory: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/suggested-prompts/categories`, data);
+    return response.data;
+  },
+
+  updateSuggestedPromptCategory: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/suggested-prompts/categories/${id}`, data);
+    return response.data;
+  },
+
+  deleteSuggestedPromptCategory: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/suggested-prompts/categories/${id}`);
+    return response.data;
+  },
+
+  // Suggested Prompts
+  getSuggestedPrompts: async () => {
+    const response = await axios.get(`${API_BASE_URL}/suggested-prompts`);
+    return response.data;
+  },
+
+  getSuggestedPromptsForRepo: async (subResourceId) => {
+    const response = await axios.get(`${API_BASE_URL}/suggested-prompts/for-repo/${subResourceId}`);
+    return response.data;
+  },
+
+  createSuggestedPrompt: async (formData) => {
+    const response = await axios.post(`${API_BASE_URL}/suggested-prompts`, formData, {
+      headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
+    return response.data;
+  },
+
+  updateSuggestedPrompt: async (id, formData) => {
+    const response = await axios.put(`${API_BASE_URL}/suggested-prompts/${id}`, formData, {
+      headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
+    return response.data;
+  },
+
+  deleteSuggestedPrompt: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/suggested-prompts/${id}`);
+    return response.data;
+  },
 };

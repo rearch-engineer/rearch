@@ -16,6 +16,10 @@ import settingsRoutes, {
   publicRouter as publicSettingsRoutes,
 } from "./routes/settings.js";
 import mcpRoutes from "./routes/mcp.js";
+import {
+  publicRouter as suggestedPromptsPublicRoutes,
+  adminRouter as suggestedPromptsAdminRoutes,
+} from "./routes/suggestedPrompts.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
 import requireRole from "./middleware/requireRole.js";
@@ -135,6 +139,7 @@ const app = new Elysia()
   .use(fileRoutes)
   .use(resourceRoutes)
   .use(toolsRoutes)
+  .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────
   .use(SkillRoutes)
@@ -143,6 +148,7 @@ const app = new Elysia()
   .use(usageRoutes)
   .use(settingsRoutes)
   .use(mcpRoutes)
+  .use(suggestedPromptsAdminRoutes)
 
   // ─── Start ────────────────────────────────────────────────────────────
   .listen(PORT);

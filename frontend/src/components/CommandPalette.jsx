@@ -6,25 +6,34 @@ import React, {
   useMemo,
 } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import Input from "@mui/joy/Input";
+import Typography from "@mui/joy/Typography";
+import Chip from "@mui/joy/Chip";
+import Divider from "@mui/joy/Divider";
+import CircularProgress from "@mui/joy/CircularProgress";
+import SearchIcon from "@mui/icons-material/Search";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import CodeIcon from "@mui/icons-material/Code";
+import LogoutIcon from "@mui/icons-material/Logout";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import LanguageIcon from "@mui/icons-material/Language";
+import TuneIcon from "@mui/icons-material/Tune";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
 import { api } from "../api/client";
 import "./CommandPalette.css";
 
 const STORAGE_KEY_MODEL = "chat_selectedModel";
+const PRESELECT_REPO_KEY = "command_palette_preselect_repo";
 
 /**
  * Fuzzy match: checks whether all characters in `query` appear in `text`
  * in order (case-insensitive). Returns a score (higher = better match)
  * or -1 if there is no match.
- *
- * Scoring favours:
- *  - Consecutive character runs
- *  - Matches at word boundaries (start of word / after space/separator)
- *  - Matches near the beginning of the string
  */
 function fuzzyScore(text, query) {
-  if (!query) return 1; // empty query matches everything
+  if (!query) return 1;
   const t = text.toLowerCase();
   const q = query.toLowerCase();
 
@@ -36,52 +45,47 @@ function fuzzyScore(text, query) {
 
   while (ti < t.length && qi < q.length) {
     if (t[ti] === q[qi]) {
-      // Bonus for word-boundary match (first char or preceded by space / separator)
       if (ti === 0 || /[\s\-_/.]/.test(t[ti - 1])) {
         score += 10;
       }
-
-      // Bonus for consecutive matches
       if (ti === prevMatchIdx + 1) {
         consecutive++;
         score += consecutive * 5;
       } else {
         consecutive = 0;
       }
-
-      // Small bonus for matching earlier in the string
       score += Math.max(0, 5 - ti);
-
       prevMatchIdx = ti;
       qi++;
     }
     ti++;
   }
 
-  // All query characters must be matched
   return qi === q.length ? score : -1;
 }
 
 /**
- * Command Palette component.
+ * Command Palette / Search component.
  *
- * Opens with Ctrl+P. Provides searchable commands grouped by sections.
- * Supports sub-views for switching conversations and models.
+ * Opens with Ctrl+P / Cmd+P. Provides unified search across repositories,
+ * conversations, and quick actions.
  */
 const CommandPalette = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
-  const { conversations } = useConversations();
+  const { conversations, markRead } = useConversations();
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // 'main' | 'conversations' | 'models'
-  const [view, setView] = useState("main");
+  // Repositories state
+  const [repositories, setRepositories] = useState([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
 
   // Model sub-view state
+  const [view, setView] = useState("main"); // 'main' | 'models'
   const [modelOptions, setModelOptions] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [currentModel, setCurrentModel] = useState(null);
@@ -96,8 +100,23 @@ const CommandPalette = () => {
     return null;
   }, [location.pathname]);
 
-  // Whether the user is on an active conversation (not 'new', not null)
   const isOnActiveConversation = !!currentConversationId;
+
+  // ── Fetch repositories on open ──────────────────────────────────────────
+
+  const fetchRepositories = useCallback(async () => {
+    setLoadingRepos(true);
+    try {
+      const repos = await api.getAllSubResources("bitbucket-repository");
+      const enabledRepos = repos.filter((repo) => repo.rearch?.enabled);
+      setRepositories(enabledRepos);
+    } catch (error) {
+      console.error("Failed to fetch repositories:", error);
+      setRepositories([]);
+    } finally {
+      setLoadingRepos(false);
+    }
+  }, []);
 
   // ── Model fetching ──────────────────────────────────────────────────────
 
@@ -107,12 +126,9 @@ const CommandPalette = () => {
     setSelectedIndex(0);
     setLoadingModels(true);
 
-    // Read the currently selected model from localStorage
     try {
       const raw = localStorage.getItem(STORAGE_KEY_MODEL);
-      if (raw) {
-        setCurrentModel(JSON.parse(raw));
-      }
+      if (raw) setCurrentModel(JSON.parse(raw));
     } catch {
       setCurrentModel(null);
     }
@@ -126,14 +142,12 @@ const CommandPalette = () => {
         if (
           connectedProviders.length > 0 &&
           !connectedProviders.includes(provider.id)
-        ) {
+        )
           continue;
-        }
 
         const models = provider.models || {};
         for (const [modelId, model] of Object.entries(models)) {
           if (model.tool_call === false && model.toolcall === false) continue;
-
           options.push({
             providerID: provider.id,
             providerName: provider.name,
@@ -152,159 +166,11 @@ const CommandPalette = () => {
     }
   }, [currentConversationId]);
 
-  // ── Command definitions ─────────────────────────────────────────────────
-
-  const commands = useMemo(() => {
-    const sections = [
-      {
-        section: "Conversations",
-        items: [
-          {
-            label: "New conversation",
-            synonyms: ["new chat", "create conversation"],
-            action: () => {
-              navigate("/conversations/new");
-            },
-          },
-          {
-            label: "Switch conversation",
-            synonyms: [
-              "change conversation",
-              "go to conversation",
-              "open conversation",
-            ],
-            action: () => {
-              setView("conversations");
-              setSearchQuery("");
-              setSelectedIndex(0);
-            },
-          },
-        ],
-      },
-    ];
-
-    // Only show Models section when on an active conversation
-    if (isOnActiveConversation) {
-      sections.push({
-        section: "Models",
-        items: [
-          {
-            label: "Switch model",
-            synonyms: ["change model", "select model", "pick model"],
-            action: () => {
-              openModelsView();
-            },
-          },
-        ],
-      });
-    }
-
-    sections.push({
-      section: "ReArch",
-      items: [
-        {
-          label: "Documentation",
-          synonyms: ["docs", "help", "guide", "manual"],
-          action: () => {
-            window.open(
-              "https://rearch.engineer/docs",
-              "_blank",
-              "noopener,noreferrer",
-            );
-          },
-        },
-        {
-          label: "Website",
-          synonyms: ["homepage", "site", "home", "rearch"],
-          action: () => {
-            window.open(
-              "https://rearch.engineer",
-              "_blank",
-              "noopener,noreferrer",
-            );
-          },
-        },
-      ],
-    });
-
-    sections.push({
-      section: "Session",
-      items: [
-        {
-          label: "Logout",
-          synonyms: ["sign out", "log out", "exit"],
-          action: () => {
-            logout();
-            navigate("/login", { replace: true });
-          },
-        },
-      ],
-    });
-
-    return sections;
-  }, [isOnActiveConversation, logout, navigate, openModelsView]);
-
-  // ── Flatten commands for navigation ─────────────────────────────────────
+  // ── Build flat items for main view ──────────────────────────────────────
 
   const flatItems = useMemo(() => {
     const query = searchQuery.trim();
-
-    if (view === "main") {
-      const items = [];
-
-      for (const section of commands) {
-        // Score each item against the query; also match against section name
-        const scored = section.items
-          .map((item) => {
-            const labelScore = fuzzyScore(item.label, query);
-            const sectionScore = fuzzyScore(section.section, query);
-            const synonymScores = (item.synonyms || []).map((s) =>
-              fuzzyScore(s, query),
-            );
-            const bestScore = Math.max(
-              labelScore,
-              sectionScore,
-              ...synonymScores,
-            );
-            return { item, score: bestScore };
-          })
-          .filter((s) => s.score >= 0)
-          .sort((a, b) => b.score - a.score);
-
-        if (scored.length > 0) {
-          items.push({ type: "section", label: section.section });
-          for (const { item } of scored) {
-            items.push({ type: "item", ...item });
-          }
-        }
-      }
-
-      return items;
-    }
-
-    if (view === "conversations") {
-      return conversations
-        .map((conv) => {
-          const title = conv.title || "Untitled";
-          const repo = conv.subResource?.name || "";
-          const bestScore = Math.max(
-            fuzzyScore(title, query),
-            fuzzyScore(repo, query),
-          );
-          return { conv, title, repo, score: bestScore };
-        })
-        .filter((s) => s.score >= 0)
-        .sort((a, b) => b.score - a.score)
-        .map(({ conv, title, repo }) => ({
-          type: "item",
-          label: title,
-          subtitle: repo || undefined,
-          id: conv._id,
-          action: () => {
-            navigate(`/conversations/${conv._id}`);
-          },
-        }));
-    }
+    const items = [];
 
     if (view === "models") {
       return modelOptions
@@ -320,8 +186,10 @@ const CommandPalette = () => {
         .sort((a, b) => b.score - a.score)
         .map(({ m }) => ({
           type: "item",
+          category: "model",
           label: m.modelName,
           subtitle: m.providerName,
+          icon: "model",
           providerID: m.providerID,
           modelID: m.modelID,
           isActive:
@@ -335,7 +203,6 @@ const CommandPalette = () => {
             } catch {
               // ignore
             }
-            // Notify ChatInterface about the model change
             window.dispatchEvent(
               new CustomEvent("model-changed", { detail: newModel }),
             );
@@ -343,15 +210,170 @@ const CommandPalette = () => {
         }));
     }
 
-    return [];
+    // ── Main view: Repositories ─────────────────────────────────────────
+
+    const repoItems = repositories
+      .map((repo) => {
+        const nameScore = fuzzyScore(repo.name, query);
+        const wsScore = fuzzyScore(repo.resourceName || "", query);
+        const bestScore = Math.max(nameScore, wsScore);
+        return { repo, score: bestScore };
+      })
+      .filter((s) => s.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ repo }) => ({
+        type: "item",
+        category: "repository",
+        label: repo.name,
+        subtitle: repo.resourceName || "",
+        icon: "repo",
+        id: repo._id,
+        action: () => {
+          // Store pre-selection info and navigate to new conversation
+          try {
+            sessionStorage.setItem(
+              PRESELECT_REPO_KEY,
+              JSON.stringify({
+                subResourceId: repo._id,
+                resourceId: repo.resourceId || repo.resource,
+              }),
+            );
+          } catch {
+            // ignore
+          }
+          navigate("/conversations/new");
+          // Dispatch event so ChatInterface picks it up immediately
+          window.dispatchEvent(new CustomEvent("repo-preselected"));
+        },
+      }));
+
+    if (repoItems.length > 0) {
+      items.push({ type: "section", label: "Repositories" });
+      items.push(...repoItems);
+    }
+
+    // ── Conversations ───────────────────────────────────────────────────
+
+    const convItems = conversations
+      .map((conv) => {
+        const title = conv.title || "Untitled";
+        const repo = conv.subResource?.name || "";
+        const bestScore = Math.max(
+          fuzzyScore(title, query),
+          fuzzyScore(repo, query),
+        );
+        return { conv, title, repo, score: bestScore };
+      })
+      .filter((s) => s.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, query ? 20 : 8) // Show more when actively searching
+      .map(({ conv, title, repo }) => ({
+        type: "item",
+        category: "conversation",
+        label: title,
+        subtitle: repo || undefined,
+        icon: "conversation",
+        id: conv._id,
+        action: () => {
+          markRead(conv._id);
+          navigate(`/conversations/${conv._id}`);
+        },
+      }));
+
+    if (convItems.length > 0) {
+      items.push({ type: "section", label: "Conversations" });
+      items.push(...convItems);
+    }
+
+    // ── Quick actions ───────────────────────────────────────────────────
+
+    const actions = [
+      {
+        label: "New conversation",
+        synonyms: ["new chat", "create conversation", "start"],
+        icon: "add",
+        action: () => navigate("/conversations/new"),
+      },
+    ];
+
+    if (isOnActiveConversation) {
+      actions.push({
+        label: "Switch model",
+        synonyms: ["change model", "select model", "pick model"],
+        icon: "tune",
+        action: () => openModelsView(),
+      });
+    }
+
+    actions.push(
+      {
+        label: "Documentation",
+        synonyms: ["docs", "help", "guide"],
+        icon: "docs",
+        action: () =>
+          window.open(
+            "https://rearch.engineer/docs",
+            "_blank",
+            "noopener,noreferrer",
+          ),
+      },
+      {
+        label: "Website",
+        synonyms: ["homepage", "site", "rearch"],
+        icon: "web",
+        action: () =>
+          window.open(
+            "https://rearch.engineer",
+            "_blank",
+            "noopener,noreferrer",
+          ),
+      },
+      {
+        label: "Logout",
+        synonyms: ["sign out", "log out", "exit"],
+        icon: "logout",
+        action: () => {
+          logout();
+          navigate("/login", { replace: true });
+        },
+      },
+    );
+
+    const actionItems = actions
+      .map((item) => {
+        const labelScore = fuzzyScore(item.label, query);
+        const synonymScores = (item.synonyms || []).map((s) =>
+          fuzzyScore(s, query),
+        );
+        const bestScore = Math.max(labelScore, ...synonymScores);
+        return { item, score: bestScore };
+      })
+      .filter((s) => s.score >= 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ item }) => ({
+        type: "item",
+        category: "action",
+        ...item,
+      }));
+
+    if (actionItems.length > 0) {
+      items.push({ type: "section", label: "Actions" });
+      items.push(...actionItems);
+    }
+
+    return items;
   }, [
     view,
     searchQuery,
-    commands,
+    repositories,
     conversations,
     modelOptions,
     currentModel,
+    isOnActiveConversation,
     navigate,
+    markRead,
+    logout,
+    openModelsView,
   ]);
 
   // Only selectable items (skip section headers)
@@ -369,11 +391,11 @@ const CommandPalette = () => {
     setView("main");
     setModelOptions([]);
     setLoadingModels(false);
-  }, []);
+    fetchRepositories();
+  }, [fetchRepositories]);
 
   const close = useCallback(() => {
     setIsOpen(false);
-    // Notify other components so they can restore focus (e.g. message input)
     requestAnimationFrame(() => {
       window.dispatchEvent(new CustomEvent("command-palette-closed"));
     });
@@ -386,12 +408,8 @@ const CommandPalette = () => {
       if ((e.ctrlKey || e.metaKey) && e.key === "p") {
         e.preventDefault();
         e.stopPropagation();
-
-        if (isOpen) {
-          close();
-        } else {
-          open();
-        }
+        if (isOpen) close();
+        else open();
         return;
       }
 
@@ -402,8 +420,17 @@ const CommandPalette = () => {
       }
     };
 
+    // Listen for external open requests (from MainMenu search trigger)
+    const handleOpenRequest = () => {
+      if (!isOpen) open();
+    };
+
     document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("open-command-palette", handleOpenRequest);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("open-command-palette", handleOpenRequest);
+    };
   }, [isOpen, open, close]);
 
   // ── Focus search input when opened ─────────────────────────────────────
@@ -411,18 +438,18 @@ const CommandPalette = () => {
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       requestAnimationFrame(() => {
-        searchInputRef.current?.focus();
+        searchInputRef.current?.querySelector("input")?.focus();
       });
     }
   }, [isOpen, view]);
 
-  // ── Reset selected index when search or items change ───────────────────
+  // ── Reset selected index when search changes ──────────────────────────
 
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchQuery]);
 
-  // ── Scroll selected item into view ─────────────────────────────────────
+  // ── Scroll selected item into view ────────────────────────────────────
 
   useEffect(() => {
     if (!listRef.current) return;
@@ -434,21 +461,19 @@ const CommandPalette = () => {
     }
   }, [selectedIndex]);
 
-  // ── Keyboard navigation inside the palette ─────────────────────────────
+  // ── Keyboard navigation ───────────────────────────────────────────────
 
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        close();
-        return;
-      }
-
-      if (e.key === "ArrowLeft" && view !== "main") {
-        e.preventDefault();
-        setView("main");
-        setSearchQuery("");
-        setSelectedIndex(0);
+        if (view !== "main") {
+          setView("main");
+          setSearchQuery("");
+          setSelectedIndex(0);
+        } else {
+          close();
+        }
         return;
       }
 
@@ -473,11 +498,8 @@ const CommandPalette = () => {
         const item = selectableItems[selectedIndex];
         if (item?.action) {
           item.action();
-          // Close palette after executing, unless entering a sub-view
-          if (
-            view !== "main" ||
-            !["Switch conversation", "Switch model"].includes(item.label)
-          ) {
+          // Don't close if entering a sub-view
+          if (item.label !== "Switch model") {
             close();
           }
         }
@@ -487,28 +509,44 @@ const CommandPalette = () => {
     [close, selectableItems, selectedIndex, view],
   );
 
-  // ── Click on backdrop closes ───────────────────────────────────────────
+  // ── Icon helper ───────────────────────────────────────────────────────
+
+  const renderIcon = (iconType) => {
+    const iconProps = { sx: { fontSize: 18 } };
+    switch (iconType) {
+      case "repo":
+        return <CodeIcon {...iconProps} />;
+      case "conversation":
+        return <ChatBubbleOutlineIcon {...iconProps} />;
+      case "add":
+        return <AddCircleOutlineIcon {...iconProps} />;
+      case "tune":
+      case "model":
+        return <TuneIcon {...iconProps} />;
+      case "docs":
+        return <DescriptionOutlinedIcon {...iconProps} />;
+      case "web":
+        return <LanguageIcon {...iconProps} />;
+      case "logout":
+        return <LogoutIcon {...iconProps} />;
+      default:
+        return null;
+    }
+  };
+
+  // ── Backdrop click ────────────────────────────────────────────────────
 
   const handleBackdropClick = useCallback(
     (e) => {
-      if (e.target === e.currentTarget) {
-        close();
-      }
+      if (e.target === e.currentTarget) close();
     },
     [close],
   );
 
-  // ── Rendering ──────────────────────────────────────────────────────────
+  // ── Rendering ─────────────────────────────────────────────────────────
 
   if (!isOpen) return null;
 
-  const viewTitle = {
-    main: "Command palette",
-    conversations: "Switch conversation",
-    models: "Switch model",
-  }[view];
-
-  // Track the selectable index for rendering
   let selectableIdx = -1;
 
   return (
@@ -518,107 +556,261 @@ const CommandPalette = () => {
       onKeyDown={handleKeyDown}
     >
       <div className="command-palette">
-        {/* Header */}
-        <div className="command-palette-header">
-          <div className="command-palette-title">
-            {viewTitle}
-            {view !== "main" && (
-              <span className="command-palette-back-hint">&#8592; back</span>
-            )}
-          </div>
-          <span className="command-palette-esc" onClick={close} style={{ cursor: "pointer" }}>esc</span>
-        </div>
-
-        {/* Search */}
-        <div className="command-palette-search">
-          <input
+        {/* Search input */}
+        <div style={{ padding: "12px 12px 0" }}>
+          <Input
             ref={searchInputRef}
-            type="text"
-            placeholder="Search"
+            placeholder="Search anything..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoFocus
+            startDecorator={
+              <SearchIcon sx={{ color: "var(--text-tertiary)", fontSize: 20 }} />
+            }
+            variant="plain"
+            sx={{
+              "--Input-focusedThickness": "0px",
+              bgcolor: "transparent",
+              border: "none",
+              borderRadius: "10px",
+              fontSize: 15,
+              py: 1.2,
+              px: 1.5,
+              width: "100%",
+              "& input": {
+                width: "100%",
+              },
+            }}
           />
         </div>
 
-        <div className="command-palette-divider" />
+        {/* View title for sub-views */}
+        {view === "models" && (
+          <div style={{ padding: "12px 20px 0" }}>
+            <Typography
+              level="body-xs"
+              sx={{
+                color: "var(--text-tertiary)",
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                cursor: "pointer",
+                "&:hover": { color: "var(--text-secondary)" },
+              }}
+              onClick={() => {
+                setView("main");
+                setSearchQuery("");
+                setSelectedIndex(0);
+              }}
+            >
+              ← Back to search
+            </Typography>
+          </div>
+        )}
 
-        {/* List */}
+        <Divider sx={{ mt: 1.5, borderColor: "var(--border-color)" }} />
+
+        {/* Results list */}
         <div className="command-palette-list" ref={listRef}>
+          {/* Loading state */}
+          {view === "main" && loadingRepos && repositories.length === 0 && (
+            <div className="command-palette-loading">
+              <CircularProgress size="sm" />
+              <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
+                Loading...
+              </Typography>
+            </div>
+          )}
+
           {view === "models" && loadingModels && (
-            <div className="command-palette-loading">Loading models...</div>
+            <div className="command-palette-loading">
+              <CircularProgress size="sm" />
+              <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
+                Loading models...
+              </Typography>
+            </div>
           )}
 
-          {flatItems.length === 0 && !loadingModels && (
-            <div className="command-palette-empty">No results found</div>
-          )}
+          {/* Empty state */}
+          {flatItems.length === 0 &&
+            !loadingRepos &&
+            !loadingModels && (
+              <div className="command-palette-empty">
+                <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
+                  No results found
+                </Typography>
+              </div>
+            )}
 
+          {/* Items */}
           {flatItems.map((item, idx) => {
             if (item.type === "section") {
               return (
-                <div
+                <Typography
                   key={`section-${item.label}`}
-                  className="command-palette-section"
+                  level="body-xs"
+                  sx={{
+                    px: 2.5,
+                    pt: idx === 0 ? 1 : 2,
+                    pb: 0.5,
+                    color: "var(--text-tertiary)",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    fontSize: "11px",
+                    userSelect: "none",
+                  }}
                 >
                   {item.label}
-                </div>
+                </Typography>
               );
             }
 
             selectableIdx++;
             const currentSelectableIdx = selectableIdx;
 
-            // Add a spacer after the last item in a group (when the next item is a section header)
-            const isLastInGroup =
-              idx < flatItems.length - 1 &&
-              flatItems[idx + 1].type === "section";
-
             return (
-              <React.Fragment key={item.id || item.label + "-" + idx}>
               <div
+                key={item.id || `${item.label}-${idx}`}
                 className={`command-palette-item${currentSelectableIdx === selectedIndex ? " selected" : ""}`}
                 onClick={() => {
                   item.action();
-                  if (
-                    view !== "main" ||
-                    !["Switch conversation", "Switch model"].includes(
-                      item.label,
-                    )
-                  ) {
-                    close();
-                  }
+                  if (item.label !== "Switch model") close();
                 }}
                 onMouseEnter={() => setSelectedIndex(currentSelectableIdx)}
               >
-                {item.subtitle !== undefined ? (
-                  <div className="command-palette-item-details">
-                    <div className="command-palette-item-label">
-                      {item.label}
-                    </div>
-                    <div className="command-palette-item-subtitle">
-                      {item.subtitle}
-                    </div>
-                  </div>
-                ) : (
-                  <span className="command-palette-item-label">
+                {/* Icon */}
+                <div
+                  className={`command-palette-item-icon ${item.category || item.icon || ""}`}
+                >
+                  {renderIcon(item.icon)}
+                </div>
+
+                {/* Text */}
+                <div className="command-palette-item-details">
+                  <Typography
+                    level="body-sm"
+                    sx={{
+                      fontWeight: 500,
+                      color: "var(--text-primary)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {item.label}
-                  </span>
-                )}
-                {item.shortcut && (
-                  <span className="command-palette-item-shortcut">
-                    {item.shortcut}
-                  </span>
-                )}
+                  </Typography>
+                  {item.subtitle && (
+                    <Typography
+                      level="body-xs"
+                      sx={{
+                        color: "var(--text-tertiary)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        mt: 0.1,
+                      }}
+                    >
+                      {item.subtitle}
+                    </Typography>
+                  )}
+                </div>
+
+                {/* Badges */}
                 {item.isActive && (
-                  <span className="command-palette-item-active">active</span>
+                  <Chip
+                    size="sm"
+                    variant="soft"
+                    color="success"
+                    className="command-palette-item-badge"
+                    sx={{ fontSize: 11, height: 20 }}
+                  >
+                    active
+                  </Chip>
+                )}
+                {item.category === "repository" && (
+                  <Chip
+                    size="sm"
+                    variant="soft"
+                    color="primary"
+                    className="command-palette-item-badge"
+                    sx={{ fontSize: 11, height: 20 }}
+                  >
+                    new
+                  </Chip>
                 )}
               </div>
-              {isLastInGroup && (
-                <div className="command-palette-group-spacer" />
-              )}
-              </React.Fragment>
             );
           })}
+        </div>
+
+        {/* Footer with keyboard hints */}
+        <Divider sx={{ borderColor: "var(--border-color)" }} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "8px 16px",
+          }}
+        >
+          <Typography
+            level="body-xs"
+            sx={{ color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 0.5 }}
+          >
+            <kbd
+              style={{
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 4,
+                padding: "1px 5px",
+                fontSize: 11,
+                fontFamily: "inherit",
+              }}
+            >
+              ↑↓
+            </kbd>
+            navigate
+          </Typography>
+          <Typography
+            level="body-xs"
+            sx={{ color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 0.5 }}
+          >
+            <kbd
+              style={{
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 4,
+                padding: "1px 5px",
+                fontSize: 11,
+                fontFamily: "inherit",
+              }}
+            >
+              ↵
+            </kbd>
+            select
+          </Typography>
+          <Typography
+            level="body-xs"
+            sx={{ color: "var(--text-tertiary)", display: "flex", alignItems: "center", gap: 0.5 }}
+          >
+            <kbd
+              style={{
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
+                borderRadius: 4,
+                padding: "1px 5px",
+                fontSize: 11,
+                fontFamily: "inherit",
+              }}
+            >
+              esc
+            </kbd>
+            close
+          </Typography>
         </div>
       </div>
     </div>

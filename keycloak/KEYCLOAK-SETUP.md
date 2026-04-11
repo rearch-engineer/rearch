@@ -381,7 +381,6 @@ authenticated request. Keycloak is the source of truth for role assignments.
 The following features require the `admin` role:
 
 - User management (`/api/users`)
-- Flow personas configuration (`/api/flow-personas`)
 - Skills management (`/api/skills`)
 - Job queue dashboard (`/api/jobs`)
 - Usage analytics (`/api/usage`)

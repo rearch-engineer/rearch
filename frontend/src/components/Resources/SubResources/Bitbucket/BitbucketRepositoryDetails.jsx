@@ -64,7 +64,11 @@ function BitbucketRepositoryDetails({
     services: rearch?.services || [],
     skills: rearch?.skills || [],
     resources: rearch?.resources || { memoryMb: 0, cpuQuota: 0, pidsLimit: 0 },
+    suggestedPrompts: rearch?.suggestedPrompts || { mode: "all", selectedIds: [], selectedCategories: [] },
   });
+  // Suggested prompts data for the picker
+  const [allSuggestedPrompts, setAllSuggestedPrompts] = useState([]);
+  const [allPromptCategories, setAllPromptCategories] = useState([]);
   const [savingRearch, setSavingRearch] = useState(false);
   const [loadingDockerfile, setLoadingDockerfile] = useState(false);
   // Repository sub-resources for the skills multi-select
@@ -94,6 +98,23 @@ function BitbucketRepositoryDetails({
       }
     };
     loadRepositorySubResources();
+  }, []);
+
+  // Load suggested prompts and categories for the picker
+  useEffect(() => {
+    const loadSuggestedPromptData = async () => {
+      try {
+        const [prompts, categories] = await Promise.all([
+          api.getSuggestedPrompts(),
+          api.getSuggestedPromptCategories(),
+        ]);
+        setAllSuggestedPrompts(prompts);
+        setAllPromptCategories(categories);
+      } catch (err) {
+        console.error("Failed to load suggested prompts:", err);
+      }
+    };
+    loadSuggestedPromptData();
   }, []);
 
   const TEMPLATE_OPTIONS = [
@@ -450,6 +471,7 @@ function BitbucketRepositoryDetails({
       services: rearch?.services || [],
       skills: rearch?.skills || [],
       resources: rearch?.resources || { memoryMb: 0, cpuQuota: 0, pidsLimit: 0 },
+      suggestedPrompts: rearch?.suggestedPrompts || { mode: "all", selectedIds: [], selectedCategories: [] },
     });
     setIsEditingRearch(false);
   };

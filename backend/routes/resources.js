@@ -100,6 +100,13 @@ const updateSubresourceSchema = z.object({
           pidsLimit: z.number().min(0).max(4096).optional().default(0),
         })
         .optional(),
+      suggestedPrompts: z
+        .object({
+          mode: z.enum(["all", "selected", "categories"]).optional().default("all"),
+          selectedIds: z.array(z.string()).optional().default([]),
+          selectedCategories: z.array(z.string()).optional().default([]),
+        })
+        .optional(),
     })
     .optional(),
 });

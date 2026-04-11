@@ -108,6 +108,25 @@ const subResourceSchema = new mongoose.Schema(
           default: 0,
         },
       },
+      suggestedPrompts: {
+        mode: {
+          type: String,
+          enum: ["all", "selected", "categories"],
+          default: "all",
+        },
+        selectedIds: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "SuggestedPrompt",
+          },
+        ],
+        selectedCategories: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "SuggestedPromptCategory",
+          },
+        ],
+      },
     },
   },
   {
