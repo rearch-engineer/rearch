@@ -10,6 +10,7 @@ import {
   FormHelperText,
   Button,
   IconButton,
+  Input,
 } from '@mui/joy';
 import { useColorScheme } from '@mui/joy/styles';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -201,6 +202,9 @@ export default function Preferences() {
   const { user, refreshUser } = useAuth();
   const { setMode } = useColorScheme();
 
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState('');
   const [voiceLanguage, setVoiceLanguage] = useState('');
   const [theme, setTheme] = useState('system');
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -209,6 +213,9 @@ export default function Preferences() {
 
   // Initialise from user profile when available
   useEffect(() => {
+    if (user?.profile?.display_name !== undefined) {
+      setDisplayName(user.profile.display_name);
+    }
     if (user?.profile?.preferences?.voice_language !== undefined) {
       setVoiceLanguage(user.profile.preferences.voice_language);
     }
@@ -216,6 +223,28 @@ export default function Preferences() {
       setTheme(user.profile.preferences.theme);
     }
   }, [user]);
+
+  const handleDisplayNameSave = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed) {
+      setDisplayNameError('Display name must not be empty.');
+      return;
+    }
+    if (trimmed.length > 100) {
+      setDisplayNameError('Display name must not exceed 100 characters.');
+      return;
+    }
+    setDisplayNameError('');
+    setDisplayNameSaving(true);
+    try {
+      await api.updateProfile({ display_name: trimmed });
+      await refreshUser();
+    } catch (err) {
+      setDisplayNameError(err?.response?.data?.error || 'Failed to update display name.');
+    } finally {
+      setDisplayNameSaving(false);
+    }
+  };
 
   const handleThemeSelect = async (value) => {
     setTheme(value);
@@ -297,6 +326,44 @@ export default function Preferences() {
             Preferences
           </Typography>
         </Box>
+
+        {/* ── Display Name ─────────────────────────────────────────── */}
+        <Card variant="outlined" sx={{ width: '100%', mb: 3 }}>
+          <Typography level="title-md" sx={{ mb: 1 }}>
+            Display Name
+          </Typography>
+          <Typography level="body-sm" sx={{ mb: 2, color: 'text.secondary' }}>
+            This is the name shown to other users across the platform.
+          </Typography>
+
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+            <FormControl sx={{ flex: 1 }} error={!!displayNameError}>
+              <Input
+                value={displayName}
+                onChange={(e) => {
+                  setDisplayName(e.target.value);
+                  setDisplayNameError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleDisplayNameSave();
+                }}
+                placeholder="Your display name"
+                slotProps={{ input: { maxLength: 100 } }}
+              />
+              {displayNameError && (
+                <FormHelperText>{displayNameError}</FormHelperText>
+              )}
+            </FormControl>
+            <Button
+              size="sm"
+              loading={displayNameSaving}
+              disabled={displayName.trim() === (user?.profile?.display_name || '')}
+              onClick={handleDisplayNameSave}
+            >
+              Save
+            </Button>
+          </Box>
+        </Card>
 
         {/* ── Avatar ──────────────────────────────────────────────────── */}
         <Card variant="outlined" sx={{ width: '100%', mb: 3 }}>

@@ -86,6 +86,12 @@ const changePasswordBodySchema = z.object({
 });
 
 const profileBodySchema = z.object({
+  display_name: z
+    .string()
+    .trim()
+    .min(1, "Display name must not be empty.")
+    .max(100, "Display name must not exceed 100 characters.")
+    .optional(),
   voice_language: z
     .string()
     .regex(/^$|^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/, "voice_language must be a valid BCP-47 language tag (e.g. en-US, es, pt-BR).")
@@ -689,11 +695,15 @@ router.patch("/profile", async ({ body, user, status }) => {
   }
 
   try {
-    const { voice_language, theme } = parsed.data;
+    const { display_name, voice_language, theme } = parsed.data;
 
     const dbUser = await User.findById(user.userId);
     if (!dbUser) {
       return status(404, { error: "User not found." });
+    }
+
+    if (display_name !== undefined) {
+      dbUser.profile.display_name = display_name;
     }
 
     if (voice_language !== undefined) {
