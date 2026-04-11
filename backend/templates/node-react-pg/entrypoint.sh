@@ -184,9 +184,23 @@ su - coder -c "node /tmp/patch-vite.js"
 rm -f /tmp/patch-vite.js
 
 # =============================================================================
-# 5. Start Services
+# 5. Write OpenCode config (before supervisord starts opencode)
 # =============================================================================
-echo "[5/5] Starting services..."
+echo "[5/6] Configuring OpenCode..."
+
+if [ -n "$OPENCODE_CONFIG_CONTENT" ]; then
+    mkdir -p /home/coder/.config/opencode
+    echo "$OPENCODE_CONFIG_CONTENT" > /home/coder/.config/opencode/opencode.json
+    chown -R coder:coder /home/coder/.config/opencode
+    echo "  -> OpenCode config written"
+else
+    echo "  -> OPENCODE_CONFIG_CONTENT not set, skipping"
+fi
+
+# =============================================================================
+# 6. Start Services
+# =============================================================================
+echo "[6/6] Starting services..."
 
 echo "=========================================="
 echo "Container Configuration:"

@@ -26,7 +26,9 @@ import BuildIcon from "@mui/icons-material/Build";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import HubIcon from "@mui/icons-material/Hub";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import GeneralSettings from "../components/Administration/GeneralSettings";
+import LlmProvidersSettings from "../components/Administration/LlmProvidersSettings";
 import SuggestedPromptsSettings from "../components/Administration/SuggestedPromptsSettings";
 import SkillsSettings from "../components/Administration/SkillsSettings";
 import SkillEditPage from "../components/Administration/SkillEditPage";
@@ -51,6 +53,11 @@ export default function AdministrationPage() {
       label: "General",
       path: "/administration/general",
       icon: <SettingsIcon />,
+    },
+    {
+      label: "LLM Providers",
+      path: "/administration/llm-providers",
+      icon: <SmartToyIcon />,
     },
     {
       label: "Users",
@@ -158,6 +165,7 @@ export default function AdministrationPage() {
             element={<Navigate to="/administration/general" replace />}
           />
           <Route path="/general" element={<GeneralSettings />} />
+          <Route path="/llm-providers" element={<LlmProvidersSettings />} />
           <Route path="/users" element={<UsersSettings />} />
           <Route path="/skills" element={<SkillsSettings />} />
           <Route path="/skills/:id" element={<SkillEditPage />} />

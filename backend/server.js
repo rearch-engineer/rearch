@@ -16,6 +16,7 @@ import settingsRoutes, {
   publicRouter as publicSettingsRoutes,
 } from "./routes/settings.js";
 import mcpRoutes from "./routes/mcp.js";
+import llmProviderRoutes from "./routes/llmProviders.js";
 import {
   publicRouter as suggestedPromptsPublicRoutes,
   adminRouter as suggestedPromptsAdminRoutes,
@@ -148,6 +149,7 @@ const app = new Elysia()
   .use(usageRoutes)
   .use(settingsRoutes)
   .use(mcpRoutes)
+  .use(llmProviderRoutes)
   .use(suggestedPromptsAdminRoutes)
 
   // ─── Start ────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import { emitJobEvent, jobLog } from "./events.js";
 import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
 import { CLEANUP_JOB_NAME, triggerContainerCleanup } from "./scheduler.js";
+import { buildProviderConfig } from "../utils/llmProviderConfig.js";
 
 /** CONVERSATIONS WORKER */
 const conversationsWorker = new Worker(
@@ -159,19 +160,16 @@ const conversationsWorker = new Worker(
         );
       }
 
-      // Validate Anthropic API key is set
-      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-      if (!anthropicApiKey) {
+      // Build LLM provider config from admin-managed LlmProvider collection
+      const providerConfig = await buildProviderConfig();
+      const enabledProviderCount = Object.keys(providerConfig).length;
+      if (enabledProviderCount === 0) {
         throw new Error(
-          "ANTHROPIC_API_KEY environment variable not set - required for OpenCode containers",
+          "No LLM providers configured. An administrator must configure at least one LLM provider with an API key in the Administration panel.",
         );
       }
-
-      // Log API key is set without exposing the value
-      const keyPrefix = anthropicApiKey.substring(0, 7);
-      const keyLength = anthropicApiKey.length;
       console.log(
-        `✅ Anthropic API key configured (${keyPrefix}...${keyLength} chars)`,
+        `✅ ${enabledProviderCount} LLM provider(s) configured: ${Object.keys(providerConfig).join(", ")}`,
       );
 
       await jobLog(
@@ -222,7 +220,7 @@ const conversationsWorker = new Worker(
         conversationId,
         repoUrl,
         repoBranch,
-        anthropicApiKey,
+        providerConfig,
         appPort,
         appStartCommand,
         bitbucketEmail,

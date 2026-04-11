@@ -119,7 +119,7 @@ stderr_logfile=/var/log/supervisor/vscode.err\n\
 [program:opencode]\n\
 command=opencode serve --hostname 0.0.0.0 --port 4096\n\
 user=coder\n\
-environment=HOME="/home/coder",ANTHROPIC_API_KEY="%(ENV_ANTHROPIC_API_KEY)s",PLAYWRIGHT_BROWSERS_PATH="/opt/playwright-browsers"\n\
+environment=HOME="/home/coder",PLAYWRIGHT_BROWSERS_PATH="/opt/playwright-browsers"\n\
 directory=/repository\n\
 autostart=true\n\
 autorestart=true\n\
