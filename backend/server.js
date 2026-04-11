@@ -6,7 +6,6 @@ import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
 import toolsRoutes from "./routes/tools.js";
-import FlowPersonaRoutes from "./routes/flowPersonas.js";
 import SkillRoutes from "./routes/skill.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
@@ -138,7 +137,6 @@ const app = new Elysia()
   .use(toolsRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────
-  .use(FlowPersonaRoutes)
   .use(SkillRoutes)
   .use(userRoutes)
   .use(jobRoutes)

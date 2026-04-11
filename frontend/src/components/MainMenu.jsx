@@ -47,23 +47,6 @@ const MainMenu = () => {
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef(null);
 
-  // Fetch logo from settings
-  useEffect(() => {
-    api
-      .getSettings()
-      .then((settings) => {
-        const logoSetting = settings.find((s) => s.key === "logo");
-        if (logoSetting?.value?.fileId) {
-          setLogoUrl(api.getPublicFileUrl(logoSetting.value.fileId));
-          setLogoIconName(null);
-        } else if (logoSetting?.value?.iconName) {
-          setLogoIconName(logoSetting.value.iconName);
-          setLogoUrl(null);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
   // Debounced search
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -140,15 +123,7 @@ const MainMenu = () => {
       {/* ── Top bar: brand + actions + avatar ── */}
       <div className="main-menu-topbar">
         <span className="main-menu-brand" onClick={() => navigate("/")}>
-          {logoUrl && (
-            <img src={logoUrl} alt="Logo" className="main-menu-brand-logo" />
-          )}
-          {logoIconName && (() => {
-            const IconComp = MuiIcons[logoIconName];
-            return IconComp ? (
-              <IconComp className="main-menu-brand-logo" sx={{ fontSize: 22, verticalAlign: "middle" }} />
-            ) : null;
-          })()}
+          <ForumIcon className="main-menu-brand-logo" sx={{ fontSize: 22, verticalAlign: "middle" }} />
           ReArch
         </span>
 

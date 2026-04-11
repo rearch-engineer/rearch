@@ -93,6 +93,13 @@ const updateSubresourceSchema = z.object({
         .array(z.string())
         .optional()
         .default([]),
+      resources: z
+        .object({
+          memoryMb: z.number().min(0).max(32768).optional().default(0),
+          cpuQuota: z.number().min(0).max(800000).optional().default(0),
+          pidsLimit: z.number().min(0).max(4096).optional().default(0),
+        })
+        .optional(),
     })
     .optional(),
 });

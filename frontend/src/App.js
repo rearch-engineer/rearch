@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { Box } from "@mui/joy";
 import { useColorScheme } from "@mui/joy/styles";
 import MainMenu from "./components/MainMenu";
@@ -15,7 +21,6 @@ import StartPage from "./pages/StartPage";
 import { ResourcesProvider } from "./contexts/ResourcesContext";
 import { ToolsProvider } from "./contexts/ToolsContext";
 import { SkillsProvider } from "./contexts/SkillsContext";
-import { FlowPersonasProvider } from "./contexts/FlowPersonasContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ConversationsProvider } from "./contexts/ConversationsContext";
@@ -141,50 +146,42 @@ function AuthenticatedApp() {
         <ResourcesProvider>
           <ToolsProvider>
             <SkillsProvider>
-              <FlowPersonasProvider>
-                <ConversationsProvider>
-                  <ThemeApplier />
-                  <StartRedirectHandler />
-                   <CommandPalette />
-                  <Box
-                    sx={{
-                      width: "100%",
-                      height: "100vh",
-                      display: "flex",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div className="main-menu-wrapper">
-                      <MainMenu />
-                    </div>
-                    <ErrorBoundary>
-                      <Routes>
-                        <Route
-                          path="/"
-                          element={<Navigate to="/conversations/new" replace />}
-                        />
-                        <Route
-                          path="/start"
-                          element={<StartPage />}
-                        />
-                        <Route
-                          path="/conversations/:id"
-                          element={<ConversationsPage />}
-                        />
-                        <Route
-                          path="/resources/*"
-                          element={<ResourcesPage />}
-                        />
-                        <Route
-                          path="/administration/*"
-                          element={<AdministrationPage />}
-                        />
-                        <Route path="/account/*" element={<AccountPage />} />
-                      </Routes>
-                    </ErrorBoundary>
-                  </Box>
-                </ConversationsProvider>
-              </FlowPersonasProvider>
+              <ConversationsProvider>
+                <ThemeApplier />
+                <StartRedirectHandler />
+                <CommandPalette />
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: "100vh",
+                    display: "flex",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div className="main-menu-wrapper">
+                    <MainMenu />
+                  </div>
+                  <ErrorBoundary>
+                    <Routes>
+                      <Route
+                        path="/"
+                        element={<Navigate to="/conversations/new" replace />}
+                      />
+                      <Route path="/start" element={<StartPage />} />
+                      <Route
+                        path="/conversations/:id"
+                        element={<ConversationsPage />}
+                      />
+                      <Route path="/resources/*" element={<ResourcesPage />} />
+                      <Route
+                        path="/administration/*"
+                        element={<AdministrationPage />}
+                      />
+                      <Route path="/account/*" element={<AccountPage />} />
+                    </Routes>
+                  </ErrorBoundary>
+                </Box>
+              </ConversationsProvider>
             </SkillsProvider>
           </ToolsProvider>
         </ResourcesProvider>

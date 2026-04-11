@@ -2,7 +2,7 @@
 // Importing this module also starts the workers (side effects).
 
 export { resourcesQueue, conversationsQueue, addJobToQueue } from "./config.js";
-export { scheduleDockerRebuilds, triggerRebuildAll } from "./scheduler.js";
+export { scheduleDockerRebuilds, triggerRebuildAll, scheduleContainerCleanup, triggerContainerCleanup } from "./scheduler.js";
 
 // Import workers for their side effects (registers BullMQ processors + event handlers)
 import "./resourcesWorker.js";

@@ -23,15 +23,16 @@ import WorkIcon from "@mui/icons-material/Work";
 import SettingsIcon from "@mui/icons-material/Settings";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
+import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import HubIcon from "@mui/icons-material/Hub";
 import GeneralSettings from "../components/Administration/GeneralSettings";
-import FlowPersonasSettings from "../components/Administration/FlowPersonasSettings";
 import SkillsSettings from "../components/Administration/SkillsSettings";
 import SkillEditPage from "../components/Administration/SkillEditPage";
 import UsersSettings from "../components/Administration/UsersSettings";
 import JobsSettings from "../components/Administration/JobsSettings";
 import UsageSettings from "../components/Administration/UsageSettings";
 import DockerRebuildSettings from "../components/Administration/DockerRebuildSettings";
+import ContainerCleanupSettings from "../components/Administration/ContainerCleanupSettings";
 import McpServersSettings from "../components/Administration/McpServersSettings";
 import McpServersGalleryPage from "../components/Administration/McpServersGalleryPage";
 import McpServersManualPage from "../components/Administration/McpServersManualPage";
@@ -74,6 +75,11 @@ export default function AdministrationPage() {
       label: "Docker Rebuild",
       path: "/administration/docker-rebuild",
       icon: <BuildIcon />,
+    },
+    {
+      label: "Container Cleanup",
+      path: "/administration/container-cleanup",
+      icon: <CleaningServicesIcon />,
     },
     {
       label: "MCP Servers",
@@ -151,14 +157,20 @@ export default function AdministrationPage() {
           />
           <Route path="/general" element={<GeneralSettings />} />
           <Route path="/users" element={<UsersSettings />} />
-          <Route path="/flow-personas" element={<FlowPersonasSettings />} />
           <Route path="/skills" element={<SkillsSettings />} />
           <Route path="/skills/:id" element={<SkillEditPage />} />
           <Route path="/jobs" element={<JobsSettings />} />
           <Route path="/docker-rebuild" element={<DockerRebuildSettings />} />
+          <Route
+            path="/container-cleanup"
+            element={<ContainerCleanupSettings />}
+          />
           <Route path="/mcp-servers" element={<McpServersSettings />} />
           <Route path="/mcp-servers/new" element={<McpServersGalleryPage />} />
-          <Route path="/mcp-servers/new/manual" element={<McpServersManualPage />} />
+          <Route
+            path="/mcp-servers/new/manual"
+            element={<McpServersManualPage />}
+          />
           <Route path="/mcp-servers/:id" element={<McpServersEditPage />} />
           <Route path="/usage" element={<UsageSettings />} />
         </Routes>

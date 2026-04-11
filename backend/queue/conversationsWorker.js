@@ -10,6 +10,7 @@ import { redisConfig, docker } from "./config.js";
 import { emitJobEvent, jobLog } from "./events.js";
 import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
+import { CLEANUP_JOB_NAME, triggerContainerCleanup } from "./scheduler.js";
 
 /** CONVERSATIONS WORKER */
 const conversationsWorker = new Worker(
@@ -76,6 +77,7 @@ const conversationsWorker = new Worker(
       conversation.environment = {
         ...conversation.environment,
         status: "stopped",
+        statusChangedAt: new Date(),
         container: null,
         opencodeUrl: null,
         opencodeSessionId: null,
@@ -86,6 +88,14 @@ const conversationsWorker = new Worker(
 
       await jobLog(job, "conversations", "Conversation environment destroyed");
       return { success: true, conversationId };
+    }
+
+    // ── Cleanup idle containers ─────────────────────────────────────────
+    if (job.name === CLEANUP_JOB_NAME) {
+      console.log("🧹 Running scheduled container cleanup...");
+      const result = await triggerContainerCleanup();
+      console.log(`🧹 Cleanup complete: ${result.stoppedCount} container(s) stopped`);
+      return { success: true, ...result };
     }
 
     // ── Setup conversation ───────────────────────────────────────────────
@@ -111,6 +121,7 @@ const conversationsWorker = new Worker(
       conversation.environment = {
         ...conversation.environment,
         status: "starting",
+        statusChangedAt: new Date(),
       };
       await conversation.save();
 
@@ -217,6 +228,7 @@ const conversationsWorker = new Worker(
         bitbucketEmail,
         bitbucketToken,
         rearchServices: subResource.rearch?.services || [],
+        resourceConstraints: subResource.rearch?.resources || {},
         log: (msg) => jobLog(job, "conversations", msg),
       });
 
@@ -246,6 +258,7 @@ const conversationsWorker = new Worker(
       conversation.environment = {
         container: containerId,
         status: "running",
+        statusChangedAt: new Date(),
         opencodeUrl: opencodeUrl,
         hostPort: hostPort,
         opencodeSessionId: null, // Will be set when first session is created
@@ -298,6 +311,7 @@ const conversationsWorker = new Worker(
           conversation.environment = {
             container: conversation.environment?.container || "",
             status: "error",
+            statusChangedAt: new Date(),
             opencodeUrl: null,
             hostPort: null,
             opencodeSessionId: null,

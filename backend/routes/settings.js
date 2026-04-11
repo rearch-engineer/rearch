@@ -1,16 +1,21 @@
 import { Elysia } from 'elysia';
 import { z } from 'zod';
 import Setting from '../models/Setting.js';
-import { uploadFile, deleteFile } from '../utils/gridfs.js';
 import { authPlugin } from '../middleware/auth.js';
 import requireRole from '../middleware/requireRole.js';
-import { scheduleDockerRebuilds, triggerRebuildAll } from '../queue';
+import { scheduleDockerRebuilds, triggerRebuildAll, scheduleContainerCleanup, triggerContainerCleanup } from '../queue';
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
 const dockerRebuildSchema = z.object({
   enabled: z.boolean().optional(),
   intervalHours: z.number().min(1 / 60).max(720).optional(),
+});
+
+const containerCleanupSchema = z.object({
+  enabled: z.boolean().optional(),
+  idleStopMinutes: z.number().min(1).max(1440).optional(),
+  idleRemoveMinutes: z.number().min(1).max(10080).optional(), // up to 7 days
 });
 
 const signupSchema = z.object({
@@ -71,153 +76,6 @@ const router = new Elysia({ prefix: '/api/settings' })
   })
 
   // ─── Admin-only endpoints ─────────────────────────────────────────────────
-
-  /**
-   * Upload logo image
-   * POST /api/settings/logo
-   * Body: multipart/form-data with field "logo" (single image)
-   */
-  .post('/logo', async ({ body, user, status }) => {
-    try {
-      if (!body.logo) {
-        return status(400, { error: 'No image file provided' });
-      }
-
-      // Validate file type (images only)
-      if (!body.logo.type.startsWith('image/')) {
-        return status(400, { error: 'Only image files are allowed' });
-      }
-
-      // Validate file size (2MB limit)
-      if (body.logo.size > 2 * 1024 * 1024) {
-        return status(400, { error: 'File size exceeds 2MB limit' });
-      }
-
-      // Delete old logo from GridFS if one exists
-      const existing = await Setting.findOne({ key: 'logo' });
-      if (existing && existing.value && existing.value.fileId) {
-        try {
-          await deleteFile(existing.value.fileId);
-        } catch (e) {
-          // Old file may already be gone; ignore
-        }
-      }
-
-      // Convert Web API File to buffer
-      const buffer = Buffer.from(await body.logo.arrayBuffer());
-
-      // Upload new logo to GridFS (flagged as public so it can be served without auth)
-      const fileId = await uploadFile(
-        buffer,
-        body.logo.name,
-        body.logo.type,
-        'attachments',
-        { public: true },
-      );
-
-      const value = {
-        fileId: fileId.toString(),
-        filename: body.logo.name,
-        contentType: body.logo.type,
-        size: body.logo.size,
-      };
-
-      // Upsert the logo setting
-      const setting = await Setting.findOneAndUpdate(
-        { key: 'logo' },
-        { key: 'logo', value },
-        { upsert: true, new: true },
-      );
-
-      return setting;
-    } catch (err) {
-      console.error('Error uploading logo:', err);
-      return status(500, { error: err.message });
-    }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
-  })
-
-  /**
-   * Set logo to a named MUI icon (no file upload needed)
-   * PUT /api/settings/logo/icon
-   * Body: { iconName: string }
-   */
-  .put('/logo/icon', async ({ body, user, status }) => {
-    try {
-      const iconName = body?.iconName;
-      if (!iconName || typeof iconName !== 'string' || !/^[A-Za-z0-9]+$/.test(iconName)) {
-        return status(400, { error: 'Invalid icon name' });
-      }
-
-      // Delete old uploaded logo file from GridFS if one exists
-      const existing = await Setting.findOne({ key: 'logo' });
-      if (existing?.value?.fileId) {
-        try {
-          await deleteFile(existing.value.fileId);
-        } catch (e) {
-          // Old file may already be gone; ignore
-        }
-      }
-
-      const value = { iconName };
-
-      const setting = await Setting.findOneAndUpdate(
-        { key: 'logo' },
-        { key: 'logo', value },
-        { upsert: true, new: true },
-      );
-
-      return setting;
-    } catch (err) {
-      console.error('Error setting icon logo:', err);
-      return status(500, { error: err.message });
-    }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
-  })
-
-  /**
-   * Delete logo
-   * DELETE /api/settings/logo
-   */
-  .delete('/logo', async ({ user, status }) => {
-    try {
-      const existing = await Setting.findOne({ key: 'logo' });
-      if (!existing) {
-        return status(404, { error: 'No logo setting found' });
-      }
-
-      // Delete file from GridFS
-      if (existing.value && existing.value.fileId) {
-        try {
-          await deleteFile(existing.value.fileId);
-        } catch (e) {
-          // File may already be gone; ignore
-        }
-      }
-
-      await Setting.deleteOne({ key: 'logo' });
-      return { success: true };
-    } catch (err) {
-      console.error('Error deleting logo:', err);
-      return status(500, { error: err.message });
-    }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
-  })
 
   // ─── Signup restriction settings ────────────────────────────────────────
 
@@ -365,6 +223,119 @@ const router = new Elysia({ prefix: '/api/settings' })
       };
     } catch (err) {
       console.error('Error triggering docker rebuild:', err);
+      return status(500, { error: err.message });
+    }
+  }, {
+    beforeHandle: ({ user, status }) => {
+      if (!user?.roles?.includes('admin')) {
+        return status(403, { error: 'Insufficient permissions. Required role: admin' });
+      }
+    },
+  })
+
+  // ─── Container cleanup settings ─────────────────────────────────────────
+
+  /**
+   * Get container cleanup settings
+   * GET /api/settings/container-cleanup
+   */
+  .get('/container-cleanup', async ({ status }) => {
+    try {
+      const setting = await Setting.findOne({ key: 'containerCleanup' });
+      const value = setting?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+      return {
+        enabled: value.enabled || false,
+        idleStopMinutes: value.idleStopMinutes || 30,
+        idleRemoveMinutes: value.idleRemoveMinutes || 1440,
+        lastTriggeredAt: value.lastTriggeredAt || null,
+      };
+    } catch (err) {
+      console.error('Error fetching container cleanup settings:', err);
+      return status(500, { error: err.message });
+    }
+  }, {
+    beforeHandle: ({ user, status }) => {
+      if (!user?.roles?.includes('admin')) {
+        return status(403, { error: 'Insufficient permissions. Required role: admin' });
+      }
+    },
+  })
+
+  /**
+   * Update container cleanup settings
+   * PUT /api/settings/container-cleanup
+   * Body: { enabled?: boolean, idleTimeoutMinutes?: number }
+   */
+  .put('/container-cleanup', async ({ body, user, status }) => {
+    try {
+      const parsed = containerCleanupSchema.safeParse(body);
+      if (!parsed.success) {
+        return status(400, {
+          error: parsed.error.errors.map((e) => e.message).join(', '),
+        });
+      }
+
+      const { enabled, idleStopMinutes, idleRemoveMinutes } = parsed.data;
+
+      // Get current value or defaults
+      const existing = await Setting.findOne({ key: 'containerCleanup' });
+      const current = existing?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+
+      const value = {
+        enabled: enabled !== undefined ? enabled : current.enabled,
+        idleStopMinutes: idleStopMinutes !== undefined ? idleStopMinutes : current.idleStopMinutes,
+        idleRemoveMinutes: idleRemoveMinutes !== undefined ? idleRemoveMinutes : current.idleRemoveMinutes,
+        lastTriggeredAt: current.lastTriggeredAt || null,
+      };
+
+      const setting = await Setting.findOneAndUpdate(
+        { key: 'containerCleanup' },
+        { key: 'containerCleanup', value },
+        { upsert: true, new: true },
+      );
+
+      // Update the BullMQ repeatable job schedule
+      await scheduleContainerCleanup(value);
+
+      return setting;
+    } catch (err) {
+      console.error('Error updating container cleanup settings:', err);
+      return status(500, { error: err.message });
+    }
+  }, {
+    beforeHandle: ({ user, status }) => {
+      if (!user?.roles?.includes('admin')) {
+        return status(403, { error: 'Insufficient permissions. Required role: admin' });
+      }
+    },
+  })
+
+  /**
+   * Trigger container cleanup now
+   * POST /api/settings/container-cleanup/trigger
+   */
+  .post('/container-cleanup/trigger', async ({ user, status }) => {
+    try {
+      const result = await triggerContainerCleanup();
+
+      // Update lastTriggeredAt
+      const existing = await Setting.findOne({ key: 'containerCleanup' });
+      const current = existing?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+      await Setting.findOneAndUpdate(
+        { key: 'containerCleanup' },
+        { key: 'containerCleanup', value: { ...current, lastTriggeredAt: new Date().toISOString() } },
+        { upsert: true, new: true },
+      );
+
+      return {
+        success: true,
+        stoppedCount: result.stoppedCount,
+        stoppedConversations: result.stoppedConversations,
+        removedCount: result.removedCount,
+        removedConversations: result.removedConversations,
+      };
+    } catch (err) {
+      console.error('Error triggering container cleanup:', err);
       return status(500, { error: err.message });
     }
   }, {

@@ -63,6 +63,7 @@ function BitbucketRepositoryDetails({
     dockerImageFromBranch: rearch?.dockerImageFromBranch || "",
     services: rearch?.services || [],
     skills: rearch?.skills || [],
+    resources: rearch?.resources || { memoryMb: 0, cpuQuota: 0, pidsLimit: 0 },
   });
   const [savingRearch, setSavingRearch] = useState(false);
   const [loadingDockerfile, setLoadingDockerfile] = useState(false);
@@ -448,6 +449,7 @@ function BitbucketRepositoryDetails({
       dockerImageFromBranch: rearch?.dockerImageFromBranch || "",
       services: rearch?.services || [],
       skills: rearch?.skills || [],
+      resources: rearch?.resources || { memoryMb: 0, cpuQuota: 0, pidsLimit: 0 },
     });
     setIsEditingRearch(false);
   };
@@ -1020,6 +1022,148 @@ function BitbucketRepositoryDetails({
                 </Select>
               </Box>
 
+              {/* Resource Constraints */}
+              <Box>
+                <FormLabel sx={{ mb: 1 }}>Resource Constraints</FormLabel>
+                <Typography
+                  level="body-xs"
+                  sx={{ mb: 1.5, color: "var(--text-secondary)" }}
+                >
+                  Set Docker resource limits for containers created from this
+                  repository. Leave at 0 for no limit.
+                </Typography>
+                <Stack spacing={1.5}>
+                  <FormControl>
+                    <FormLabel>Memory Limit (MB)</FormLabel>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Input
+                        size="sm"
+                        type="number"
+                        value={editedRearch.resources?.memoryMb || 0}
+                        onChange={(e) =>
+                          setEditedRearch((prev) => ({
+                            ...prev,
+                            resources: {
+                              ...prev.resources,
+                              memoryMb: e.target.value === "" ? 0 : Number(e.target.value),
+                            },
+                          }))
+                        }
+                        placeholder="0 = no limit"
+                        slotProps={{ input: { min: 0, max: 32768 } }}
+                        sx={{ width: 120, fontFamily: "monospace", bgcolor: "var(--bg-primary)" }}
+                      />
+                      <Stack direction="row" spacing={0.5}>
+                        {[512, 1024, 2048, 4096].map((preset) => (
+                          <Button
+                            key={preset}
+                            size="sm"
+                            variant={editedRearch.resources?.memoryMb === preset ? "solid" : "soft"}
+                            color={editedRearch.resources?.memoryMb === preset ? "primary" : "neutral"}
+                            onClick={() =>
+                              setEditedRearch((prev) => ({
+                                ...prev,
+                                resources: { ...prev.resources, memoryMb: preset },
+                              }))
+                            }
+                            sx={{ minWidth: 0, px: 1 }}
+                          >
+                            {preset >= 1024 ? `${preset / 1024}GB` : `${preset}MB`}
+                          </Button>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>CPU Limit (quota units, 100000 = 1 CPU)</FormLabel>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Input
+                        size="sm"
+                        type="number"
+                        value={editedRearch.resources?.cpuQuota || 0}
+                        onChange={(e) =>
+                          setEditedRearch((prev) => ({
+                            ...prev,
+                            resources: {
+                              ...prev.resources,
+                              cpuQuota: e.target.value === "" ? 0 : Number(e.target.value),
+                            },
+                          }))
+                        }
+                        placeholder="0 = no limit"
+                        slotProps={{ input: { min: 0, max: 800000 } }}
+                        sx={{ width: 120, fontFamily: "monospace", bgcolor: "var(--bg-primary)" }}
+                      />
+                      <Stack direction="row" spacing={0.5}>
+                        {[
+                          { label: "0.5 CPU", value: 50000 },
+                          { label: "1 CPU", value: 100000 },
+                          { label: "2 CPU", value: 200000 },
+                          { label: "4 CPU", value: 400000 },
+                        ].map((preset) => (
+                          <Button
+                            key={preset.value}
+                            size="sm"
+                            variant={editedRearch.resources?.cpuQuota === preset.value ? "solid" : "soft"}
+                            color={editedRearch.resources?.cpuQuota === preset.value ? "primary" : "neutral"}
+                            onClick={() =>
+                              setEditedRearch((prev) => ({
+                                ...prev,
+                                resources: { ...prev.resources, cpuQuota: preset.value },
+                              }))
+                            }
+                            sx={{ minWidth: 0, px: 1 }}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>PID Limit (max processes)</FormLabel>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Input
+                        size="sm"
+                        type="number"
+                        value={editedRearch.resources?.pidsLimit || 0}
+                        onChange={(e) =>
+                          setEditedRearch((prev) => ({
+                            ...prev,
+                            resources: {
+                              ...prev.resources,
+                              pidsLimit: e.target.value === "" ? 0 : Number(e.target.value),
+                            },
+                          }))
+                        }
+                        placeholder="0 = no limit"
+                        slotProps={{ input: { min: 0, max: 4096 } }}
+                        sx={{ width: 120, fontFamily: "monospace", bgcolor: "var(--bg-primary)" }}
+                      />
+                      <Stack direction="row" spacing={0.5}>
+                        {[128, 256, 512, 1024].map((preset) => (
+                          <Button
+                            key={preset}
+                            size="sm"
+                            variant={editedRearch.resources?.pidsLimit === preset ? "solid" : "soft"}
+                            color={editedRearch.resources?.pidsLimit === preset ? "primary" : "neutral"}
+                            onClick={() =>
+                              setEditedRearch((prev) => ({
+                                ...prev,
+                                resources: { ...prev.resources, pidsLimit: preset },
+                              }))
+                            }
+                            sx={{ minWidth: 0, px: 1 }}
+                          >
+                            {preset}
+                          </Button>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  </FormControl>
+                </Stack>
+              </Box>
+
               <Stack direction="row" spacing={1} justifyContent="flex-end">
                 <Button
                   size="sm"
@@ -1209,6 +1353,52 @@ function BitbucketRepositoryDetails({
                     sx={{ color: "var(--text-secondary)" }}
                   >
                     No repo-specific skills configured.
+                  </Typography>
+                )}
+              </Box>
+              <Box>
+                <Typography
+                  level="body-sm"
+                  fontWeight="bold"
+                  sx={{ color: "var(--text-secondary)", mb: 0.5 }}
+                >
+                  Resource Constraints
+                </Typography>
+                {rearch?.resources && (rearch.resources.memoryMb > 0 || rearch.resources.cpuQuota > 0 || rearch.resources.pidsLimit > 0) ? (
+                  <Stack spacing={0.5}>
+                    {rearch.resources.memoryMb > 0 && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>Memory:</Typography>
+                        <Chip size="sm" variant="soft" color="primary">
+                          {rearch.resources.memoryMb >= 1024
+                            ? `${(rearch.resources.memoryMb / 1024).toFixed(rearch.resources.memoryMb % 1024 === 0 ? 0 : 1)} GB`
+                            : `${rearch.resources.memoryMb} MB`}
+                        </Chip>
+                      </Stack>
+                    )}
+                    {rearch.resources.cpuQuota > 0 && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>CPU:</Typography>
+                        <Chip size="sm" variant="soft" color="primary">
+                          {rearch.resources.cpuQuota / 100000} CPU(s)
+                        </Chip>
+                      </Stack>
+                    )}
+                    {rearch.resources.pidsLimit > 0 && (
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>PIDs:</Typography>
+                        <Chip size="sm" variant="soft" color="primary">
+                          {rearch.resources.pidsLimit}
+                        </Chip>
+                      </Stack>
+                    )}
+                  </Stack>
+                ) : (
+                  <Typography
+                    level="body-md"
+                    sx={{ color: "var(--text-secondary)" }}
+                  >
+                    No resource constraints configured (unlimited).
                   </Typography>
                 )}
               </Box>

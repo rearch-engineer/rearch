@@ -91,21 +91,24 @@ const subResourceSchema = new mongoose.Schema(
           type: String,
         },
       ],
-    },
-    flow: [
-      {
-        persona: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "FlowPersona",
+      resources: {
+        memoryMb: {
+          type: Number,
+          required: false,
+          default: 0,
         },
-        slug: {
-          type: String,
+        cpuQuota: {
+          type: Number,
+          required: false,
+          default: 0,
         },
-        output: {
-          type: String,
+        pidsLimit: {
+          type: Number,
+          required: false,
+          default: 0,
         },
       },
-    ],
+    },
   },
   {
     timestamps: true,

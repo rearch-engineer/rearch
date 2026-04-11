@@ -44,7 +44,15 @@ function getAuthHeaders() {
 }
 
 // Helper function to process SSE data events
-const processSSEData = (data, onChunk, onToolCall, onDone, onError, onQuestion, onPermission) => {
+const processSSEData = (
+  data,
+  onChunk,
+  onToolCall,
+  onDone,
+  onError,
+  onQuestion,
+  onPermission,
+) => {
   // Handle permission.asked events (agent needs permission for an action)
   if (data.type === "permission.asked") {
     if (onPermission) {
@@ -170,12 +178,28 @@ const processSSEData = (data, onChunk, onToolCall, onDone, onError, onQuestion, 
 };
 
 // Helper function to process SSE lines from a message
-const processSSELines = (lines, onChunk, onToolCall, onDone, onError, onQuestion, onPermission) => {
+const processSSELines = (
+  lines,
+  onChunk,
+  onToolCall,
+  onDone,
+  onError,
+  onQuestion,
+  onPermission,
+) => {
   for (const line of lines) {
     if (line.startsWith("data: ")) {
       try {
         const data = JSON.parse(line.slice(6));
-        processSSEData(data, onChunk, onToolCall, onDone, onError, onQuestion, onPermission);
+        processSSEData(
+          data,
+          onChunk,
+          onToolCall,
+          onDone,
+          onError,
+          onQuestion,
+          onPermission,
+        );
       } catch (parseError) {
         console.error("Error parsing SSE data:", parseError, line);
       }
@@ -224,7 +248,15 @@ const handleSSEStream = async (
 
     for (const message of messages) {
       const lines = message.split("\n");
-      processSSELines(lines, onChunk, onToolCall, onDone, onError, onQuestion, onPermission);
+      processSSELines(
+        lines,
+        onChunk,
+        onToolCall,
+        onDone,
+        onError,
+        onQuestion,
+        onPermission,
+      );
     }
   }
 
@@ -232,7 +264,15 @@ const handleSSEStream = async (
   if (buffer.trim()) {
     // console.log("[SSE] Processing remaining buffer:", buffer);
     const lines = buffer.split("\n");
-    processSSELines(lines, onChunk, onToolCall, onDone, onError, onQuestion, onPermission);
+    processSSELines(
+      lines,
+      onChunk,
+      onToolCall,
+      onDone,
+      onError,
+      onQuestion,
+      onPermission,
+    );
   }
 };
 
@@ -252,9 +292,12 @@ export const api = {
   },
 
   createConversationByName: async (repoName) => {
-    const response = await axios.post(`${API_BASE_URL}/conversations/start-by-name`, {
-      name: repoName,
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/conversations/start-by-name`,
+      {
+        name: repoName,
+      },
+    );
     return response.data;
   },
 
@@ -264,10 +307,9 @@ export const api = {
   },
 
   searchConversations: async (query) => {
-    const response = await axios.get(
-      `${API_BASE_URL}/conversations/search`,
-      { params: { q: query } }
-    );
+    const response = await axios.get(`${API_BASE_URL}/conversations/search`, {
+      params: { q: query },
+    });
     return response.data;
   },
 
@@ -277,7 +319,9 @@ export const api = {
   },
 
   getMessages: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/conversations/${id}/messages`);
+    const response = await axios.get(
+      `${API_BASE_URL}/conversations/${id}/messages`,
+    );
     return response.data;
   },
 
@@ -287,7 +331,9 @@ export const api = {
   },
 
   renameConversation: async (id, title) => {
-    const response = await axios.patch(`${API_BASE_URL}/conversations/${id}`, { title });
+    const response = await axios.patch(`${API_BASE_URL}/conversations/${id}`, {
+      title,
+    });
     return response.data;
   },
 
@@ -369,7 +415,15 @@ export const api = {
         },
       );
 
-      await handleSSEStream(response, onChunk, onToolCall, onDone, onError, onQuestion, onPermission);
+      await handleSSEStream(
+        response,
+        onChunk,
+        onToolCall,
+        onDone,
+        onError,
+        onQuestion,
+        onPermission,
+      );
     } catch (error) {
       console.error("[API] sendMessage error:", error);
       onError(error.message);
@@ -400,7 +454,15 @@ export const api = {
         },
       );
 
-      await handleSSEStream(response, onChunk, onToolCall, onDone, onError, onQuestion, onPermission);
+      await handleSSEStream(
+        response,
+        onChunk,
+        onToolCall,
+        onDone,
+        onError,
+        onQuestion,
+        onPermission,
+      );
     } catch (error) {
       onError(error.message);
     }
@@ -618,30 +680,6 @@ export const api = {
     return response.data;
   },
 
-  // Flow Personas
-  getFlowPersonas: async () => {
-    const response = await axios.get(`${API_BASE_URL}/flow-personas`);
-    return response.data;
-  },
-
-  createFlowPersona: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/flow-personas`, data);
-    return response.data;
-  },
-
-  updateFlowPersona: async (id, data) => {
-    const response = await axios.put(
-      `${API_BASE_URL}/flow-personas/${id}`,
-      data,
-    );
-    return response.data;
-  },
-
-  deleteFlowPersona: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/flow-personas/${id}`);
-    return response.data;
-  },
-
   // Skills
   getSkills: async () => {
     const response = await axios.get(`${API_BASE_URL}/skills`);
@@ -667,8 +705,6 @@ export const api = {
     const response = await axios.delete(`${API_BASE_URL}/skills/${id}`);
     return response.data;
   },
-
-
 
   // Jobs (admin)
   getJobs: async (params = {}) => {
@@ -709,11 +745,9 @@ export const api = {
   uploadAvatar: async (file) => {
     const formData = new FormData();
     formData.append("avatar", file);
-    const response = await axios.post(
-      `${API_BASE_URL}/auth/avatar`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
+    const response = await axios.post(`${API_BASE_URL}/auth/avatar`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -767,28 +801,40 @@ export const api = {
   },
 
   updateDockerRebuildSettings: async (data) => {
-    const response = await axios.put(`${API_BASE_URL}/settings/docker-rebuild`, data);
+    const response = await axios.put(
+      `${API_BASE_URL}/settings/docker-rebuild`,
+      data,
+    );
     return response.data;
   },
 
   triggerDockerRebuildAll: async () => {
-    const response = await axios.post(`${API_BASE_URL}/settings/docker-rebuild/trigger`);
+    const response = await axios.post(
+      `${API_BASE_URL}/settings/docker-rebuild/trigger`,
+    );
     return response.data;
   },
 
   // Container cleanup settings (admin)
   getContainerCleanupSettings: async () => {
-    const response = await axios.get(`${API_BASE_URL}/settings/container-cleanup`);
+    const response = await axios.get(
+      `${API_BASE_URL}/settings/container-cleanup`,
+    );
     return response.data;
   },
 
   updateContainerCleanupSettings: async (data) => {
-    const response = await axios.put(`${API_BASE_URL}/settings/container-cleanup`, data);
+    const response = await axios.put(
+      `${API_BASE_URL}/settings/container-cleanup`,
+      data,
+    );
     return response.data;
   },
 
   triggerContainerCleanup: async () => {
-    const response = await axios.post(`${API_BASE_URL}/settings/container-cleanup/trigger`);
+    const response = await axios.post(
+      `${API_BASE_URL}/settings/container-cleanup/trigger`,
+    );
     return response.data;
   },
 
@@ -806,7 +852,10 @@ export const api = {
     return response.data;
   },
   updateMcpServer: async (name, data) => {
-    const response = await axios.put(`${API_BASE_URL}/mcp/servers/${name}`, data);
+    const response = await axios.put(
+      `${API_BASE_URL}/mcp/servers/${name}`,
+      data,
+    );
     return response.data;
   },
   deleteMcpServer: async (name) => {

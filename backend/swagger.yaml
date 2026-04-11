@@ -39,7 +39,7 @@ tags:
   - name: Skills
     description: Skill management (admin only)
   - name: Settings
-    description: Application settings management (logo, etc.)
+    description: Application settings management
   - name: Jobs
     description: BullMQ job queue monitoring (admin only)
   - name: Usage
@@ -174,6 +174,10 @@ components:
               type: integer
             postgresPort:
               type: integer
+            statusChangedAt:
+              type: string
+              format: date-time
+              description: Timestamp of the last environment.status transition (used for idle cleanup thresholds)
         createdAt:
           type: string
           format: date-time
@@ -355,18 +359,25 @@ components:
                     type: string
                   internalPort:
                     type: integer
-        flow:
-          type: array
-          items:
-            type: object
-            properties:
-              persona:
-                type: string
-                description: Reference to FlowPersona
-              slug:
-                type: string
-              output:
-                type: string
+            resources:
+              type: object
+              description: Docker resource constraints applied when creating containers for this repository
+              properties:
+                memoryMb:
+                  type: integer
+                  description: "Memory limit in MB (0 = no limit)"
+                  default: 0
+                  example: 2048
+                cpuQuota:
+                  type: integer
+                  description: "CPU quota (0 = no limit, 100000 = 1 CPU)"
+                  default: 0
+                  example: 100000
+                pidsLimit:
+                  type: integer
+                  description: "Max number of PIDs (0 = no limit)"
+                  default: 0
+                  example: 256
         createdAt:
           type: string
           format: date-time
@@ -469,41 +480,6 @@ components:
           type: string
           description: Bitbucket username
 
-    FlowPersona:
-      type: object
-      required:
-        - title
-        - slug
-      properties:
-        _id:
-          type: string
-          description: MongoDB ObjectId
-        title:
-          type: string
-        slug:
-          type: string
-          description: URL-safe identifier (lowercase alphanumeric, hyphens, underscores)
-        systemPrompt:
-          type: string
-          default: ""
-        prompt:
-          type: string
-          default: ""
-        code:
-          type: boolean
-          default: false
-        active:
-          type: boolean
-          default: true
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-
-
     Skill:
       type: object
       required:
@@ -538,7 +514,7 @@ components:
         key:
           type: string
           description: Unique setting key
-          example: logo
+          example: signup
         value:
           type: object
           description: Setting value (structure depends on the key)
@@ -548,25 +524,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-
-    LogoSettingValue:
-      type: object
-      description: Value stored for the "logo" setting key
-      properties:
-        fileId:
-          type: string
-          description: GridFS file ID for the logo image
-          example: 507f1f77bcf86cd799439020
-        filename:
-          type: string
-          example: company-logo.png
-        contentType:
-          type: string
-          example: image/png
-        size:
-          type: integer
-          description: File size in bytes
-          example: 24576
 
     SignupSettingValue:
       type: object
@@ -3166,120 +3123,6 @@ paths:
                       example: Get current weather information for a location
 
   # ===========================================================================
-  # Flow Personas (Admin only)
-  # ===========================================================================
-
-  /api/flow-personas:
-    get:
-      tags:
-        - Flow Personas
-      summary: List all flow personas (admin only)
-      responses:
-        "200":
-          description: List of flow personas
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/FlowPersona"
-        "403":
-          description: Admin role required
-
-    post:
-      tags:
-        - Flow Personas
-      summary: Create a flow persona (admin only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - title
-                - slug
-              properties:
-                title:
-                  type: string
-                slug:
-                  type: string
-                  description: URL-safe identifier (lowercase alphanumeric, hyphens, underscores). Cannot be "description".
-                prompt:
-                  type: string
-                systemPrompt:
-                  type: string
-                code:
-                  type: boolean
-                active:
-                  type: boolean
-      responses:
-        "201":
-          description: Flow persona created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlowPersona"
-        "403":
-          description: Admin role required
-
-  /api/flow-personas/{id}:
-    put:
-      tags:
-        - Flow Personas
-      summary: Update a flow persona (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                slug:
-                  type: string
-                prompt:
-                  type: string
-                systemPrompt:
-                  type: string
-                code:
-                  type: boolean
-                active:
-                  type: boolean
-      responses:
-        "200":
-          description: Updated flow persona
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FlowPersona"
-        "403":
-          description: Admin role required
-
-    delete:
-      tags:
-        - Flow Personas
-      summary: Delete a flow persona (admin only)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: Flow persona deleted
-        "403":
-          description: Admin role required
-
-  # ===========================================================================
   # Skills (Admin only)
   # ===========================================================================
 
@@ -3422,69 +3265,6 @@ paths:
                 items:
                   $ref: "#/components/schemas/Setting"
 
-  /api/settings/logo:
-    post:
-      tags:
-        - Settings
-      summary: Upload application logo (admin only)
-      description: |
-        Uploads an image file as the application logo. The image is stored in GridFS
-        and a reference is saved in the settings collection with key "logo".
-        If a logo already exists, the old file is deleted from GridFS before storing the new one.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - logo
-              properties:
-                logo:
-                  type: string
-                  format: binary
-                  description: Image file (max 2MB, image/* content types only)
-      responses:
-        "200":
-          description: Logo uploaded and setting saved
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Setting"
-        "400":
-          description: No image file provided or invalid file type
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Admin role required
-
-    delete:
-      tags:
-        - Settings
-      summary: Delete application logo (admin only)
-      description: Removes the logo setting and deletes the associated image file from GridFS.
-      responses:
-        "200":
-          description: Logo deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        "404":
-          description: No logo setting found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Admin role required
-
   /api/settings/signup:
     put:
       tags:
@@ -3552,6 +3332,144 @@ paths:
                     items:
                       type: string
                     example: []
+
+  # ===========================================================================
+  # Container Cleanup (Admin only)
+  # ===========================================================================
+
+  /api/settings/container-cleanup:
+    get:
+      tags:
+        - Settings
+      summary: Get container cleanup settings (admin only)
+      description: Returns the current idle container cleanup configuration including stop and remove thresholds.
+      responses:
+        "200":
+          description: Container cleanup settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Whether automatic idle container cleanup is enabled
+                    example: true
+                  idleStopMinutes:
+                    type: integer
+                    description: Minutes of inactivity before a running container is stopped
+                    example: 30
+                  idleRemoveMinutes:
+                    type: integer
+                    description: Minutes after being stopped before a container is removed from Docker
+                    example: 1440
+                  lastTriggeredAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    description: When the cleanup last ran (null if never)
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Settings
+      summary: Update container cleanup settings (admin only)
+      description: |
+        Updates the idle container cleanup configuration. Changes are applied immediately
+        to the BullMQ repeatable job schedule.
+
+        - `idleStopMinutes`: Running containers with no user interaction for this many minutes
+          will be stopped (Docker stop). The container is preserved on disk. Min 5, max 1440.
+        - `idleRemoveMinutes`: Stopped containers that remain idle for this many minutes after
+          being stopped will be permanently removed (Docker rm). Min 5, max 10080 (7 days).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                idleStopMinutes:
+                  type: integer
+                  minimum: 5
+                  maximum: 1440
+                  description: Minutes of inactivity before stopping a running container
+                idleRemoveMinutes:
+                  type: integer
+                  minimum: 5
+                  maximum: 10080
+                  description: Minutes after stop before removing the container
+      responses:
+        "200":
+          description: Updated setting document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/settings/container-cleanup/trigger:
+    post:
+      tags:
+        - Settings
+      summary: Trigger container cleanup now (admin only)
+      description: |
+        Immediately runs both cleanup phases:
+        1. Stop idle running containers (based on `idleStopMinutes` threshold)
+        2. Remove stale stopped containers (based on `idleRemoveMinutes` threshold)
+      responses:
+        "200":
+          description: Cleanup results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stoppedCount:
+                    type: integer
+                    description: Number of running containers that were stopped
+                    example: 3
+                  stoppedConversations:
+                    type: array
+                    items:
+                      type: string
+                    description: IDs of conversations whose containers were stopped
+                  removedCount:
+                    type: integer
+                    description: Number of stopped containers that were removed
+                    example: 1
+                  removedConversations:
+                    type: array
+                    items:
+                      type: string
+                    description: IDs of conversations whose containers were removed
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   # ===========================================================================
   # Jobs (Admin only)

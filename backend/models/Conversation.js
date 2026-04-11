@@ -89,6 +89,10 @@ const conversationSchema = new mongoose.Schema({
     },
     postgresPort: {
       type: Number,
+    },
+    // Timestamp of the last environment.status change (used for idle cleanup thresholds)
+    statusChangedAt: {
+      type: Date,
     }
   },
   // Per-user timestamp of when they last fetched messages (for unread detection)

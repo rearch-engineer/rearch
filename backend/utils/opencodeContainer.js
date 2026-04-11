@@ -700,11 +700,13 @@ export async function getContainerStatus(conversationId) {
     if (!containerRunning) {
       // Docker container is not running — update DB to "stopped"
       conversation.environment.status = "stopped";
+      conversation.environment.statusChangedAt = new Date();
       await conversation.save();
       status.containerStatus = "stopped";
     } else {
       // Container is running but OpenCode SDK is unhealthy — update DB to "error"
       conversation.environment.status = "error";
+      conversation.environment.statusChangedAt = new Date();
       conversation.environment.errorMessage =
         status.healthCheckError || "OpenCode server is not healthy";
       await conversation.save();

@@ -36,6 +36,10 @@ const docker = new Docker();
  * @param {string} [params.bitbucketEmail=""] - Bitbucket email
  * @param {string} [params.bitbucketToken=""] - Bitbucket API token
  * @param {Array}  [params.rearchServices=[]] - Service port definitions from subResource.rearch.services
+ * @param {Object} [params.resourceConstraints] - Docker resource constraints from subResource.rearch.resources
+ * @param {number} [params.resourceConstraints.memoryMb=0] - Memory limit in MB (0 = no limit)
+ * @param {number} [params.resourceConstraints.cpuQuota=0] - CPU quota (0 = no limit, 100000 = 1 CPU)
+ * @param {number} [params.resourceConstraints.pidsLimit=0] - Max number of PIDs (0 = no limit)
  * @param {(msg: string) => Promise<void>} [params.log] - Async logging callback
  * @returns {Promise<{container: object, containerId: string, opencodeUrl: string, hostPort: number|null, codeServerHostPort: number|null, appHostPort: number|null, postgresHostPort: number|null, publicBaseUrl: string|null}>}
  */
@@ -50,6 +54,7 @@ export async function createConversationContainer({
   bitbucketEmail = "",
   bitbucketToken = "",
   rearchServices = [],
+  resourceConstraints = {},
   log,
 }) {
   const _log = log || (() => {});
@@ -177,6 +182,18 @@ export async function createConversationContainer({
     HostConfig: {
       AutoRemove: false,
       PortBindings: useOverlayNetwork ? undefined : portBindings,
+      // Resource constraints (only applied when > 0)
+      ...(resourceConstraints?.memoryMb > 0 && {
+        Memory: resourceConstraints.memoryMb * 1024 * 1024,
+        MemorySwap: resourceConstraints.memoryMb * 2 * 1024 * 1024, // swap = 2x memory
+      }),
+      ...(resourceConstraints?.cpuQuota > 0 && {
+        CpuQuota: resourceConstraints.cpuQuota,
+        CpuPeriod: 100000,
+      }),
+      ...(resourceConstraints?.pidsLimit > 0 && {
+        PidsLimit: resourceConstraints.pidsLimit,
+      }),
     },
   };
 
