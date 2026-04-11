@@ -749,27 +749,6 @@ export const api = {
     return response.data;
   },
 
-  uploadLogo: async (file) => {
-    const formData = new FormData();
-    formData.append("logo", file);
-    const response = await axios.post(
-      `${API_BASE_URL}/settings/logo`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } },
-    );
-    return response.data;
-  },
-
-  deleteLogo: async () => {
-    const response = await axios.delete(`${API_BASE_URL}/settings/logo`);
-    return response.data;
-  },
-
-  setLogoIcon: async (iconName) => {
-    const response = await axios.put(`${API_BASE_URL}/settings/logo/icon`, { iconName });
-    return response.data;
-  },
-
   // Signup restriction settings
   getSignupSettings: async () => {
     const response = await axios.get(`${API_BASE_URL}/settings/signup/public`);
@@ -794,6 +773,22 @@ export const api = {
 
   triggerDockerRebuildAll: async () => {
     const response = await axios.post(`${API_BASE_URL}/settings/docker-rebuild/trigger`);
+    return response.data;
+  },
+
+  // Container cleanup settings (admin)
+  getContainerCleanupSettings: async () => {
+    const response = await axios.get(`${API_BASE_URL}/settings/container-cleanup`);
+    return response.data;
+  },
+
+  updateContainerCleanupSettings: async (data) => {
+    const response = await axios.put(`${API_BASE_URL}/settings/container-cleanup`, data);
+    return response.data;
+  },
+
+  triggerContainerCleanup: async () => {
+    const response = await axios.post(`${API_BASE_URL}/settings/container-cleanup/trigger`);
     return response.data;
   },
 

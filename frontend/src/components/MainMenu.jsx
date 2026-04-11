@@ -15,7 +15,7 @@ import StorageOutlined from "@mui/icons-material/StorageOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import * as MuiIcons from "@mui/icons-material";
+import ForumIcon from "@mui/icons-material/Forum";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
 import { api } from "../api/client";
@@ -40,8 +40,6 @@ const MainMenu = () => {
   const { user, isAdmin, logout } = useAuth();
   const { conversations, busyConversationIds, unreadConversationIds, handleDeleteConversation, handleRenameConversation, markRead } = useConversations();
 
-  const [logoUrl, setLogoUrl] = useState(null);
-  const [logoIconName, setLogoIconName] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
