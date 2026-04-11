@@ -512,30 +512,43 @@ function BitbucketResourceForm() {
                               component="code"
                               sx={{ color: "var(--text-secondary)" }}
                             >
-                              https://id.atlassian.net/manage-profile/security/api-tokens
+                              https://id.atlassian.com/manage-profile/security/api-tokens
                             </Typography>
                           </ListItem>
-                          <ListItem>Click "Create API token".</ListItem>
+                          <ListItem>Click "Create API token with scopes".</ListItem>
                           <ListItem>
-                            Enter a descriptive label (e.g. "Chat Integration").
+                            Give it a name (e.g. "Chat Integration").
                           </ListItem>
                           <ListItem>
-                            Click "Create" and copy the generated token.
+                            Choose the desired expiration date.
                           </ListItem>
                           <ListItem>
-                            Paste the token into the field above.
+                            Choose Bitbucket.
+                          </ListItem>
+                          <ListItem>
+                            Select the scopes:{" "}
+                            <Typography
+                              level="body-xs"
+                              fontFamily="monospace"
+                              component="code"
+                              sx={{ color: "var(--text-secondary)" }}
+                            >
+                              read:repository:bitbucket
+                            </Typography>
+                            {" & "}
+                            <Typography
+                              level="body-xs"
+                              fontFamily="monospace"
+                              component="code"
+                              sx={{ color: "var(--text-secondary)" }}
+                            >
+                              write:pullrequest:bitbucket
+                            </Typography>
+                          </ListItem>
+                          <ListItem>
+                            Copy the generated token and paste it into the field above.
                           </ListItem>
                         </List>
-                        <Typography
-                          level="body-xs"
-                          sx={{
-                            mt: 0.5,
-                            fontStyle: "italic",
-                            color: "var(--text-tertiary)",
-                          }}
-                        >
-                          Bitbucket uses the same Atlassian API tokens as Jira.
-                        </Typography>
                       </Box>
                     </Stack>
                   </Box>

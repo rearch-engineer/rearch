@@ -37,7 +37,6 @@ export default async function onSync(job) {
       links: repoDetails.links,
       owner: repoDetails.owner,
       branches: repoDetails.branches,
-      recentCommits: repoDetails.recentCommits,
       lastSyncedAt: new Date().toISOString(),
     };
 

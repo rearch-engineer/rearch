@@ -7,7 +7,6 @@ import {
   Stack,
   Card,
   CardContent,
-  Table,
   Link,
   IconButton,
   Select,
@@ -1354,116 +1353,6 @@ function BitbucketRepositoryDetails({
           </Stack>
         </CardContent>
       </Card>
-
-      {/* Branches Card */}
-      {data?.branches && data.branches.length > 0 && (
-        <Card variant="outlined" sx={{ bgcolor: "var(--bg-secondary)", mb: 3 }}>
-          <CardContent>
-            <Typography
-              level="title-md"
-              sx={{ mb: 2, color: "var(--text-primary)" }}
-            >
-              Branches ({data.branches.length})
-            </Typography>
-            <Table sx={{ "& th, & td": { color: "var(--text-primary)" } }}>
-              <thead>
-                <tr>
-                  <th>Branch Name</th>
-                  <th>Last Commit</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.branches.slice(0, 10).map((branch, index) => (
-                  <tr key={index}>
-                    <td>
-                      <Chip
-                        size="sm"
-                        variant="soft"
-                        color={
-                          branch.name === data.mainBranch
-                            ? "primary"
-                            : "neutral"
-                        }
-                      >
-                        {branch.name}
-                      </Chip>
-                    </td>
-                    <td>
-                      <Typography
-                        level="body-xs"
-                        sx={{ fontFamily: "monospace" }}
-                      >
-                        {branch.target?.hash?.substring(0, 7)}
-                      </Typography>
-                    </td>
-                    <td>
-                      <Typography level="body-xs">
-                        {formatDate(branch.target?.date)}
-                      </Typography>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recent Commits Card */}
-      {data?.recentCommits && data.recentCommits.length > 0 && (
-        <Card variant="outlined" sx={{ bgcolor: "var(--bg-secondary)", mb: 3 }}>
-          <CardContent>
-            <Typography
-              level="title-md"
-              sx={{ mb: 2, color: "var(--text-primary)" }}
-            >
-              Recent Commits
-            </Typography>
-            <Stack spacing={2}>
-              {data.recentCommits.slice(0, 5).map((commit, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    borderBottom:
-                      index < 4
-                        ? "1px solid var(--joy-palette-divider)"
-                        : "none",
-                    pb: 1,
-                  }}
-                >
-                  <Stack direction="row" spacing={2} alignItems="flex-start">
-                    <Typography
-                      level="body-xs"
-                      sx={{
-                        fontFamily: "monospace",
-                        color: "var(--joy-palette-primary-500)",
-                      }}
-                    >
-                      {commit.hash?.substring(0, 7)}
-                    </Typography>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography
-                        level="body-sm"
-                        sx={{ color: "var(--text-primary)" }}
-                      >
-                        {commit.message?.split("\n")[0]}
-                      </Typography>
-                      <Typography
-                        level="body-xs"
-                        sx={{ color: "var(--text-secondary)" }}
-                      >
-                        {commit.author?.user || commit.author?.raw} -{" "}
-                        {formatDate(commit.date)}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Metadata Card */}
       <Card variant="outlined" sx={{ bgcolor: "var(--bg-secondary)" }}>

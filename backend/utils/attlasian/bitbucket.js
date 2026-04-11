@@ -133,16 +133,10 @@ export const getRepositoryDetails = async (
     );
 
     // Get additional info: branches, commits
-    const [branchesData, commitsData] = await Promise.all([
-      apiRequest(
-        resourceData,
-        `/repositories/${workspace}/${repoSlug}/refs/branches?pagelen=20`,
-      ).catch(() => ({ values: [] })),
-      apiRequest(
-        resourceData,
-        `/repositories/${workspace}/${repoSlug}/commits?pagelen=10`,
-      ).catch(() => ({ values: [] })),
-    ]);
+    const branchesData = await apiRequest(
+      resourceData,
+      `/repositories/${workspace}/${repoSlug}/refs/branches?pagelen=20`,
+    ).catch(() => ({ values: [] }));
 
     return {
       uuid: repo.uuid,
@@ -182,15 +176,6 @@ export const getRepositoryDetails = async (
           date: branch.target?.date,
           message: branch.target?.message,
           author: branch.target?.author?.raw,
-        },
-      })),
-      recentCommits: (commitsData.values || []).map((commit) => ({
-        hash: commit.hash,
-        message: commit.message,
-        date: commit.date,
-        author: {
-          raw: commit.author?.raw,
-          user: commit.author?.user?.display_name,
         },
       })),
     };

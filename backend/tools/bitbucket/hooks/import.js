@@ -33,7 +33,6 @@ export default async function onImport(parentResource, subResource) {
       links: repoDetails.links,
       owner: repoDetails.owner,
       branches: repoDetails.branches,
-      recentCommits: repoDetails.recentCommits,
     };
   } catch (error) {
     console.error(`[Bitbucket Import Hook] Error:`, error);
