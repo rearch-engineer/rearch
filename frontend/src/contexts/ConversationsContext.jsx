@@ -72,12 +72,24 @@ export function ConversationsProvider({ children }) {
       }
     };
 
+    const handleTitleUpdated = (data) => {
+      if (data?.conversationId && data?.title) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === data.conversationId ? { ...c, title: data.title } : c
+          )
+        );
+      }
+    };
+
     socket.on('conversation.busy', handleBusy);
     socket.on('conversation.idle', handleIdle);
+    socket.on('conversation.titleUpdated', handleTitleUpdated);
 
     return () => {
       socket.off('conversation.busy', handleBusy);
       socket.off('conversation.idle', handleIdle);
+      socket.off('conversation.titleUpdated', handleTitleUpdated);
     };
   }, []);
 

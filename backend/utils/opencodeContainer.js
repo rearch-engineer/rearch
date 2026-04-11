@@ -82,6 +82,7 @@ export async function getOrCreateSession(conversationId) {
         return {
           client,
           sessionId: conversation.environment.opencodeSessionId,
+          title: session.data.title || null,
           isNew: false,
         };
       }
@@ -107,6 +108,7 @@ export async function getOrCreateSession(conversationId) {
   return {
     client,
     sessionId,
+    title: session.data.title || null,
     isNew: true,
   };
 }
@@ -198,6 +200,22 @@ export async function sendPrompt(conversationId, prompt, options = {}) {
 
   // Broadcast idle status via WebSocket
   broadcast("conversation.idle", { conversationId });
+
+  // Sync auto-generated title from OpenCode's title agent
+  try {
+    const session = await client.session.get({ sessionID: sessionId });
+    const openCodeTitle = session.data?.title;
+    if (openCodeTitle && openCodeTitle !== "New Conversation") {
+      const conv = await Conversation.findById(conversationId);
+      if (conv && conv.title === "New Conversation") {
+        conv.title = openCodeTitle;
+        await conv.save();
+        broadcast("conversation.titleUpdated", { conversationId, title: openCodeTitle });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing title from OpenCode:", err.message);
+  }
 
   // Fetch latest session info, persist to MongoDB, and push via Socket.IO
   try {
@@ -431,6 +449,24 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
     };
   }
 
+  // Sync auto-generated title from OpenCode's title agent
+  let updatedTitle = null;
+  try {
+    const session = await client.session.get({ sessionID: sessionId });
+    const openCodeTitle = session.data?.title;
+    if (openCodeTitle && openCodeTitle !== "New Conversation") {
+      const conv = await Conversation.findById(conversationId);
+      if (conv && conv.title === "New Conversation") {
+        conv.title = openCodeTitle;
+        await conv.save();
+        updatedTitle = openCodeTitle;
+        broadcast("conversation.titleUpdated", { conversationId, title: openCodeTitle });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing title from OpenCode:", err.message);
+  }
+
   // Fetch latest session info, persist to MongoDB, and push via Socket.IO
   let updatedContextUsage = null;
   let updatedCost = null;
@@ -466,6 +502,7 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
     assistantMessageId: currentAssistantMessageId,
     ...(updatedContextUsage && { contextUsage: updatedContextUsage }),
     ...(updatedCost && { cost: updatedCost }),
+    ...(updatedTitle && { title: updatedTitle }),
   };
 }
 
