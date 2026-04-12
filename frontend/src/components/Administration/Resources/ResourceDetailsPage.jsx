@@ -10,7 +10,7 @@ import {
   CardContent,
 } from "@mui/joy";
 import { Edit, ArrowBack, List } from "@mui/icons-material";
-import { api } from "../../api/client";
+import { api } from "../../../api/client";
 
 // Bitbucket SVG logo component
 const BitbucketIcon = ({ size = 48 }) => (
@@ -104,11 +104,11 @@ function ResourceDetailsPage() {
       if (foundResource) {
         setResource(foundResource);
       } else {
-        navigate("/resources");
+        navigate("/administration/resources");
       }
     } catch (error) {
       console.error("Error loading resource:", error);
-      navigate("/resources");
+      navigate("/administration/resources");
     } finally {
       setLoading(false);
     }
@@ -208,7 +208,7 @@ function ResourceDetailsPage() {
             variant="plain"
             color="neutral"
             startDecorator={<ArrowBack />}
-            onClick={() => navigate("/resources")}
+            onClick={() => navigate("/administration/resources")}
           >
             Resources
           </Button>
@@ -319,7 +319,7 @@ function ResourceDetailsPage() {
                   color="neutral"
                   startDecorator={<List />}
                   onClick={() =>
-                    navigate(`/resources/${id}/subresources`)
+                    navigate(`/administration/resources/${id}/subresources`)
                   }
                   sx={{ borderColor: "var(--border-color)" }}
                 >
@@ -331,7 +331,7 @@ function ResourceDetailsPage() {
                 color="primary"
                 startDecorator={<Edit />}
                 onClick={() =>
-                  navigate(`/resources/${id}/edit`)
+                  navigate(`/administration/resources/${id}/edit`)
                 }
               >
                 Edit

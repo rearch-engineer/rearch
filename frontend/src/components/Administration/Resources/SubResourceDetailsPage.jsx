@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/joy';
 import { ArrowBack } from '@mui/icons-material';
-import { api } from '../../api/client';
+import { api } from '../../../api/client';
 import BitbucketRepositoryDetails from './SubResources/Bitbucket/BitbucketRepositoryDetails';
 
 function SubResourceDetailsPage() {
@@ -48,7 +48,7 @@ function SubResourceDetailsPage() {
       setDeleting(true);
       setDeleteError(null);
       await api.deleteSubResource(subResource.resource, subResource._id);
-      navigate(`/resources/${subResource.resource}/subresources`);
+      navigate(`/administration/resources/${subResource.resource}/subresources`);
     } catch (err) {
       setDeleteError(err.response?.data?.error || err.message || 'Failed to delete subresource');
     } finally {
@@ -118,7 +118,7 @@ function SubResourceDetailsPage() {
           variant="soft"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate(`/resources/${id}/subresources`)}
+          onClick={() => navigate(`/administration/resources/${id}/subresources`)}
         >
           Back to list
         </Button>

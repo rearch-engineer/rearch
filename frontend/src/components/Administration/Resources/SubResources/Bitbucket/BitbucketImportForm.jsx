@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Input, Button, List, ListItem, ListItemButton, Typography, CircularProgress, Stack, Chip } from '@mui/joy';
 import { Search } from '@mui/icons-material';
-import { api } from '../../../../api/client';
-import { useToast } from '../../../../contexts/ToastContext';
+import { api } from '../../../../../api/client';
+import { useToast } from '../../../../../contexts/ToastContext';
 
 function BitbucketImportForm({ resource, onImportSuccess }) {
   const toast = useToast();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Typography } from "@mui/joy";
-import { api } from "../../api/client";
+import { api } from "../../../api/client";
 import BitbucketResourceForm from "./SubResources/Bitbucket/BitbucketResourceForm";
 
 function ResourceFormPage() {

@@ -12,7 +12,6 @@ import MainMenu from "./components/MainMenu";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ConversationsPage from "./pages/ConversationsPage";
 import AdministrationPage from "./pages/AdministrationPage";
-import ResourcesPage from "./pages/ResourcesPage";
 import AccountPage from "./pages/AccountPage";
 import CommandPalette from "./components/CommandPalette";
 import LoginPage from "./pages/LoginPage";
@@ -172,7 +171,6 @@ function AuthenticatedApp() {
                         path="/conversations/:id"
                         element={<ConversationsPage />}
                       />
-                      <Route path="/resources/*" element={<ResourcesPage />} />
                       <Route
                         path="/administration/*"
                         element={<AdministrationPage />}

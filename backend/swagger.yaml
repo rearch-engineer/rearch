@@ -29,9 +29,9 @@ tags:
   - name: Files
     description: File upload and download endpoints (GridFS-backed)
   - name: Resources
-    description: Resource management including Bitbucket repositories
+    description: Resource management including Bitbucket repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
   - name: SubResources
-    description: Sub-resource management (import, actions, files) within resources
+    description: Sub-resource management (import, actions, files) within resources. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
   - name: Tools
     description: Available AI tools endpoints
   - name: Skills
@@ -2504,90 +2504,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-    post:
-      tags:
-        - Resources
-      summary: Create resource (non-file)
-      description: Creates a new resource for Bitbucket providers (not for file uploads). Executes a create hook if available.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - provider
-                - data
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 100
-                  example: My Bitbucket Workspace
-                provider:
-                  type: string
-                  enum: [bitbucket]
-                  example: bitbucket
-                data:
-                  type: object
-                  description: Provider-specific data structure
-                  oneOf:
-                    - $ref: "#/components/schemas/BitbucketResourceData"
-      responses:
-        "201":
-          description: Resource created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Resource"
-        "400":
-          description: Bad request (validation error, file provider used, or hook failure)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /api/resources/upload:
-    post:
-      tags:
-        - Resources
-      summary: Upload file and create file resource
-      description: Uploads a file to GridFS and creates a file resource. Executes a create hook if available.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - name
-                - file
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 100
-                  example: Project Documentation
-                  description: Resource name
-                file:
-                  type: string
-                  format: binary
-                  description: File to upload
-      responses:
-        "201":
-          description: File uploaded and resource created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Resource"
-        "400":
-          description: Bad request (no file, missing name, or hook failure)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
   /api/resources/{id}:
     get:
       tags:
@@ -2609,97 +2525,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Resource"
-        "404":
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-    put:
-      tags:
-        - Resources
-      summary: Update resource
-      description: Updates a resource's name and data. Executes an update hook if available. Rolls back on hook failure.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Resource ID
-          schema:
-            type: string
-            example: 507f1f77bcf86cd799439011
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                  minLength: 2
-                  maxLength: 100
-                  example: Updated Resource Name
-                data:
-                  type: object
-                  description: Updated provider-specific data
-      responses:
-        "200":
-          description: Resource updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Resource"
-        "400":
-          description: Bad request (validation error or hook failure)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-    delete:
-      tags:
-        - Resources
-      summary: Delete resource
-      description: Deletes a resource. Executes a delete hook before deletion. Also deletes the associated GridFS file for file resources.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Resource ID
-          schema:
-            type: string
-            example: 507f1f77bcf86cd799439011
-      responses:
-        "200":
-          description: Resource deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        "400":
-          description: Delete hook failed, resource was not deleted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         "404":
           description: Resource not found
           content:
@@ -2761,39 +2586,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-    delete:
-      tags:
-        - Resources
-      summary: Delete file from GridFS
-      description: Deletes a file from GridFS storage
-      parameters:
-        - name: fileId
-          in: path
-          required: true
-          description: GridFS file ID
-          schema:
-            type: string
-            example: 507f1f77bcf86cd799439011
-      responses:
-        "200":
-          description: File deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
   # ===========================================================================
-  # SubResources
+  # SubResources (read-only, authenticated)
   # ===========================================================================
 
   /api/resources/{id}/subresources:
@@ -2850,254 +2644,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubResource"
-        "404":
-          description: Resource or subresource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-    post:
-      tags:
-        - SubResources
-      summary: Update subresource
-      description: Updates subresource fields (name, description, data, rearch)
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Parent Resource ID
-          schema:
-            type: string
-        - name: subId
-          in: path
-          required: true
-          description: SubResource ID
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                data:
-                  type: object
-                rearch:
-                  type: object
-                  properties:
-                    dockerImageFromBranch:
-                      type: string
-                    dockerImage:
-                      type: string
-                    services:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          label:
-                            type: string
-                          internalPort:
-                            type: integer
-      responses:
-        "200":
-          description: Updated subresource
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SubResource"
-        "404":
-          description: Resource or subresource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-    delete:
-      tags:
-        - SubResources
-      summary: Delete subresource
-      description: Deletes a subresource, its associated GridFS files, and SubResourceFiles records. Executes a deletion hook.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Parent Resource ID
-          schema:
-            type: string
-        - name: subId
-          in: path
-          required: true
-          description: SubResource ID
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Subresource deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        "404":
-          description: Resource or subresource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /api/resources/{id}/subresources/import/search:
-    post:
-      tags:
-        - SubResources
-      summary: Search for importable items
-      description: Executes a provider-specific search hook to find items available for import
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Parent Resource ID
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Provider-specific search criteria
-      responses:
-        "200":
-          description: Search results
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-        "400":
-          description: Search hook error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: Parent resource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /api/resources/{id}/subresources/import/import:
-    post:
-      tags:
-        - SubResources
-      summary: Import a subresource
-      description: Creates a new subresource and executes an import hook to populate it with data from the external system
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Parent Resource ID
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - externalId
-                - name
-                - type
-              properties:
-                externalId:
-                  type: string
-                  description: External system identifier
-                name:
-                  type: string
-                type:
-                  type: string
-                  description: SubResource type (e.g. bitbucket-repository)
-      responses:
-        "201":
-          description: SubResource imported successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SubResource"
-        "400":
-          description: Already imported or import hook failure
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: Parent resource not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /api/resources/{id}/subresources/{subId}/action/{action}:
-    post:
-      tags:
-        - SubResources
-      summary: Execute an action on a subresource
-      description: Queues an action job in BullMQ for async processing
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Parent Resource ID
-          schema:
-            type: string
-        - name: subId
-          in: path
-          required: true
-          description: SubResource ID
-          schema:
-            type: string
-        - name: action
-          in: path
-          required: true
-          description: Action to execute
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Action-specific payload
-      responses:
-        "200":
-          description: Action queued
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  jobId:
-                    type: string
-                  message:
-                    type: string
-        "400":
-          description: Error queuing action
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
         "404":
           description: Resource or subresource not found
           content:
@@ -3233,6 +2779,488 @@ paths:
                 $ref: "#/components/schemas/Error"
         "404":
           description: Resource, subresource, file, or file content not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Resources (Admin write operations)
+  # ===========================================================================
+
+  /api/admin/resources:
+    post:
+      tags:
+        - Resources
+      summary: Create resource (admin only)
+      description: Creates a new resource for Bitbucket providers. Executes a create hook if available. Requires admin role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - provider
+                - data
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: My Bitbucket Workspace
+                provider:
+                  type: string
+                  enum: [bitbucket]
+                  example: bitbucket
+                data:
+                  type: object
+                  description: Provider-specific data structure
+                  oneOf:
+                    - $ref: "#/components/schemas/BitbucketResourceData"
+      responses:
+        "201":
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (validation error, file provider used, or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/admin/resources/upload:
+    post:
+      tags:
+        - Resources
+      summary: Upload file and create file resource (admin only)
+      description: Uploads a file to GridFS and creates a file resource. Requires admin role.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - file
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: Project Documentation
+                  description: Resource name
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+      responses:
+        "201":
+          description: File uploaded and resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (no file, missing name, or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/admin/resources/{id}:
+    put:
+      tags:
+        - Resources
+      summary: Update resource (admin only)
+      description: Updates a resource's name and data. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Resource ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                  example: Updated Resource Name
+                data:
+                  type: object
+                  description: Updated provider-specific data
+      responses:
+        "200":
+          description: Resource updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: Bad request (validation error or hook failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Resources
+      summary: Delete resource (admin only)
+      description: Deletes a resource. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Resource ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "400":
+          description: Delete hook failed, resource was not deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/resources/file/{fileId}:
+    delete:
+      tags:
+        - Resources
+      summary: Delete file from GridFS (admin only)
+      description: Deletes a file from GridFS storage. Requires admin role.
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: GridFS file ID
+          schema:
+            type: string
+            example: 507f1f77bcf86cd799439011
+      responses:
+        "200":
+          description: File deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "403":
+          description: Admin role required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/resources/{id}/subresources/{subId}:
+    post:
+      tags:
+        - SubResources
+      summary: Update subresource (admin only)
+      description: Updates subresource fields (name, description, data, rearch). Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                data:
+                  type: object
+                rearch:
+                  type: object
+                  properties:
+                    dockerImageFromBranch:
+                      type: string
+                    dockerImage:
+                      type: string
+                    services:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          label:
+                            type: string
+                          internalPort:
+                            type: integer
+      responses:
+        "200":
+          description: Updated subresource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResource"
+        "403":
+          description: Admin role required
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - SubResources
+      summary: Delete subresource (admin only)
+      description: Deletes a subresource, its associated GridFS files, and SubResourceFiles records. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Subresource deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "403":
+          description: Admin role required
+        "404":
+          description: Resource or subresource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/resources/{id}/subresources/import/search:
+    post:
+      tags:
+        - SubResources
+      summary: Search for importable items (admin only)
+      description: Executes a provider-specific search hook to find items available for import. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Provider-specific search criteria
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "400":
+          description: Search hook error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Parent resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/resources/{id}/subresources/import/import:
+    post:
+      tags:
+        - SubResources
+      summary: Import a subresource (admin only)
+      description: Creates a new subresource and executes an import hook. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - externalId
+                - name
+                - type
+              properties:
+                externalId:
+                  type: string
+                  description: External system identifier
+                name:
+                  type: string
+                type:
+                  type: string
+                  description: SubResource type (e.g. bitbucket-repository)
+      responses:
+        "201":
+          description: SubResource imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubResource"
+        "400":
+          description: Already imported or import hook failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Parent resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/resources/{id}/subresources/{subId}/action/{action}:
+    post:
+      tags:
+        - SubResources
+      summary: Execute an action on a subresource (admin only)
+      description: Queues an action job in BullMQ for async processing. Requires admin role.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Parent Resource ID
+          schema:
+            type: string
+        - name: subId
+          in: path
+          required: true
+          description: SubResource ID
+          schema:
+            type: string
+        - name: action
+          in: path
+          required: true
+          description: Action to execute
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Action-specific payload
+      responses:
+        "200":
+          description: Action queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  jobId:
+                    type: string
+                  message:
+                    type: string
+        "400":
+          description: Error queuing action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Resource or subresource not found
           content:
             application/json:
               schema:

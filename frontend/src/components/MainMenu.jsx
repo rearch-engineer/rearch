@@ -18,7 +18,6 @@ import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AddIcon from "@mui/icons-material/Add";
-import StorageOutlined from "@mui/icons-material/StorageOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -122,14 +121,6 @@ const MainMenu = () => {
         </span>
 
         <div className="main-menu-topbar-actions">
-          <div
-            className={`main-menu-icon-btn${location.pathname === "/resources" ? " active" : ""}`}
-            onClick={() => navigate("/resources")}
-            title="Resources"
-          >
-            <StorageOutlined sx={{ fontSize: 18 }} />
-          </div>
-
         </div>
       </div>
 

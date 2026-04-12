@@ -10,6 +10,7 @@ import jobRoutes from './jobs.js';
 import usageRoutes from './usage.js';
 import mcpRoutes from './mcp.js';
 import suggestedPromptsRoutes from './suggestedPrompts.js';
+import resourceRoutes from './resources.js';
 
 const adminRouter = new Elysia({ prefix: '/api/admin' })
   .use(authPlugin)
@@ -21,6 +22,7 @@ const adminRouter = new Elysia({ prefix: '/api/admin' })
   .use(jobRoutes)
   .use(usageRoutes)
   .use(mcpRoutes)
-  .use(suggestedPromptsRoutes);
+  .use(suggestedPromptsRoutes)
+  .use(resourceRoutes);
 
 export default adminRouter;

@@ -17,7 +17,7 @@ import {
 import { ArrowBack } from "@mui/icons-material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { api } from "../../../../api/client";
+import { api } from "../../../../../api/client";
 
 // Bitbucket SVG logo component (matches ResourceTypeSelection)
 const BitbucketIcon = ({ size = 48 }) => (
@@ -130,7 +130,7 @@ function BitbucketResourceForm() {
       } else {
         await api.createResource(formData);
       }
-      navigate("/resources");
+      navigate("/administration/resources");
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: "Failed to save resource. Please try again." });
@@ -181,7 +181,7 @@ function BitbucketResourceForm() {
           color="neutral"
           startDecorator={<ArrowBack />}
           onClick={() =>
-            navigate(isEditMode ? "/resources" : "/resources/new")
+            navigate(isEditMode ? "/administration/resources" : "/administration/resources/new")
           }
           sx={{ mb: 2 }}
         >
@@ -582,8 +582,8 @@ function BitbucketResourceForm() {
                   onClick={() =>
                     navigate(
                       isEditMode
-                        ? "/resources"
-                        : "/resources/new"
+                        ? "/administration/resources"
+                        : "/administration/resources/new"
                     )
                   }
                   disabled={loading}

@@ -559,7 +559,7 @@ export const api = {
   },
 
   createResource: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/resources`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/resources`, data);
     return response.data;
   },
 
@@ -569,7 +569,7 @@ export const api = {
     formData.append("file", file);
 
     const response = await axios.post(
-      `${API_BASE_URL}/resources/upload`,
+      `${API_BASE_URL}/admin/resources/upload`,
       formData,
       {
         headers: {
@@ -581,12 +581,12 @@ export const api = {
   },
 
   updateResource: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/resources/${id}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/resources/${id}`, data);
     return response.data;
   },
 
   deleteResource: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/resources/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/resources/${id}`);
     return response.data;
   },
 
@@ -620,7 +620,7 @@ export const api = {
 
   createSubResource: async (resourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
       data,
     );
     return response.data;
@@ -628,7 +628,7 @@ export const api = {
 
   updateSubResource: async (resourceId, subResourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
       data,
     );
     return response.data;
@@ -636,14 +636,14 @@ export const api = {
 
   deleteSubResource: async (resourceId, subResourceId) => {
     const response = await axios.delete(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
     );
     return response.data;
   },
 
   searchSubResources: async (resourceId, query) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/import/search`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/search`,
       { query },
     );
     return response.data;
@@ -651,7 +651,7 @@ export const api = {
 
   importSubResource: async (resourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/import/import`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/import`,
       data,
     );
     return response.data;
@@ -659,7 +659,7 @@ export const api = {
 
   executeSubResourceAction: async (resourceId, subResourceId, action, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}/action/${action}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/action/${action}`,
       data,
     );
     return response.data;

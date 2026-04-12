@@ -13,7 +13,7 @@ import {
   ModalClose,
 } from "@mui/joy";
 import { Search, Delete, Add } from "@mui/icons-material";
-import { api } from "../../api/client";
+import { api } from "../../../api/client";
 
 // Bitbucket SVG logo component
 const BitbucketIcon = ({ size = 40 }) => (
@@ -298,7 +298,7 @@ function ResourceListPage() {
             variant="solid"
             color="primary"
             startDecorator={<Add />}
-            onClick={() => navigate("/resources/new")}
+            onClick={() => navigate("/administration/resources/new")}
             sx={{ flexShrink: 0, mt: 0.5 }}
           >
             Add Resource
@@ -366,7 +366,7 @@ function ResourceListPage() {
                     variant="soft"
                     color="primary"
                     startDecorator={<Add />}
-                    onClick={() => navigate("/resources/new")}
+                    onClick={() => navigate("/administration/resources/new")}
                   >
                     Add Resource
                   </Button>
@@ -381,7 +381,7 @@ function ResourceListPage() {
                 key={resource._id}
                 resource={resource}
                 onClick={() =>
-                  navigate(`/resources/${resource._id}`)
+                  navigate(`/administration/resources/${resource._id}`)
                 }
                 onDelete={handleDeleteClick}
               />

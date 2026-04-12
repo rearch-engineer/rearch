@@ -8,11 +8,12 @@ import App from './App';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
+  // React.StrictMode temporarily disabled to prevent double requests in dev
+  <>
     <InitColorSchemeScript defaultMode="system" />
     <CssVarsProvider defaultMode="system">
       <CssBaseline />
       <App />
     </CssVarsProvider>
-  </React.StrictMode>
+  </>
 );

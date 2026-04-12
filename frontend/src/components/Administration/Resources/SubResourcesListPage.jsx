@@ -10,7 +10,7 @@ import {
   Button,
 } from "@mui/joy";
 import { Search, Add, ArrowBack } from "@mui/icons-material";
-import { api } from "../../api/client";
+import { api } from "../../../api/client";
 import SubResourceImportModal from "./SubResourceImportModal";
 
 function getTypeLabel(type) {
@@ -202,7 +202,7 @@ function SubResourcesListPage() {
           variant="plain"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate(`/resources/${id}`)}
+          onClick={() => navigate(`/administration/resources/${id}`)}
           sx={{ mb: 2 }}
         >
           Back to {resource?.name || "Resource"}
@@ -324,7 +324,7 @@ function SubResourcesListPage() {
                 subResource={subResource}
                 onClick={() =>
                   navigate(
-                    `/resources/${id}/subresources/${subResource._id}`
+                    `/administration/resources/${id}/subresources/${subResource._id}`
                   )
                 }
               />

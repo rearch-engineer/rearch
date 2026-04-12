@@ -42,8 +42,8 @@ import {
 } from "@mui/icons-material";
 import Input from "@mui/joy/Input";
 import CircularProgress from "@mui/joy/CircularProgress";
-import { api } from "../../../../api/client";
-import { useToast } from "../../../../contexts/ToastContext";
+import { api } from "../../../../../api/client";
+import { useToast } from "../../../../../contexts/ToastContext";
 
 function BitbucketRepositoryDetails({
   subResource,
