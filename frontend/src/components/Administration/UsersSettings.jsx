@@ -202,12 +202,6 @@ export default function UsersSettings() {
           >
             Users
           </Typography>
-          <Typography
-            level="body-lg"
-            sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-          >
-            Manage user accounts, roles, and access.
-          </Typography>
         </Box>
 
         {/* Search & filter */}

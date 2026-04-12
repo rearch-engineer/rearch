@@ -26,6 +26,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ForumIcon from "@mui/icons-material/Forum";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
+import AdminSidebarMenu from "./Administration/AdminSidebarMenu";
+import AccountSidebarMenu from "./Account/AccountSidebarMenu";
 import "./MainMenu.css";
 
 const timeAgo = (date) => {
@@ -52,6 +54,9 @@ const MainMenu = () => {
     handleRenameConversation,
     markRead,
   } = useConversations();
+
+  const isOnAdministration = location.pathname.startsWith("/administration");
+  const isOnAccount = location.pathname.startsWith("/account");
 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
@@ -145,123 +150,129 @@ const MainMenu = () => {
         </div>
       </div>
 
-      {/* ── Conversation list ── */}
-      <div className="conversations">
-        <div className="main-menu-section-title">
-          <span>Conversations</span>
-          <div
-            className="main-menu-section-action"
-            onClick={onNewConversation}
-            title="New conversation"
-          >
-            <AddIcon sx={{ fontSize: 16 }} />
-          </div>
-        </div>
-        {conversations.length === 0 ? (
-          <div className="empty-state">
-            <p>No conversations yet</p>
-            <p className="empty-hint">Click + to start</p>
-          </div>
-        ) : (
-          conversations.map((conv) => (
+      {/* ── Contextual content area ── */}
+      {isOnAdministration ? (
+        <AdminSidebarMenu />
+      ) : isOnAccount ? (
+        <AccountSidebarMenu />
+      ) : (
+        <div className="conversations">
+          <div className="main-menu-section-title">
+            <span>Conversations</span>
             <div
-              key={conv._id}
-              className={`conversation-item ${location.pathname === `/conversations/${conv._id}` ? "active" : ""}`}
-              onClick={() => {
-                if (renamingId !== conv._id) onSelectConversation(conv._id);
-              }}
+              className="main-menu-section-action"
+              onClick={onNewConversation}
+              title="New conversation"
             >
-              <div className="conversation-info">
-                {renamingId === conv._id ? (
-                  <input
-                    ref={renameInputRef}
-                    className="conversation-rename-input"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") onConfirmRename(conv._id);
-                      if (e.key === "Escape") onCancelRename();
-                    }}
-                    onBlur={() => onConfirmRename(conv._id)}
-                    onClick={(e) => e.stopPropagation()}
-                    autoFocus
-                  />
-                ) : (
-                  <div
-                    className={`conversation-title${unreadConversationIds.has(conv._id) ? " unread" : ""}`}
-                  >
-                    {conv.title}
-                  </div>
-                )}
-                <div className="conversation-meta">
-                  {busyConversationIds.has(conv._id) && (
-                    <CircularProgress
-                      size="sm"
-                      sx={{
-                        "--CircularProgress-size": "14px",
-                        "--CircularProgress-trackThickness": "2px",
-                        "--CircularProgress-progressThickness": "2px",
-                      }}
-                    />
-                  )}
-                  {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
-                  {conv.subResource?.name && (
-                    <>
-                      <span className="conversation-meta-sep">·</span>
-                      <span className="conversation-meta-repo">
-                        {conv.subResource.name}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <Dropdown>
-                <MenuButton
-                  className="conversation-menu-btn"
-                  variant="plain"
-                  color="neutral"
-                  size="sm"
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{
-                    "--IconButton-size": "28px",
-                    minWidth: "28px",
-                    minHeight: "28px",
-                    p: 0,
-                    borderRadius: "6px",
-                  }}
-                >
-                  <MoreHorizIcon sx={{ fontSize: 18 }} />
-                </MenuButton>
-                <Menu size="sm" placement="bottom-end">
-                  <MenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onStartRename(conv._id, conv.title);
-                    }}
-                  >
-                    <ListItemDecorator>
-                      <EditOutlinedIcon fontSize="small" />
-                    </ListItemDecorator>
-                    Rename
-                  </MenuItem>
-                  <MenuItem
-                    color="danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRequestDelete(conv._id);
-                    }}
-                  >
-                    <ListItemDecorator>
-                      <DeleteOutlineIcon fontSize="small" />
-                    </ListItemDecorator>
-                    Delete
-                  </MenuItem>
-                </Menu>
-              </Dropdown>
+              <AddIcon sx={{ fontSize: 16 }} />
             </div>
-          ))
-        )}
-      </div>
+          </div>
+          {conversations.length === 0 ? (
+            <div className="empty-state">
+              <p>No conversations yet</p>
+              <p className="empty-hint">Click + to start</p>
+            </div>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv._id}
+                className={`conversation-item ${location.pathname === `/conversations/${conv._id}` ? "active" : ""}`}
+                onClick={() => {
+                  if (renamingId !== conv._id) onSelectConversation(conv._id);
+                }}
+              >
+                <div className="conversation-info">
+                  {renamingId === conv._id ? (
+                    <input
+                      ref={renameInputRef}
+                      className="conversation-rename-input"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") onConfirmRename(conv._id);
+                        if (e.key === "Escape") onCancelRename();
+                      }}
+                      onBlur={() => onConfirmRename(conv._id)}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  ) : (
+                    <div
+                      className={`conversation-title${unreadConversationIds.has(conv._id) ? " unread" : ""}`}
+                    >
+                      {conv.title}
+                    </div>
+                  )}
+                  <div className="conversation-meta">
+                    {busyConversationIds.has(conv._id) && (
+                      <CircularProgress
+                        size="sm"
+                        sx={{
+                          "--CircularProgress-size": "14px",
+                          "--CircularProgress-trackThickness": "2px",
+                          "--CircularProgress-progressThickness": "2px",
+                        }}
+                      />
+                    )}
+                    {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
+                    {conv.subResource?.name && (
+                      <>
+                        <span className="conversation-meta-sep">·</span>
+                        <span className="conversation-meta-repo">
+                          {conv.subResource.name}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <Dropdown>
+                  <MenuButton
+                    className="conversation-menu-btn"
+                    variant="plain"
+                    color="neutral"
+                    size="sm"
+                    onClick={(e) => e.stopPropagation()}
+                    sx={{
+                      "--IconButton-size": "28px",
+                      minWidth: "28px",
+                      minHeight: "28px",
+                      p: 0,
+                      borderRadius: "6px",
+                    }}
+                  >
+                    <MoreHorizIcon sx={{ fontSize: 18 }} />
+                  </MenuButton>
+                  <Menu size="sm" placement="bottom-end">
+                    <MenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStartRename(conv._id, conv.title);
+                      }}
+                    >
+                      <ListItemDecorator>
+                        <EditOutlinedIcon fontSize="small" />
+                      </ListItemDecorator>
+                      Rename
+                    </MenuItem>
+                    <MenuItem
+                      color="danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRequestDelete(conv._id);
+                      }}
+                    >
+                      <ListItemDecorator>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </ListItemDecorator>
+                      Delete
+                    </MenuItem>
+                  </Menu>
+                </Dropdown>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* ── Bottom pinned: Help & Account ── */}
       <div className="main-menu-bottom">

@@ -95,6 +95,36 @@
   color: var(--text-primary);
 }
 
+/* ── Go back button ──────────────────────────────────────── */
+
+.main-menu-go-back {
+  display: inline-flex;
+  width: auto;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color, #333333);
+  border-radius: 6px;
+}
+
+/* ── Admin menu groups ────────────────────────────────────── */
+
+.admin-menu-group {
+  margin-bottom: 4px;
+}
+
+.admin-menu-group-label {
+  padding: 16px 8px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.admin-menu-group-item {
+  padding-left: 12px;
+}
+
 /* ── Conversation list ───────────────────────────────────── */
 
 .main-menu-section-title {
