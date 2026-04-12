@@ -1,6 +1,28 @@
+.session-sidebar-wrapper {
+  position: relative;
+  display: flex;
+  height: 100%;
+  border-left: 1px solid #333333;
+}
+
+.session-sidebar-resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: var(--bg-primary);
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+}
+
+.session-sidebar-resize-handle:hover,
+.session-sidebar-resize-handle.active {
+  background-color: var(--joy-palette-primary-400, #096bde);
+}
+
 .session-sidebar {
-  width: 240px;
-  min-width: 240px;
+  flex: 1;
+  min-width: 0;
   background-color: var(--bg-primary);
   display: flex;
   flex-direction: column;
@@ -28,7 +50,7 @@
   z-index: 10;
   background-color: var(--bg-primary);
   padding-top: 0;
-  max-width: calc(3 * 40px + 2 * 6px); /* 3 buttons + 2 gaps */
+  width: 100%;
 }
 
 .session-sidebar-service-btn {

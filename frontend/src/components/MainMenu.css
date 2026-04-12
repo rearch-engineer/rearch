@@ -2,7 +2,7 @@
   width: 280px;
   min-width: 280px;
   background-color: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid #333333;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 12px 8px;
+  padding: 12px 8px 8px 16px;
   gap: 8px;
 }
 
@@ -66,35 +66,88 @@
 
 /* ── Search trigger ──────────────────────────────────────── */
 
-.main-menu-search {
-  padding: 4px 12px 8px;
+.main-menu-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 8px 4px;
+  gap: 1px;
 }
 
-.main-menu-search-trigger {
+.main-menu-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 6px 10px;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: background-color 0.15s;
+  user-select: none;
 }
 
-.main-menu-search-trigger:hover {
-  border-color: var(--text-tertiary);
+.main-menu-nav-item:hover {
   background: var(--bg-hover);
 }
 
+.main-menu-nav-item.active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* ── Conversation list ───────────────────────────────────── */
+
+.main-menu-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+.main-menu-section-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.main-menu-section-action:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
 
 .conversations {
   flex: 1;
   overflow-y: auto;
   padding: 4px 8px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #5A5A5A transparent;
+}
+
+.conversations::-webkit-scrollbar {
+  width: 4px;
+}
+
+.conversations::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.conversations::-webkit-scrollbar-thumb {
+  background: #5A5A5A;
+  border-radius: 4px;
+}
+
+.conversations::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }
 
 .empty-state {
@@ -187,6 +240,14 @@
 
 .conversation-rename-input:focus {
   border-color: var(--text-secondary);
+}
+
+/* ── Bottom pinned section ────────────────────────────────── */
+
+.main-menu-bottom {
+  padding: 8px;
+
+  flex-shrink: 0;
 }
 
 .conversation-menu-btn {

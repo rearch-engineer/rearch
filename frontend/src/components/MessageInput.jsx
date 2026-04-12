@@ -624,12 +624,12 @@ const MessageInput = forwardRef(({
               onClick={handleSubmit}
               sx={{
                 '--IconButton-size': '32px',
-                borderRadius: 'sm',
+                borderRadius: '50%',
                 ...(canSend && {
-                  backgroundColor: 'neutral.800',
-                  color: 'common.white',
+                  backgroundColor: 'common.white',
+                  color: 'neutral.800',
                   '&:hover': {
-                    backgroundColor: 'neutral.700',
+                    backgroundColor: 'neutral.300',
                   },
                 }),
               }}

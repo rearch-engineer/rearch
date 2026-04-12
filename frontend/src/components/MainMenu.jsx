@@ -4,23 +4,29 @@ import Dropdown from "@mui/joy/Dropdown";
 import Menu from "@mui/joy/Menu";
 import MenuButton from "@mui/joy/MenuButton";
 import MenuItem from "@mui/joy/MenuItem";
-import ListDivider from "@mui/joy/ListDivider";
 import ListItemDecorator from "@mui/joy/ListItemDecorator";
 import CircularProgress from "@mui/joy/CircularProgress";
-import Typography from "@mui/joy/Typography";
-import LogoutIcon from "@mui/icons-material/Logout";
-import PersonOutlined from "@mui/icons-material/PersonOutlined";
+import Modal from "@mui/joy/Modal";
+import ModalDialog from "@mui/joy/ModalDialog";
+import DialogTitle from "@mui/joy/DialogTitle";
+import DialogContent from "@mui/joy/DialogContent";
+import DialogActions from "@mui/joy/DialogActions";
+import Button from "@mui/joy/Button";
+import ModalClose from "@mui/joy/ModalClose";
+
+import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import StorageOutlined from "@mui/icons-material/StorageOutlined";
 import SearchIcon from "@mui/icons-material/Search";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ForumIcon from "@mui/icons-material/Forum";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
-import UserAvatar from "./UserAvatar";
 import "./MainMenu.css";
 
 const timeAgo = (date) => {
@@ -38,21 +44,24 @@ const timeAgo = (date) => {
 const MainMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, logout } = useAuth();
-  const { conversations, busyConversationIds, unreadConversationIds, handleDeleteConversation, handleRenameConversation, markRead } = useConversations();
+  const { isAdmin } = useAuth();
+  const {
+    conversations,
+    busyConversationIds,
+    unreadConversationIds,
+    handleDeleteConversation,
+    handleRenameConversation,
+    markRead,
+  } = useConversations();
 
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const renameInputRef = useRef(null);
 
   const openCommandPalette = useCallback(() => {
     window.dispatchEvent(new CustomEvent("open-command-palette"));
   }, []);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
 
   const onSelectConversation = (id) => {
     markRead(id);
@@ -63,11 +72,18 @@ const MainMenu = () => {
     navigate("/conversations/new");
   };
 
-  const onDeleteConversation = (id) => {
-    handleDeleteConversation(id);
-    if (location.pathname === `/conversations/${id}`) {
-      navigate("/");
+  const onRequestDelete = (id) => {
+    setDeleteConfirm(id);
+  };
+
+  const onConfirmDelete = () => {
+    if (deleteConfirm) {
+      handleDeleteConversation(deleteConfirm);
+      if (location.pathname === `/conversations/${deleteConfirm}`) {
+        navigate("/");
+      }
     }
+    setDeleteConfirm(null);
   };
 
   const onStartRename = (id, currentTitle) => {
@@ -93,29 +109,19 @@ const MainMenu = () => {
     setRenameValue("");
   };
 
-  const userDisplayName =
-    user?.profile?.display_name || user?.email || user?.username || "?";
-  const userEmail = user?.email || "";
-
   return (
     <div className="main-menu">
       {/* ── Top bar: brand + actions + avatar ── */}
       <div className="main-menu-topbar">
         <span className="main-menu-brand" onClick={() => navigate("/")}>
-          <ForumIcon className="main-menu-brand-logo" sx={{ fontSize: 22, verticalAlign: "middle" }} />
+          <ForumIcon
+            className="main-menu-brand-logo"
+            sx={{ fontSize: 22, verticalAlign: "middle", color: "#DB4F15" }}
+          />
           ReArch
         </span>
 
         <div className="main-menu-topbar-actions">
-          <div
-            data-testid="new-conversation-btn"
-            className={`main-menu-icon-btn${location.pathname === "/conversations/new" ? " active" : ""}`}
-            onClick={onNewConversation}
-            title="New conversation"
-          >
-            <AddIcon sx={{ fontSize: 18 }} />
-          </div>
-
           <div
             className={`main-menu-icon-btn${location.pathname === "/resources" ? " active" : ""}`}
             onClick={() => navigate("/resources")}
@@ -124,107 +130,42 @@ const MainMenu = () => {
             <StorageOutlined sx={{ fontSize: 18 }} />
           </div>
 
-          {/* Avatar dropdown */}
-          <Dropdown>
-            <MenuButton
-              variant="plain"
-              color="neutral"
-              size="sm"
-              sx={{
-                p: 0,
-                minWidth: 0,
-                minHeight: 0,
-                borderRadius: "50%",
-                "&:hover": { bgcolor: "transparent" },
-              }}
-            >
-              <UserAvatar
-                avatarFileId={user?.profile?.avatar_fileId}
-                fallbackName={userDisplayName}
-                size="sm"
-              />
-            </MenuButton>
-            <Menu placement="bottom-end" size="sm">
-              {/* User identity — not clickable */}
-              <MenuItem
-                disabled
-                sx={{
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  gap: 0,
-                }}
-              >
-                <span style={{ fontWeight: 600, fontSize: 13 }}>
-                  {userDisplayName}
-                </span>
-                {userEmail && userEmail !== userDisplayName && (
-                  <span style={{ fontSize: 12, opacity: 0.6 }}>
-                    {userEmail}
-                  </span>
-                )}
-              </MenuItem>
-              <ListDivider />
-              <MenuItem onClick={() => navigate("/account")}>
-                <ListItemDecorator>
-                  <PersonOutlined fontSize="small" />
-                </ListItemDecorator>
-                Account
-              </MenuItem>
-              {isAdmin() && (
-                <MenuItem onClick={() => navigate("/administration")}>
-                  <ListItemDecorator>
-                    <AdminPanelSettingsOutlined fontSize="small" />
-                  </ListItemDecorator>
-                  Administration
-                </MenuItem>
-              )}
-              <ListDivider />
-              <MenuItem onClick={handleLogout}>
-                <ListItemDecorator>
-                  <LogoutIcon fontSize="small" />
-                </ListItemDecorator>
-                Logout
-              </MenuItem>
-            </Menu>
-          </Dropdown>
         </div>
       </div>
 
-      {/* ── Search trigger ── */}
-      <div className="main-menu-search">
+      {/* ── Home & Search nav items ── */}
+      <div className="main-menu-nav">
         <div
-          className="main-menu-search-trigger"
+          className={`main-menu-nav-item${location.pathname === "/" ? " active" : ""}`}
+          onClick={() => navigate("/")}
+        >
+          <HomeOutlinedIcon
+            sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+          />
+          <span>Home</span>
+        </div>
+        <div
+          className="main-menu-nav-item"
           onClick={openCommandPalette}
           title="Search (Ctrl+P)"
         >
-          <SearchIcon sx={{ fontSize: 16, color: "var(--text-tertiary)" }} />
-          <Typography
-            level="body-sm"
-            sx={{ color: "var(--text-tertiary)", flex: 1, userSelect: "none" }}
-          >
-            Search...
-          </Typography>
-          <Typography
-            level="body-xs"
-            sx={{
-              color: "var(--text-tertiary)",
-              bgcolor: "var(--bg-tertiary)",
-              border: "1px solid var(--border-color)",
-              borderRadius: "4px",
-              px: 0.6,
-              py: 0.1,
-              fontSize: "11px",
-              fontFamily: "inherit",
-              lineHeight: 1.4,
-            }}
-          >
-            Ctrl+P
-          </Typography>
+          <SearchIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+          <span>Search</span>
         </div>
       </div>
 
       {/* ── Conversation list ── */}
       <div className="conversations">
+        <div className="main-menu-section-title">
+          <span>Conversations</span>
+          <div
+            className="main-menu-section-action"
+            onClick={onNewConversation}
+            title="New conversation"
+          >
+            <AddIcon sx={{ fontSize: 16 }} />
+          </div>
+        </div>
         {conversations.length === 0 ? (
           <div className="empty-state">
             <p>No conversations yet</p>
@@ -235,7 +176,9 @@ const MainMenu = () => {
             <div
               key={conv._id}
               className={`conversation-item ${location.pathname === `/conversations/${conv._id}` ? "active" : ""}`}
-              onClick={() => { if (renamingId !== conv._id) onSelectConversation(conv._id); }}
+              onClick={() => {
+                if (renamingId !== conv._id) onSelectConversation(conv._id);
+              }}
             >
               <div className="conversation-info">
                 {renamingId === conv._id ? (
@@ -253,13 +196,21 @@ const MainMenu = () => {
                     autoFocus
                   />
                 ) : (
-                  <div className={`conversation-title${unreadConversationIds.has(conv._id) ? " unread" : ""}`}>{conv.title}</div>
+                  <div
+                    className={`conversation-title${unreadConversationIds.has(conv._id) ? " unread" : ""}`}
+                  >
+                    {conv.title}
+                  </div>
                 )}
                 <div className="conversation-meta">
                   {busyConversationIds.has(conv._id) && (
                     <CircularProgress
                       size="sm"
-                      sx={{ "--CircularProgress-size": "14px", "--CircularProgress-trackThickness": "2px", "--CircularProgress-progressThickness": "2px" }}
+                      sx={{
+                        "--CircularProgress-size": "14px",
+                        "--CircularProgress-trackThickness": "2px",
+                        "--CircularProgress-progressThickness": "2px",
+                      }}
                     />
                   )}
                   {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
@@ -306,7 +257,7 @@ const MainMenu = () => {
                     color="danger"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDeleteConversation(conv._id);
+                      onRequestDelete(conv._id);
                     }}
                   >
                     <ListItemDecorator>
@@ -320,6 +271,77 @@ const MainMenu = () => {
           ))
         )}
       </div>
+
+      {/* ── Bottom pinned: Help & Account ── */}
+      <div className="main-menu-bottom">
+        <div
+          className="main-menu-nav-item"
+          onClick={() => window.open("https://docs.rearch.engineer", "_blank")}
+        >
+          <HelpOutlineIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+          <span>Help</span>
+        </div>
+        {isAdmin() && (
+          <div
+            className={`main-menu-nav-item${location.pathname.startsWith("/administration") ? " active" : ""}`}
+            onClick={() => navigate("/administration")}
+          >
+            <AdminPanelSettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+            <span>Administration</span>
+          </div>
+        )}
+        <div
+          className={`main-menu-nav-item${location.pathname === "/account" ? " active" : ""}`}
+          onClick={() => navigate("/account")}
+        >
+          <SettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+          <span>Account</span>
+        </div>
+      </div>
+
+      {/* ── Delete confirmation modal ── */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+        <ModalDialog
+          variant="outlined"
+          sx={{
+            bgcolor: "var(--bg-secondary)",
+            borderColor: "var(--border-color)",
+            maxWidth: 420,
+          }}
+        >
+          <ModalClose />
+          <DialogTitle sx={{ color: "var(--text-primary)", fontWeight: 600 }}>
+            Delete Conversation
+          </DialogTitle>
+          <DialogContent sx={{ color: "var(--text-secondary)" }}>
+            Are you sure you want to delete{" "}
+            <strong style={{ color: "var(--text-primary)" }}>
+              {conversations.find((c) => c._id === deleteConfirm)?.title}
+            </strong>
+            ?{" "}
+            <span style={{ color: "#e57373" }}>
+              All associated messages and unsaved changes will be removed.
+            </span>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              variant="solid"
+              color="danger"
+              onClick={onConfirmDelete}
+              sx={{ fontWeight: 600 }}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="outlined"
+              color="neutral"
+              onClick={() => setDeleteConfirm(null)}
+            >
+              Cancel
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
     </div>
   );
 };

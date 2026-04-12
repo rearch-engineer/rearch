@@ -153,6 +153,11 @@
   white-space: nowrap;
 }
 
+/* Dark mode prompt card background */
+[data-joy-color-scheme="dark"] .welcome-prompt-card {
+  background-color: #232323;
+}
+
 /* Loading */
 .welcome-prompts-loading {
   display: flex;

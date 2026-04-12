@@ -40,10 +40,10 @@
 
 /* Dark mode: sync with MUI Joy's color scheme attribute */
 [data-joy-color-scheme="dark"] {
-  --bg-primary: #343541;
-  --bg-secondary: #202123;
+  --bg-primary: #1B1B1B;
+  --bg-secondary: #1E1E1E;
   --bg-tertiary: #40414f;
-  --bg-input: #40414f;
+  --bg-input: #292929;
   --bg-hover: #2a2b32;
   --bg-active: #343541;
   --text-primary: #ececf1;

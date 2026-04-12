@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../api/client";
 import { useSocket } from "../contexts/SocketContext";
 import Typography from "@mui/joy/Typography";
@@ -51,6 +51,10 @@ const getServiceIcon = (iconName) => {
 const POLL_INTERVAL = 30000; // 30 seconds (reduced from 10s since we now get real-time pushes)
 const STARTING_POLL_INTERVAL = 5000; // 5 seconds while container is starting
 
+const DEFAULT_WIDTH = 240;
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 500;
+
 const SessionSidebar = ({ conversationId }) => {
   const [sessionInfo, setSessionInfo] = useState(null);
   const [containerStatus, setContainerStatus] = useState(null);
@@ -59,7 +63,38 @@ const SessionSidebar = ({ conversationId }) => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const wrapperRef = useRef(null);
   const { socket } = useSocket();
+
+  // Resize handling
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      if (!wrapperRef.current) return;
+      const wrapperRect = wrapperRef.current.getBoundingClientRect();
+      const newWidth = wrapperRect.right - e.clientX;
+      setSidebarWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, newWidth)));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
 
   const fetchData = useCallback(async () => {
     if (!conversationId || conversationId === "new") return;
@@ -194,22 +229,33 @@ const SessionSidebar = ({ conversationId }) => {
 
   if (loading && !containerStatus) {
     return (
-      <div className="session-sidebar">
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            py: 3,
-          }}
-        >
-          <CircularProgress size="sm" />
-        </Box>
+      <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+        <div
+          className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`}
+          onMouseDown={() => setIsResizing(true)}
+        />
+        <div className="session-sidebar">
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 3,
+            }}
+          >
+            <CircularProgress size="sm" />
+          </Box>
+        </div>
       </div>
     );
   }
 
   return (
+    <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div
+        className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`}
+        onMouseDown={() => setIsResizing(true)}
+      />
     <div className="session-sidebar">
       {/* Service buttons — square, horizontal, above everything */}
       {services.length > 0 && isRunning && (
@@ -433,6 +479,7 @@ const SessionSidebar = ({ conversationId }) => {
         onClose={() => setCommitModalOpen(false)}
         conversationId={conversationId}
       />
+    </div>
     </div>
   );
 };
