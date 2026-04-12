@@ -59,8 +59,9 @@ export const publicRouter = new Elysia({ prefix: '/api/settings' })
 
 const router = new Elysia({ prefix: '/api/settings' })
   .use(authPlugin)
+  .use(requireRole('admin'))
 
-  // ─── Read endpoints (any authenticated user) ─────────────────────────────
+  // ─── Read endpoints ──────────────────────────────────────────────────────
 
   /**
    * Get all settings
@@ -116,12 +117,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error updating signup settings:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   // ─── Docker rebuild schedule settings ───────────────────────────────────
@@ -143,12 +138,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error fetching docker rebuild settings:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   /**
@@ -191,12 +180,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error updating docker rebuild settings:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   /**
@@ -225,12 +208,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error triggering docker rebuild:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   // ─── Container cleanup settings ─────────────────────────────────────────
@@ -253,12 +230,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error fetching container cleanup settings:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   /**
@@ -302,12 +273,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error updating container cleanup settings:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   })
 
   /**
@@ -338,12 +303,6 @@ const router = new Elysia({ prefix: '/api/settings' })
       console.error('Error triggering container cleanup:', err);
       return status(500, { error: err.message });
     }
-  }, {
-    beforeHandle: ({ user, status }) => {
-      if (!user?.roles?.includes('admin')) {
-        return status(403, { error: 'Insufficient permissions. Required role: admin' });
-      }
-    },
   });
 
 export default router;

@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { z } from "zod";
 import McpServer from "../models/McpServer.js";
 import { authPlugin } from "../middleware/auth.js";
+import requireRole from "../middleware/requireRole.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -89,22 +90,11 @@ const updateServerSchema = z
 
 const MCP_PROXY_URL = process.env.MCP_PROXY_URL || "http://mcp-proxy:3100";
 
-// ─── Admin-only beforeHandle ─────────────────────────────────────────────────
-
-const adminOnly = {
-  beforeHandle: ({ user, status }) => {
-    if (!user?.roles?.includes("admin")) {
-      return status(403, {
-        error: "Insufficient permissions. Required role: admin",
-      });
-    }
-  },
-};
-
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 const router = new Elysia({ prefix: "/api/mcp" })
   .use(authPlugin)
+  .use(requireRole("admin"))
 
   // ─── List all MCP servers ───────────────────────────────────────────────
 
@@ -123,7 +113,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Add a new MCP server ──────────────────────────────────────────────
@@ -167,7 +156,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Update an MCP server ──────────────────────────────────────────────
@@ -218,7 +206,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Delete an MCP server ──────────────────────────────────────────────
@@ -249,7 +236,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Gallery ────────────────────────────────────────────────────────────
@@ -268,7 +254,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Proxy status ──────────────────────────────────────────────────────
@@ -290,7 +275,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return { healthy: false, error: "MCP proxy unreachable" };
       }
     },
-    adminOnly,
   )
 
   // ─── Reload proxy ──────────────────────────────────────────────────────
@@ -321,7 +305,6 @@ const router = new Elysia({ prefix: "/api/mcp" })
         return status(502, { error: "MCP proxy unreachable" });
       }
     },
-    adminOnly,
   );
 
 export default router;

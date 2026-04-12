@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { z } from "zod";
 import LlmProvider from "../models/LlmProvider.js";
 import { authPlugin } from "../middleware/auth.js";
+import requireRole from "../middleware/requireRole.js";
 import { encrypt, decrypt, maskApiKey } from "../utils/encryption.js";
 import { getKnownProviders } from "../utils/llmProviderRegistry.js";
 
@@ -74,22 +75,11 @@ function toSafeResponse(doc) {
   };
 }
 
-// ─── Admin-only beforeHandle ─────────────────────────────────────────────────
-
-const adminOnly = {
-  beforeHandle: ({ user, status }) => {
-    if (!user?.roles?.includes("admin")) {
-      return status(403, {
-        error: "Insufficient permissions. Required role: admin",
-      });
-    }
-  },
-};
-
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 const router = new Elysia({ prefix: "/api/llm-providers" })
   .use(authPlugin)
+  .use(requireRole("admin"))
 
   // ─── List known providers (static registry) ─────────────────────────────
 
@@ -108,7 +98,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── List all configured providers ──────────────────────────────────────
@@ -128,7 +117,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Get single provider ────────────────────────────────────────────────
@@ -151,7 +139,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Create a new provider ──────────────────────────────────────────────
@@ -196,7 +183,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Update a provider ──────────────────────────────────────────────────
@@ -246,7 +232,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   )
 
   // ─── Delete a provider ──────────────────────────────────────────────────
@@ -269,7 +254,6 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
         return status(500, { error: err.message });
       }
     },
-    adminOnly,
   );
 
 export default router;
