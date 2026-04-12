@@ -166,6 +166,9 @@ export async function createConversationContainer({
       // available at launch time. Provider config comes from the admin-managed
       // LlmProvider collection in MongoDB.
       `OPENCODE_CONFIG_CONTENT=${JSON.stringify({
+        // Disable sharing and Zen (OpenCode's built-in provider) in dev containers
+        share: "disabled",
+        disabled_providers: ["opencode"],
         // LLM provider credentials and model whitelists from admin config
         ...(Object.keys(providerConfig).length > 0
           ? { provider: providerConfig }
