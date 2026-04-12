@@ -24,6 +24,10 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ForumIcon from "@mui/icons-material/Forum";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useAuth } from "../contexts/AuthContext";
 import { useConversations } from "../contexts/ConversationsContext";
 import AdminSidebarMenu from "./Administration/AdminSidebarMenu";
@@ -42,6 +46,44 @@ const timeAgo = (date) => {
   return `${Math.floor(diff / (30 * 86400))}mo`;
 };
 
+const ConversationStatusIndicator = ({ conv, busyConversationIds, unreadConversationIds }) => {
+  const envStatus = conv.environment?.status;
+
+  if (envStatus === "starting") {
+    return (
+      <CircularProgress
+        size="sm"
+        sx={{
+          "--CircularProgress-size": "12px",
+          "--CircularProgress-trackThickness": "2px",
+          "--CircularProgress-progressThickness": "2px",
+          flexShrink: 0,
+        }}
+      />
+    );
+  }
+
+  if (envStatus === "error") {
+    return (
+      <WarningAmberIcon
+        sx={{ fontSize: 14, color: "#e57373", flexShrink: 0 }}
+      />
+    );
+  }
+
+  if (envStatus === "running") {
+    const isUnread = unreadConversationIds.has(conv._id);
+    return (
+      <span
+        className={`conv-status-dot running${isUnread ? " blink" : ""}`}
+      />
+    );
+  }
+
+  // stopped or unknown
+  return <span className="conv-status-dot stopped" />;
+};
+
 const MainMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,9 +100,12 @@ const MainMenu = () => {
   const isOnAdministration = location.pathname.startsWith("/administration");
   const isOnAccount = location.pathname.startsWith("/account");
 
+  const [collapsed, setCollapsed] = useState(false);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [convPopoverOpen, setConvPopoverOpen] = useState(false);
+  const convPopoverTimeout = useRef(null);
   const renameInputRef = useRef(null);
 
   const openCommandPalette = useCallback(() => {
@@ -92,8 +137,6 @@ const MainMenu = () => {
 
   const onStartRename = (id, currentTitle) => {
     setRenameValue(currentTitle);
-    // Delay setting renamingId so the MUI dropdown fully closes
-    // before the rename input appears and takes focus.
     setTimeout(() => {
       setRenamingId(id);
     }, 0);
@@ -113,32 +156,69 @@ const MainMenu = () => {
     setRenameValue("");
   };
 
-  return (
-    <div className="main-menu">
-      {/* ── Top bar: brand + actions + avatar ── */}
-      <div className="main-menu-topbar">
-        <span className="main-menu-brand" onClick={() => navigate("/")}>
-          <ForumIcon
-            className="main-menu-brand-logo"
-            sx={{ fontSize: 22, verticalAlign: "middle", color: "#DB4F15" }}
-          />
-          ReArch
-        </span>
+  const openConvPopover = () => {
+    clearTimeout(convPopoverTimeout.current);
+    setConvPopoverOpen(true);
+  };
 
-        <div className="main-menu-topbar-actions">
-        </div>
+  const closeConvPopover = () => {
+    convPopoverTimeout.current = setTimeout(() => {
+      setConvPopoverOpen(false);
+    }, 150);
+  };
+
+  return (
+    <div className={`main-menu${collapsed ? " collapsed" : ""}`}>
+      {/* ── Top bar: brand + actions ── */}
+      <div className="main-menu-topbar">
+        {collapsed ? (
+          <div className="collapsed-topbar-toggle">
+            <ForumIcon
+              className="collapsed-topbar-brand"
+              sx={{ fontSize: 22, color: "#DB4F15", cursor: "pointer" }}
+              onClick={() => navigate("/")}
+            />
+            <div
+              className="main-menu-icon-btn collapsed-topbar-expand"
+              onClick={() => setCollapsed(false)}
+              title="Expand sidebar"
+            >
+              <ChevronRightIcon sx={{ fontSize: 20 }} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <span className="main-menu-brand" onClick={() => navigate("/")}>
+              <ForumIcon
+                className="main-menu-brand-logo"
+                sx={{ fontSize: 22, verticalAlign: "middle", color: "#DB4F15" }}
+              />
+              ReArch
+            </span>
+            <div className="main-menu-topbar-actions">
+              <div
+                className="main-menu-icon-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+              >
+                <ChevronLeftIcon sx={{ fontSize: 20 }} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ── Home & Search nav items ── */}
+      {/* ── Nav items ── */}
       <div className="main-menu-nav">
         <div
           className={`main-menu-nav-item${location.pathname === "/" ? " active" : ""}`}
           onClick={() => navigate("/")}
+          title="Home"
         >
           <HomeOutlinedIcon
             sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
           />
-          <span>Home</span>
+          {!collapsed && <span>Home</span>}
         </div>
         <div
           className="main-menu-nav-item"
@@ -146,12 +226,90 @@ const MainMenu = () => {
           title="Search (Ctrl+P)"
         >
           <SearchIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          <span>Search</span>
+          {!collapsed && <span>Search</span>}
         </div>
       </div>
 
       {/* ── Contextual content area ── */}
-      {isOnAdministration ? (
+      {collapsed ? (
+        /* Collapsed: conversations icon with hover popover */
+        <div className="collapsed-nav-icons">
+          <div
+            className="collapsed-conv-wrapper"
+            onMouseEnter={openConvPopover}
+            onMouseLeave={closeConvPopover}
+          >
+            <div
+              className={`main-menu-nav-item${location.pathname.startsWith("/conversations") ? " active" : ""}`}
+              title="Conversations"
+            >
+              <ChatBubbleOutlineIcon
+                sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+              />
+            </div>
+            {convPopoverOpen && (
+              <div
+                className="collapsed-conv-popover"
+                onMouseEnter={openConvPopover}
+                onMouseLeave={closeConvPopover}
+              >
+                <div className="collapsed-conv-popover-header">
+                  <span>Conversations</span>
+                  <div
+                    className="main-menu-section-action"
+                    onClick={onNewConversation}
+                    title="New conversation"
+                  >
+                    <AddIcon sx={{ fontSize: 16 }} />
+                  </div>
+                </div>
+                <div className="collapsed-conv-popover-list">
+                  {conversations.length === 0 ? (
+                    <div className="collapsed-conv-popover-empty">
+                      No conversations yet
+                    </div>
+                  ) : (
+                    conversations.map((conv) => (
+                      <div
+                          key={conv._id}
+                          className={`collapsed-conv-popover-item${location.pathname === `/conversations/${conv._id}` ? " active" : ""}`}
+                          onClick={() => {
+                            onSelectConversation(conv._id);
+                            setConvPopoverOpen(false);
+                          }}
+                        >
+                        <div className="collapsed-conv-popover-item-row">
+                          <ConversationStatusIndicator
+                            conv={conv}
+                            busyConversationIds={busyConversationIds}
+                            unreadConversationIds={unreadConversationIds}
+                          />
+                          <div className="conversation-title">
+                            {conv.title}
+                          </div>
+                        </div>
+                        <div className="conversation-meta">
+                          {conv.updatedAt && (
+                            <span>{timeAgo(conv.updatedAt)}</span>
+                          )}
+                          {conv.subResource?.name && (
+                            <>
+                              <span className="conversation-meta-sep">·</span>
+                              <span className="conversation-meta-repo">
+                                {conv.subResource.name}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : isOnAdministration ? (
         <AdminSidebarMenu />
       ) : isOnAccount ? (
         <AccountSidebarMenu />
@@ -197,23 +355,11 @@ const MainMenu = () => {
                       autoFocus
                     />
                   ) : (
-                    <div
-                      className={`conversation-title${unreadConversationIds.has(conv._id) ? " unread" : ""}`}
-                    >
+                    <div className="conversation-title">
                       {conv.title}
                     </div>
                   )}
                   <div className="conversation-meta">
-                    {busyConversationIds.has(conv._id) && (
-                      <CircularProgress
-                        size="sm"
-                        sx={{
-                          "--CircularProgress-size": "14px",
-                          "--CircularProgress-trackThickness": "2px",
-                          "--CircularProgress-progressThickness": "2px",
-                        }}
-                      />
-                    )}
                     {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
                     {conv.subResource?.name && (
                       <>
@@ -225,23 +371,31 @@ const MainMenu = () => {
                     )}
                   </div>
                 </div>
-                <Dropdown>
-                  <MenuButton
-                    className="conversation-menu-btn"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    onClick={(e) => e.stopPropagation()}
-                    sx={{
-                      "--IconButton-size": "28px",
-                      minWidth: "28px",
-                      minHeight: "28px",
-                      p: 0,
-                      borderRadius: "6px",
-                    }}
-                  >
-                    <MoreHorizIcon sx={{ fontSize: 18 }} />
-                  </MenuButton>
+                <div className="conversation-trailing">
+                  <span className="conversation-status-indicator">
+                    <ConversationStatusIndicator
+                      conv={conv}
+                      busyConversationIds={busyConversationIds}
+                      unreadConversationIds={unreadConversationIds}
+                    />
+                  </span>
+                  <Dropdown>
+                    <MenuButton
+                      className="conversation-menu-btn"
+                      variant="plain"
+                      color="neutral"
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        "--IconButton-size": "28px",
+                        minWidth: "28px",
+                        minHeight: "28px",
+                        p: 0,
+                        borderRadius: "6px",
+                      }}
+                    >
+                      <MoreHorizIcon sx={{ fontSize: 18 }} />
+                    </MenuButton>
                   <Menu size="sm" placement="bottom-end">
                     <MenuItem
                       onClick={(e) => {
@@ -267,7 +421,8 @@ const MainMenu = () => {
                       Delete
                     </MenuItem>
                   </Menu>
-                </Dropdown>
+                  </Dropdown>
+                </div>
               </div>
             ))
           )}
@@ -279,25 +434,28 @@ const MainMenu = () => {
         <div
           className="main-menu-nav-item"
           onClick={() => window.open("https://docs.rearch.engineer", "_blank")}
+          title="Help"
         >
           <HelpOutlineIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          <span>Help</span>
+          {!collapsed && <span>Help</span>}
         </div>
         {isAdmin() && (
           <div
             className={`main-menu-nav-item${location.pathname.startsWith("/administration") ? " active" : ""}`}
             onClick={() => navigate("/administration")}
+            title="Administration"
           >
             <AdminPanelSettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-            <span>Administration</span>
+            {!collapsed && <span>Administration</span>}
           </div>
         )}
         <div
           className={`main-menu-nav-item${location.pathname === "/account" ? " active" : ""}`}
           onClick={() => navigate("/account")}
+          title="Account"
         >
           <SettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          <span>Account</span>
+          {!collapsed && <span>Account</span>}
         </div>
       </div>
 

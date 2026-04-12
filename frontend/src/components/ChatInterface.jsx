@@ -767,6 +767,7 @@ const ChatInterface = ({
       <div className="chat-interface">
         <WelcomeScreen
           subResourceId={conversationSubResourceId}
+          repoName={allRepositories.find((r) => r._id === conversationSubResourceId)?.name}
           onPromptClick={(promptText) => {
             handleSendMessage(promptText);
           }}

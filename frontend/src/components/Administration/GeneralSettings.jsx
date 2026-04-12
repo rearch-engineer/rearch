@@ -139,12 +139,7 @@ export default function GeneralSettings() {
           >
             General
           </Typography>
-          <Typography
-            level="body-lg"
-            sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-          >
-            Application-wide settings.
-          </Typography>
+
         </Box>
 
         {/* Signup Restrictions card — only shown in LOCAL auth mode */}

@@ -204,7 +204,8 @@ export default function UsageSettings() {
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
-    <Box sx={{ p: 3, height: "100%", overflow: "auto" }}>
+    <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'auto' }}>
+      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
       {/* Header + Controls */}
       <Box
         sx={{
@@ -768,6 +769,7 @@ export default function UsageSettings() {
           </Box>
         </>
       )}
+    </Box>
     </Box>
   );
 }

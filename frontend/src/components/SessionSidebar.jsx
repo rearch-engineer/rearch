@@ -24,6 +24,9 @@ import GroupOutlined from "@mui/icons-material/GroupOutlined";
 import ApiOutlined from "@mui/icons-material/ApiOutlined";
 import SmartToyOutlined from "@mui/icons-material/SmartToyOutlined";
 import BrushOutlined from "@mui/icons-material/BrushOutlined";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import CommitPushModal from "./CommitPushModal";
 import UserAvatar from "./UserAvatar";
 import "./SessionSidebar.css";
@@ -48,8 +51,8 @@ const getServiceIcon = (iconName) => {
   return <IconComponent sx={{ fontSize: 18 }} />;
 };
 
-const POLL_INTERVAL = 30000; // 30 seconds (reduced from 10s since we now get real-time pushes)
-const STARTING_POLL_INTERVAL = 5000; // 5 seconds while container is starting
+const POLL_INTERVAL = 30000;
+const STARTING_POLL_INTERVAL = 5000;
 
 const DEFAULT_WIDTH = 240;
 const MIN_WIDTH = 180;
@@ -65,6 +68,11 @@ const SessionSidebar = ({ conversationId }) => {
   const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [detailsPopoverOpen, setDetailsPopoverOpen] = useState(false);
+  const [participantsPopoverOpen, setParticipantsPopoverOpen] = useState(false);
+  const detailsPopoverTimeout = useRef(null);
+  const participantsPopoverTimeout = useRef(null);
   const wrapperRef = useRef(null);
   const { socket } = useSocket();
 
@@ -112,7 +120,6 @@ const SessionSidebar = ({ conversationId }) => {
         setContainerStatus(status.value?.environment);
         setParticipants(status.value?.participants || []);
 
-        // Fetch services and changed files only when container is running
         if (status.value?.environment?.status === "running") {
           const [servicesRes, filesRes] = await Promise.allSettled([
             api.getServices(conversationId),
@@ -140,7 +147,6 @@ const SessionSidebar = ({ conversationId }) => {
     }
   }, [conversationId]);
 
-  // Initial fetch
   useEffect(() => {
     setLoading(true);
     setSessionInfo(null);
@@ -148,7 +154,6 @@ const SessionSidebar = ({ conversationId }) => {
     fetchData();
   }, [conversationId, fetchData]);
 
-  // Polling — use a shorter interval while the container is still starting
   useEffect(() => {
     if (!conversationId || conversationId === "new") return;
 
@@ -161,7 +166,6 @@ const SessionSidebar = ({ conversationId }) => {
     return () => clearInterval(interval);
   }, [conversationId, fetchData, containerStatus?.status]);
 
-  // Real-time updates via Socket.IO
   useEffect(() => {
     if (!socket || !conversationId || conversationId === "new") return;
 
@@ -175,7 +179,6 @@ const SessionSidebar = ({ conversationId }) => {
       }
     };
 
-    // Listen for job completion events to detect container status changes
     const handleJobCompleted = (data) => {
       if (
         data?.job?.queue === "conversations" &&
@@ -205,20 +208,39 @@ const SessionSidebar = ({ conversationId }) => {
     };
   }, [socket, conversationId, fetchData]);
 
-  // Expose refresh method via ref-based counter (called by parent after messages)
   const refresh = useCallback(() => {
     fetchData();
   }, [fetchData]);
 
-  // Make refresh accessible to parent
   useEffect(() => {
     if (window.__sessionSidebarRefresh) {
       window.__sessionSidebarRefresh = refresh;
     }
   }, [refresh]);
 
-  // Store refresh on window for parent to call
   window.__sessionSidebarRefresh = refresh;
+
+  const openDetailsPopover = () => {
+    clearTimeout(detailsPopoverTimeout.current);
+    setDetailsPopoverOpen(true);
+  };
+
+  const closeDetailsPopover = () => {
+    detailsPopoverTimeout.current = setTimeout(() => {
+      setDetailsPopoverOpen(false);
+    }, 150);
+  };
+
+  const openParticipantsPopover = () => {
+    clearTimeout(participantsPopoverTimeout.current);
+    setParticipantsPopoverOpen(true);
+  };
+
+  const closeParticipantsPopover = () => {
+    participantsPopoverTimeout.current = setTimeout(() => {
+      setParticipantsPopoverOpen(false);
+    }, 150);
+  };
 
   if (!conversationId || conversationId === "new") {
     return null;
@@ -229,7 +251,11 @@ const SessionSidebar = ({ conversationId }) => {
 
   if (loading && !containerStatus) {
     return (
-      <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div
+        className={`session-sidebar-wrapper${collapsed ? " collapsed" : ""}`}
+        ref={wrapperRef}
+        style={collapsed ? {} : { width: sidebarWidth, minWidth: sidebarWidth }}
+      >
         <div
           className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`}
           onMouseDown={() => setIsResizing(true)}
@@ -250,14 +276,220 @@ const SessionSidebar = ({ conversationId }) => {
     );
   }
 
+  /* ── Collapsed view ── */
+  if (collapsed) {
+    return (
+      <div
+        className="session-sidebar-wrapper collapsed"
+        ref={wrapperRef}
+      >
+        <div className="session-sidebar-collapsed">
+          {/* Expand button — shows on hover, otherwise shows info icon */}
+          <div className="session-collapsed-topbar">
+            <div className="collapsed-topbar-toggle">
+              <InfoOutlined
+                className="collapsed-topbar-brand"
+                sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+              />
+              <div
+                className="main-menu-icon-btn collapsed-topbar-expand"
+                onClick={() => setCollapsed(false)}
+                title="Expand sidebar"
+              >
+                <ChevronLeftIcon sx={{ fontSize: 20 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Icon-only nav */}
+          <div className="session-collapsed-nav">
+            {services.length > 0 && isRunning && services.map((service, i) => (
+              <Tooltip key={i} title={service.label} placement="left">
+                <div
+                  className="session-collapsed-icon-btn"
+                  onClick={() => window.open(service.url, "_blank")}
+                >
+                  {getServiceIcon(service.icon)}
+                </div>
+              </Tooltip>
+            ))}
+
+            <Tooltip title={`Session: ${envStatus}`} placement="left">
+              <div className="session-collapsed-icon-btn">
+                <TerminalOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+              </div>
+            </Tooltip>
+
+            <Tooltip title={sessionInfo?.repoName || "Repository"} placement="left">
+              <div className="session-collapsed-icon-btn">
+                <FolderOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+              </div>
+            </Tooltip>
+
+            {isRunning && (
+              <Tooltip
+                title={sessionInfo ? `Context: ${sessionInfo.contextUsage.percent}%` : "Context"}
+                placement="left"
+              >
+                <div className="session-collapsed-icon-btn">
+                  <DataUsageOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+                </div>
+              </Tooltip>
+            )}
+
+            {isRunning && (
+              <Tooltip
+                title={sessionInfo ? `Cost: $${sessionInfo.cost.total.toFixed(4)}` : "Cost"}
+                placement="left"
+              >
+                <div className="session-collapsed-icon-btn">
+                  <AttachMoneyOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+                </div>
+              </Tooltip>
+            )}
+
+            {participants.length > 0 && (
+              <div
+                className="session-collapsed-participants-wrapper"
+                onMouseEnter={openParticipantsPopover}
+                onMouseLeave={closeParticipantsPopover}
+              >
+                <div className="session-collapsed-icon-btn">
+                  <GroupOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+                </div>
+                {participantsPopoverOpen && (
+                  <div
+                    className="session-collapsed-popover"
+                    onMouseEnter={openParticipantsPopover}
+                    onMouseLeave={closeParticipantsPopover}
+                  >
+                    <div className="session-collapsed-popover-header">
+                      <span>Participants</span>
+                    </div>
+                    <div className="session-collapsed-popover-list">
+                      {participants.map((p) => {
+                        const name =
+                          p.profile?.display_name ||
+                          p.account?.username ||
+                          p.account?.email ||
+                          "?";
+                        return (
+                          <div key={p._id} className="session-collapsed-participant-item">
+                            <UserAvatar
+                              avatarFileId={p.profile?.avatar_fileId}
+                              fallbackName={name}
+                              size="sm"
+                              sx={{ width: 24, height: 24, fontSize: "0.65rem" }}
+                            />
+                            <span>{name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom: changed files popover + commit */}
+          {isRunning && (
+            <div className="session-collapsed-bottom">
+              <div
+                className="session-collapsed-changes-wrapper"
+                onMouseEnter={openDetailsPopover}
+                onMouseLeave={closeDetailsPopover}
+              >
+                <Tooltip title={`${changedFiles.length} changed files`} placement="left">
+                  <div className="session-collapsed-icon-btn">
+                    <PublishOutlined sx={{ fontSize: 20, color: changedFiles.length > 0 ? "var(--joy-palette-success-600, #1b7d2c)" : "var(--text-tertiary)" }} />
+                  </div>
+                </Tooltip>
+
+                {detailsPopoverOpen && changedFiles.length > 0 && (
+                  <div
+                    className="session-collapsed-popover"
+                    onMouseEnter={openDetailsPopover}
+                    onMouseLeave={closeDetailsPopover}
+                  >
+                    <div className="session-collapsed-popover-header">
+                      <span>Changed files</span>
+                    </div>
+                    <div className="session-collapsed-popover-list">
+                      {changedFiles.map((file, i) => (
+                        <div key={i} className="changed-file-row">
+                          <span className="changed-file-stats">
+                            {file.added > 0 && (
+                              <span className="changed-file-added">+{file.added}</span>
+                            )}
+                            {file.deleted > 0 && (
+                              <span className="changed-file-deleted">-{file.deleted}</span>
+                            )}
+                            {file.added === 0 && file.deleted === 0 && (
+                              <span className="changed-file-neutral">~</span>
+                            )}
+                          </span>
+                          <Tooltip title={file.filename} placement="left">
+                            <span className="changed-file-name">
+                              {file.filename.split("/").pop()}
+                            </span>
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="session-collapsed-popover-footer">
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="success"
+                        startDecorator={<PublishOutlined sx={{ fontSize: 16 }} />}
+                        onClick={() => {
+                          setDetailsPopoverOpen(false);
+                          setCommitModalOpen(true);
+                        }}
+                        sx={{
+                          width: "100%",
+                          fontWeight: 600,
+                          fontSize: "0.8rem",
+                          py: 0.5,
+                          borderRadius: "6px",
+                        }}
+                      >
+                        Conclude change
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <CommitPushModal
+          open={commitModalOpen}
+          onClose={() => setCommitModalOpen(false)}
+          conversationId={conversationId}
+        />
+      </div>
+    );
+  }
+
+  /* ── Expanded view ── */
   return (
     <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div
+        className="session-sidebar-collapse-btn main-menu-icon-btn"
+        onClick={() => setCollapsed(true)}
+        title="Collapse sidebar"
+      >
+        <ChevronRightIcon sx={{ fontSize: 20 }} />
+      </div>
       <div
         className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`}
         onMouseDown={() => setIsResizing(true)}
       />
     <div className="session-sidebar">
-      {/* Service buttons — square, horizontal, above everything */}
+      {/* Service buttons */}
       {services.length > 0 && isRunning && (
         <div className="session-sidebar-service-buttons">
           {services.map((service, index) => (
@@ -292,7 +524,6 @@ const SessionSidebar = ({ conversationId }) => {
         </Typography>
       </div>
 
-      {/* Repository name */}
       <div className="session-sidebar-section">
         <Tooltip title="Repository" placement="left">
           <FolderOutlined
@@ -309,7 +540,6 @@ const SessionSidebar = ({ conversationId }) => {
         </div>
       </div>
 
-      {/* Context window usage — only when running */}
       {isRunning && (
         <div className="session-sidebar-section">
           <Tooltip title="Context Window" placement="left">
@@ -351,7 +581,6 @@ const SessionSidebar = ({ conversationId }) => {
         </div>
       )}
 
-      {/* Session cost — only when running */}
       {isRunning && (
         <div className="session-sidebar-section">
           <Tooltip title="Session Cost" placement="left">
@@ -374,7 +603,6 @@ const SessionSidebar = ({ conversationId }) => {
         </div>
       )}
 
-      {/* Participants */}
       {participants.length > 0 && (
         <div className="session-sidebar-section">
           <Tooltip title="Participants" placement="left">
@@ -408,10 +636,8 @@ const SessionSidebar = ({ conversationId }) => {
         </div>
       )}
 
-      {/* Bottom section: Changed files + Commit & Push */}
       {isRunning && (
         <div className="session-sidebar-bottom">
-          {/* Changed files */}
           {changedFiles.length > 0 && (
             <div className="session-sidebar-services">
               <Typography
@@ -449,7 +675,6 @@ const SessionSidebar = ({ conversationId }) => {
             </div>
           )}
 
-          {/* Commit & Push action */}
           <Button
             size="sm"
             variant="soft"
@@ -473,7 +698,6 @@ const SessionSidebar = ({ conversationId }) => {
         </div>
       )}
 
-      {/* Commit & Push Modal */}
       <CommitPushModal
         open={commitModalOpen}
         onClose={() => setCommitModalOpen(false)}

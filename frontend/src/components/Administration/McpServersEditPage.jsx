@@ -136,9 +136,7 @@ export default function McpServersEditPage() {
         >
           Edit Server
         </Typography>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', fontSize: '1rem', mb: 4 }}>
-          Update the configuration for <strong>{formData.name}</strong>.
-        </Typography>
+
 
         {/* Form */}
         <form onSubmit={handleSubmit}>

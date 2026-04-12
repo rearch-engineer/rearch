@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Typography,
-  Card,
   FormControl,
   FormLabel,
   Input,
@@ -22,6 +21,7 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
@@ -36,6 +36,7 @@ export default function SkillsSettings() {
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
   const [repositorySubResources, setRepositorySubResources] = useState([]);
 
   useEffect(() => {
@@ -129,52 +130,46 @@ export default function SkillsSettings() {
     >
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 4 }}
-        >
-          <Box>
-            <Typography
-              level="h2"
-              sx={{
-                mb: 1,
-                color: "var(--text-primary)",
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", md: "1.75rem" },
-              }}
-            >
-              Skills
-            </Typography>
-            <Typography
-              level="body-lg"
-              sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-            >
-              Define the repositorie(s) that contain cross-repository skills.
-            </Typography>
-          </Box>
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            level="h2"
+            sx={{
+              mb: 1,
+              color: "var(--text-primary)",
+              fontWeight: 700,
+              fontSize: { xs: "1.5rem", md: "1.75rem" },
+            }}
+          >
+            Skills
+          </Typography>
+        </Box>
+
+        {/* Search & actions */}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Input
+            size="sm"
+            placeholder="Search skills..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+            sx={{
+              flex: 1,
+              bgcolor: "var(--bg-secondary)",
+              borderColor: "var(--border-color)",
+            }}
+          />
           <Button
+            size="sm"
             variant="solid"
-            color="primary"
-            startDecorator={<AddIcon />}
             onClick={openCreate}
-            sx={{ flexShrink: 0, mt: 0.5 }}
+            sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
           >
             Add Skill
           </Button>
         </Stack>
 
-        {/* Table card */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderColor: "var(--border-color)",
-            bgcolor: "var(--bg-primary)",
-            overflow: "auto",
-          }}
-        >
+        {/* Table */}
+        <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
           {skills.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 8 }}>
               <Typography
@@ -225,7 +220,7 @@ export default function SkillsSettings() {
                 </tr>
               </thead>
               <tbody>
-                {skills.map((skill) => {
+                {skills.filter((s) => s.title.toLowerCase().includes(search.toLowerCase())).map((skill) => {
                   const linkedRepo = repositorySubResources.find(
                     (r) => r._id === skill.skillsRepository,
                   );
@@ -303,7 +298,7 @@ export default function SkillsSettings() {
               </tbody>
             </Table>
           )}
-        </Card>
+        </Box>
       </Box>
 
       {/* Create modal */}

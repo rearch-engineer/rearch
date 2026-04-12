@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, Typography, Card, Stack, IconButton, Table, Chip,
+  Box, Button, Typography, Stack, IconButton, Table, Chip, Input,
 } from '@mui/joy';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import CircleIcon from '@mui/icons-material/Circle';
+import SearchIcon from '@mui/icons-material/Search';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -18,6 +19,7 @@ export default function McpServersSettings() {
   const [loading, setLoading] = useState(true);
   const [proxyStatus, setProxyStatus] = useState(null);
   const [reloading, setReloading] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     loadServers();
@@ -90,22 +92,46 @@ export default function McpServersSettings() {
     >
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
         {/* Header */}
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2} sx={{ mb: 4 }}>
-          <Box>
-            <Typography
-              level="h2"
-              sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
-            >
-              MCP Servers
-            </Typography>
-            <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-              Configure MCP (Model Context Protocol) servers that are available to all conversation containers through the MCP proxy.
-            </Typography>
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            level="h2"
+            sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
+          >
+            MCP Servers
+          </Typography>
+        </Box>
+
+        {/* Proxy error */}
+        {proxyStatus && proxyStatus.healthy === false && (
+          <Box sx={{ mb: 3, p: 2, borderRadius: 'sm', bgcolor: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.3)' }}>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <CircleIcon sx={{ fontSize: 12, color: '#dc2626' }} />
+              <Typography level="body-sm" sx={{ color: '#dc2626', fontWeight: 600 }}>
+                MCP Proxy Unavailable
+              </Typography>
+            </Stack>
           </Box>
-          <Stack direction="row" spacing={1} sx={{ flexShrink: 0, mt: 0.5 }}>
+        )}
+
+        {/* Search & actions */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Input
+            size="sm"
+            placeholder="Search servers..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            startDecorator={<SearchIcon sx={{ color: 'var(--text-secondary)' }} />}
+            sx={{
+              flex: 1,
+              bgcolor: 'var(--bg-secondary)',
+              borderColor: 'var(--border-color)',
+            }}
+          />
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Button
               variant="outlined"
               color="neutral"
+              size="sm"
               startDecorator={<RefreshIcon />}
               onClick={handleReloadProxy}
               loading={reloading}
@@ -114,42 +140,18 @@ export default function McpServersSettings() {
               Reload Proxy
             </Button>
             <Button
+              size="sm"
               variant="solid"
-              color="primary"
-              startDecorator={<AddIcon />}
               onClick={() => navigate('/administration/mcp-servers/new')}
+              sx={{ bgcolor: '#fff', color: '#000', '&:hover': { bgcolor: '#e5e5e5' } }}
             >
               Add Server
             </Button>
           </Stack>
         </Stack>
 
-        {/* Proxy status */}
-        <Card variant="outlined" sx={{ borderColor: 'var(--border-color)', bgcolor: 'var(--bg-primary)', mb: 3, p: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            {proxyStatus && proxyStatus.healthy !== false ? (
-              <>
-                <CircleIcon sx={{ fontSize: 12, color: '#16a34a' }} />
-                <Typography level="body-sm" sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                  MCP Proxy Connected
-                </Typography>
-                <Typography level="body-sm" sx={{ color: 'var(--text-secondary)' }}>
-                  — {proxyStatus.upstreamServers ?? servers.length} upstream server{(proxyStatus.upstreamServers ?? servers.length) !== 1 ? 's' : ''}
-                </Typography>
-              </>
-            ) : (
-              <>
-                <CircleIcon sx={{ fontSize: 12, color: '#dc2626' }} />
-                <Typography level="body-sm" sx={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                  MCP Proxy Unavailable
-                </Typography>
-              </>
-            )}
-          </Stack>
-        </Card>
-
         {/* Servers table */}
-        <Card variant="outlined" sx={{ borderColor: 'var(--border-color)', bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
+        <Box sx={{ bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
           {servers.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', mb: 1 }}>
@@ -194,7 +196,7 @@ export default function McpServersSettings() {
                 </tr>
               </thead>
               <tbody>
-                {servers.map((server) => (
+                {servers.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())).map((server) => (
                   <tr key={server._id || server.name}>
                     <td>
                       <Typography level="body-sm" sx={{ fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -238,7 +240,7 @@ export default function McpServersSettings() {
               </tbody>
             </Table>
           )}
-        </Card>
+        </Box>
       </Box>
     </Box>
   );

@@ -122,9 +122,7 @@ export default function McpServersGalleryPage() {
             >
               Add MCP Server
             </Typography>
-            <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
-              Choose a popular server from the gallery or configure one manually.
-            </Typography>
+
           </Box>
           <Button
             variant="soft"

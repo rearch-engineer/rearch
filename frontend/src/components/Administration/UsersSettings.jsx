@@ -3,10 +3,7 @@ import {
   Box,
   Button,
   Typography,
-  Card,
-  CardContent,
   FormControl,
-  FormLabel,
   Input,
   Select,
   Option,
@@ -205,87 +202,48 @@ export default function UsersSettings() {
         </Box>
 
         {/* Search & filter */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderColor: "var(--border-color)",
-            bgcolor: "var(--bg-primary)",
-            mb: 3,
-          }}
-        >
-          <CardContent>
-            <form onSubmit={handleSearch}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={2}
-                alignItems="flex-end"
+        <Box sx={{ mb: 3 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems="flex-end"
+          >
+            <FormControl sx={{ flex: 1 }}>
+              <Input
+                size="sm"
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+                sx={{
+                  bgcolor: "var(--bg-secondary)",
+                  borderColor: "var(--border-color)",
+                }}
+              />
+            </FormControl>
+            <FormControl sx={{ minWidth: 160 }}>
+              <Select
+                size="sm"
+                value={statusFilter}
+                onChange={(_, val) => setStatusFilter(val || "")}
+                placeholder="All statuses"
+                sx={{
+                  bgcolor: "var(--bg-secondary)",
+                  borderColor: "var(--border-color)",
+                }}
               >
-                <FormControl sx={{ flex: 1 }}>
-                  <FormLabel
-                    sx={{
-                      color: "var(--text-secondary)",
-                      fontWeight: 600,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Search
-                  </FormLabel>
-                  <Input
-                    placeholder="Search by email, username, or name..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    startDecorator={<SearchIcon />}
-                    sx={{
-                      bgcolor: "var(--bg-secondary)",
-                      borderColor: "var(--border-color)",
-                    }}
-                  />
-                </FormControl>
-                <FormControl sx={{ minWidth: 160 }}>
-                  <FormLabel
-                    sx={{
-                      color: "var(--text-secondary)",
-                      fontWeight: 600,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Status
-                  </FormLabel>
-                  <Select
-                    value={statusFilter}
-                    onChange={(_, val) => setStatusFilter(val || "")}
-                    placeholder="All statuses"
-                    sx={{
-                      bgcolor: "var(--bg-secondary)",
-                      borderColor: "var(--border-color)",
-                    }}
-                  >
-                    <Option value="">All</Option>
-                    <Option value="active">Active</Option>
-                    <Option value="pending_verification">Pending</Option>
-                    <Option value="suspended">Suspended</Option>
-                  </Select>
-                </FormControl>
-                <Button
-                  type="submit"
-                  variant="outlined"
-                  sx={{
-                    borderColor: "var(--border-color)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Filter
-                </Button>
-              </Stack>
-            </form>
-          </CardContent>
-        </Card>
+                <Option value="">All</Option>
+                <Option value="active">Active</Option>
+                <Option value="pending_verification">Pending</Option>
+                <Option value="suspended">Suspended</Option>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Box>
 
         {/* Users table */}
-        <Card
-          variant="outlined"
+        <Box
           sx={{
-            borderColor: "var(--border-color)",
             bgcolor: "var(--bg-primary)",
             overflow: "auto",
           }}
@@ -468,7 +426,7 @@ export default function UsersSettings() {
               )}
             </tbody>
           </Table>
-        </Card>
+        </Box>
 
         {/* Pagination */}
         {pagination.pages > 1 && (

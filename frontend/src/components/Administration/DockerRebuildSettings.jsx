@@ -195,7 +195,8 @@ export default function DockerRebuildSettings() {
 
   if (!hasRearchEnabled) {
     return (
-      <Box sx={{ p: 3, maxWidth: 700 }}>
+      <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
+        <Box sx={{ maxWidth: 960, mx: 'auto' }}>
         <Typography level="h3" sx={{ mb: 3 }}>
           Docker Image Rebuilds
         </Typography>
@@ -216,11 +217,13 @@ export default function DockerRebuildSettings() {
           </Box>
         </Alert>
       </Box>
+      </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 700 }}>
+    <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'auto' }}>
+      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
       <Typography level="h3" sx={{ mb: 3 }}>
         Docker Image Rebuilds
       </Typography>
@@ -365,6 +368,7 @@ export default function DockerRebuildSettings() {
           </Button>
         </CardContent>
       </Card>
+    </Box>
     </Box>
   );
 }

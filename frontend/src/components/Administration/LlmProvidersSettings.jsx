@@ -19,12 +19,12 @@ import {
   Switch,
   Checkbox,
   Divider,
-  Alert,
 } from "@mui/joy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import KeyIcon from "@mui/icons-material/Key";
+import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
@@ -37,6 +37,7 @@ export default function LlmProvidersSettings() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   // Form state
   const [formProviderId, setFormProviderId] = useState("");
@@ -266,67 +267,46 @@ export default function LlmProvidersSettings() {
     >
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 4 }}
-        >
-          <Box>
-            <Typography
-              level="h2"
-              sx={{
-                mb: 1,
-                color: "var(--text-primary)",
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", md: "1.75rem" },
-              }}
-            >
-              LLM Providers
-            </Typography>
-            <Typography
-              level="body-lg"
-              sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-            >
-              Configure which LLM providers and models are available in
-              conversation containers. API keys are encrypted at rest.
-            </Typography>
-          </Box>
-          <Button
-            variant="solid"
-            color="primary"
-            startDecorator={<AddIcon />}
-            onClick={openAddModal}
-            sx={{ flexShrink: 0, mt: 0.5 }}
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            level="h2"
+            sx={{
+              mb: 1,
+              color: "var(--text-primary)",
+              fontWeight: 700,
+              fontSize: { xs: "1.5rem", md: "1.75rem" },
+            }}
           >
-            Add Provider
+            LLM Providers
+          </Typography>
+        </Box>
+
+        {/* Search & actions */}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Input
+            size="sm"
+            placeholder="Search providers..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+            sx={{
+              flex: 1,
+              bgcolor: "var(--bg-secondary)",
+              borderColor: "var(--border-color)",
+            }}
+          />
+          <Button
+            size="sm"
+            variant="solid"
+            onClick={openAddModal}
+            sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
+          >
+            Connect
           </Button>
         </Stack>
 
-        {/* Info alert */}
-        {providers.length > 0 && (
-          <Alert
-            variant="soft"
-            color="neutral"
-            sx={{ mb: 3, bgcolor: "var(--bg-secondary)" }}
-          >
-            <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>
-              Changes to providers take effect for new conversations only.
-              Existing running containers are not affected.
-            </Typography>
-          </Alert>
-        )}
-
         {/* Providers table */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderColor: "var(--border-color)",
-            bgcolor: "var(--bg-primary)",
-            overflow: "auto",
-          }}
-        >
+        <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
           {providers.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 8 }}>
               <Typography
@@ -377,7 +357,7 @@ export default function LlmProvidersSettings() {
                 </tr>
               </thead>
               <tbody>
-                {providers.map((provider) => {
+                {providers.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())).map((provider) => {
                   const enabledModels = (provider.models || []).filter(
                     (m) => m.enabled
                   );
@@ -498,7 +478,7 @@ export default function LlmProvidersSettings() {
               </tbody>
             </Table>
           )}
-        </Card>
+        </Box>
       </Box>
 
       {/* Add / Edit Modal */}

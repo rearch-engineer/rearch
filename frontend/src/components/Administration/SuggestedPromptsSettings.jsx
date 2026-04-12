@@ -309,13 +309,7 @@ export default function SuggestedPromptsSettings() {
           >
             Suggested Prompts
           </Typography>
-          <Typography
-            level="body-lg"
-            sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-          >
-            Configure the suggested prompts that appear on the new conversation
-            welcome screen. Organize them by category.
-          </Typography>
+
         </Box>
 
         <Tabs

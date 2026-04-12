@@ -10,7 +10,12 @@ function getIconComponent(iconName) {
   return MuiIcons[iconName] || MuiIcons.SmartToyOutlined;
 }
 
-export default function WelcomeScreen({ subResourceId, onPromptClick, children }) {
+export default function WelcomeScreen({
+  subResourceId,
+  repoName,
+  onPromptClick,
+  children,
+}) {
   const { user } = useAuth();
   const [prompts, setPrompts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +66,8 @@ export default function WelcomeScreen({ subResourceId, onPromptClick, children }
       <div className="welcome-center-anchor">
         <h1 className="welcome-heading">
           {firstName
-            ? `What should we get done, ${firstName}?`
-            : "What should we get done?"}
+            ? `What about ${repoName || "this repository"}, ${firstName}?`
+            : `What about ${repoName || "this repository"}?`}
         </h1>
         <div className="welcome-input-wrapper">{children}</div>
       </div>
@@ -85,7 +90,9 @@ export default function WelcomeScreen({ subResourceId, onPromptClick, children }
                       <div
                         key={prompt._id}
                         className="welcome-prompt-card"
-                        onClick={() => onPromptClick && onPromptClick(prompt.prompt)}
+                        onClick={() =>
+                          onPromptClick && onPromptClick(prompt.prompt)
+                        }
                         title={prompt.prompt}
                       >
                         <div className="welcome-prompt-card-preview">

@@ -34,6 +34,9 @@ export default function AdministrationPage() {
         width: "100%",
         height: "100%",
         overflow: "auto",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "var(--bg-primary)",
       }}
     >
       <Routes>

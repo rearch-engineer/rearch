@@ -226,14 +226,7 @@ function SubResourcesListPage() {
             >
               {listLabel}
             </Typography>
-            {resource && (
-              <Typography
-                level="body-lg"
-                sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-              >
-                {resource.name}
-              </Typography>
-            )}
+
           </Box>
           <Button
             data-testid="import-btn"

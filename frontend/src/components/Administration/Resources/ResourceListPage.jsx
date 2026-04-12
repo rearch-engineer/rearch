@@ -267,60 +267,43 @@ function ResourceListPage() {
     >
       {/* Header */}
       <Box sx={{ maxWidth: 960, mx: "auto", mb: 4 }}>
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 1 }}
+        <Typography
+          level="h2"
+          sx={{
+            mb: 1,
+            color: "var(--text-primary)",
+            fontWeight: 700,
+            fontSize: { xs: "1.5rem", md: "1.75rem" },
+          }}
         >
-          <Box>
-            <Typography
-              level="h2"
-              sx={{
-                mb: 1,
-                color: "var(--text-primary)",
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", md: "1.75rem" },
-              }}
-            >
-              Resources
-            </Typography>
-            <Typography
-              level="body-lg"
-              sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-            >
-              Manage your connected integrations and tools.
-            </Typography>
-          </Box>
-          <Button
-            data-testid="add-resource-btn"
-            variant="solid"
-            color="primary"
-            startDecorator={<Add />}
-            onClick={() => navigate("/administration/resources/new")}
-            sx={{ flexShrink: 0, mt: 0.5 }}
-          >
-            Add Resource
-          </Button>
-        </Stack>
+          Resources
+        </Typography>
       </Box>
 
-      {/* Search */}
-      <Box sx={{ maxWidth: 960, mx: "auto", mb: 3 }}>
+      {/* Search & actions */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ maxWidth: 960, mx: "auto", mb: 3 }}>
         <Input
           placeholder="Search resources..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          startDecorator={<Search />}
-          size="md"
+          startDecorator={<Search sx={{ color: "var(--text-secondary)" }} />}
+          size="sm"
           sx={{
-            maxWidth: 400,
+            flex: 1,
             bgcolor: "var(--bg-secondary)",
             borderColor: "var(--border-color)",
           }}
         />
-      </Box>
+        <Button
+          data-testid="add-resource-btn"
+          size="sm"
+          variant="solid"
+          onClick={() => navigate("/administration/resources/new")}
+          sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
+        >
+          Connect
+        </Button>
+      </Stack>
 
       {/* Resource list */}
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
@@ -331,7 +314,7 @@ function ResourceListPage() {
             </Typography>
           </Box>
         ) : filteredResources.length === 0 ? (
-          <Card variant="outlined" sx={{ borderColor: "var(--border-color)", bgcolor: "var(--bg-primary)", overflow: "auto" }}>
+          <Box sx={{ bgcolor: "var(--bg-primary)" }}>
             <Box sx={{ textAlign: "center", py: 8 }}>
               {searchQuery ? (
                 <>
@@ -373,7 +356,7 @@ function ResourceListPage() {
                 </>
               )}
             </Box>
-          </Card>
+          </Box>
         ) : (
           <Stack spacing={2}>
             {filteredResources.map((resource) => (

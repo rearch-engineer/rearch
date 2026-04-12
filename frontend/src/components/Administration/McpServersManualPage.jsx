@@ -112,9 +112,7 @@ export default function McpServersManualPage() {
         >
           Add Server Manually
         </Typography>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', fontSize: '1rem', mb: 4 }}>
-          Configure a new MCP server by providing its connection details.
-        </Typography>
+
 
         {/* Form */}
         <form onSubmit={handleSubmit}>

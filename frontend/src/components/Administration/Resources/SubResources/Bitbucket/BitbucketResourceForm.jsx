@@ -104,13 +104,11 @@ function BitbucketResourceForm() {
       newErrors.name = "Name must be between 2 and 100 characters";
     }
 
-    if (!formData.data.workspace)
-      newErrors.workspace = "Workspace is required";
+    if (!formData.data.workspace) newErrors.workspace = "Workspace is required";
     if (!formData.data.email) newErrors.email = "Email is required";
     if (!formData.data.cloneUsername)
       newErrors.cloneUsername = "Clone Username is required";
-    if (!formData.data.apiToken)
-      newErrors.apiToken = "API Token is required";
+    if (!formData.data.apiToken) newErrors.apiToken = "API Token is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -181,7 +179,11 @@ function BitbucketResourceForm() {
           color="neutral"
           startDecorator={<ArrowBack />}
           onClick={() =>
-            navigate(isEditMode ? "/administration/resources" : "/administration/resources/new")
+            navigate(
+              isEditMode
+                ? "/administration/resources"
+                : "/administration/resources/new",
+            )
           }
           sx={{ mb: 2 }}
         >
@@ -217,20 +219,6 @@ function BitbucketResourceForm() {
               >
                 {isEditMode ? "Edit Bitbucket Resource" : "Connect Bitbucket"}
               </Typography>
-              <Chip
-                size="sm"
-                variant="soft"
-                sx={{
-                  bgcolor: "#0052CC18",
-                  color: "#0052CC",
-                  fontWeight: 600,
-                  fontSize: "0.7rem",
-                  borderRadius: "4px",
-                  height: "22px",
-                }}
-              >
-                Developer Tools
-              </Chip>
             </Stack>
             <Typography
               level="body-lg"
@@ -349,9 +337,7 @@ function BitbucketResourceForm() {
                 <Input
                   data-testid="bb-resource-api-token"
                   value={formData.data.apiToken || ""}
-                  onChange={(e) =>
-                    handleDataChange("apiToken", e.target.value)
-                  }
+                  onChange={(e) => handleDataChange("apiToken", e.target.value)}
                   placeholder="Your Bitbucket API Token"
                   type="password"
                   size="lg"
@@ -376,9 +362,7 @@ function BitbucketResourceForm() {
                       fontSize="small"
                       sx={{
                         transition: "transform 0.2s",
-                        transform: showHelp
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
+                        transform: showHelp ? "rotate(180deg)" : "rotate(0deg)",
                       }}
                     />
                   }
@@ -515,16 +499,16 @@ function BitbucketResourceForm() {
                               https://id.atlassian.com/manage-profile/security/api-tokens
                             </Typography>
                           </ListItem>
-                          <ListItem>Click "Create API token with scopes".</ListItem>
+                          <ListItem>
+                            Click "Create API token with scopes".
+                          </ListItem>
                           <ListItem>
                             Give it a name (e.g. "Chat Integration").
                           </ListItem>
                           <ListItem>
                             Choose the desired expiration date.
                           </ListItem>
-                          <ListItem>
-                            Choose Bitbucket.
-                          </ListItem>
+                          <ListItem>Choose Bitbucket.</ListItem>
                           <ListItem>
                             Select the scopes:{" "}
                             <Typography
@@ -546,7 +530,8 @@ function BitbucketResourceForm() {
                             </Typography>
                           </ListItem>
                           <ListItem>
-                            Copy the generated token and paste it into the field above.
+                            Copy the generated token and paste it into the field
+                            above.
                           </ListItem>
                         </List>
                       </Box>
@@ -583,7 +568,7 @@ function BitbucketResourceForm() {
                     navigate(
                       isEditMode
                         ? "/administration/resources"
-                        : "/administration/resources/new"
+                        : "/administration/resources/new",
                     )
                   }
                   disabled={loading}
