@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Badge from "@mui/joy/Badge";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import ArticleIcon from "@mui/icons-material/Article";
 import PeopleIcon from "@mui/icons-material/People";
@@ -60,11 +60,11 @@ const AdminSidebarMenu = () => {
   return (
     <div className="conversations">
       <div
-        className="main-menu-nav-item main-menu-go-back"
+        className="main-menu-nav-item"
         onClick={() => navigate("/")}
       >
-        <ArrowBackIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-        <span>Go back</span>
+        <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+        <span>Back</span>
       </div>
       {menuGroups.map((group) => (
         <div key={group.label} className="admin-menu-group">

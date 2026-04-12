@@ -1,9 +1,11 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
+import Box from "@mui/joy/Box";
+import Typography from "@mui/joy/Typography";
 import { useAuth } from "../../contexts/AuthContext";
 
 const AccountSidebarMenu = () => {
@@ -24,15 +26,15 @@ const AccountSidebarMenu = () => {
   return (
     <div className="conversations">
       <div
-        className="main-menu-nav-item main-menu-go-back"
+        className="main-menu-nav-item"
         onClick={() => navigate("/")}
       >
-        <ArrowBackIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-        <span>Go back</span>
+        <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+        <span>Back</span>
       </div>
-      <div className="main-menu-section-title">
-        <span>Account</span>
-      </div>
+      <Box className="main-menu-section-title" sx={{ color: "#5E5E5E" }}>
+        <Typography level="body-sm" sx={{ color: "inherit" }}>Account</Typography>
+      </Box>
       {menuItems.map((item) => (
         <div
           key={item.path}
