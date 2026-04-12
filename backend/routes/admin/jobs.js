@@ -1,12 +1,6 @@
 import { Elysia } from 'elysia';
 import { z } from 'zod';
-import { resourcesQueue, conversationsQueue } from '../queue';
-import { authPlugin } from '../middleware/auth.js';
-import requireRole from '../middleware/requireRole.js';
-
-const router = new Elysia({ prefix: '/api/jobs' })
-  .use(authPlugin)
-  .use(requireRole('admin'));
+import { resourcesQueue, conversationsQueue } from '../../queue';
 
 /**
  * Map of queue names to queue instances
@@ -50,15 +44,15 @@ const getJobParamsSchema = z.object({
   id: z.string().min(1, "Job ID is required."),
 });
 
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+const router = new Elysia({ prefix: '/jobs' });
+
 /**
- * GET /api/jobs
+ * GET /api/admin/jobs
  *
  * Returns aggregated job counts and a combined list of jobs across all queues
  * and statuses (active, waiting, completed, failed).
- *
- * Query params:
- *   - status: comma-separated list of statuses to include (default: all)
- *   - limit:  max jobs per status per queue (default: 50)
  */
 router.get('/', async ({ query, status }) => {
   const parsed = listJobsSchema.safeParse(query);
@@ -103,7 +97,7 @@ router.get('/', async ({ query, status }) => {
 });
 
 /**
- * GET /api/jobs/:queue/:id
+ * GET /api/admin/jobs/:queue/:id
  *
  * Returns details for a single job including its logs.
  */

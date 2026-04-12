@@ -1,10 +1,8 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
-import LlmProvider from "../models/LlmProvider.js";
-import { authPlugin } from "../middleware/auth.js";
-import requireRole from "../middleware/requireRole.js";
-import { encrypt, decrypt, maskApiKey } from "../utils/encryption.js";
-import { getKnownProviders } from "../utils/llmProviderRegistry.js";
+import LlmProvider from "../../models/LlmProvider.js";
+import { encrypt, decrypt, maskApiKey } from "../../utils/encryption.js";
+import { getKnownProviders } from "../../utils/llmProviderRegistry.js";
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
@@ -77,16 +75,11 @@ function toSafeResponse(doc) {
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
-const router = new Elysia({ prefix: "/api/llm-providers" })
-  .use(authPlugin)
-  .use(requireRole("admin"))
-
-  // ─── List known providers (static registry) ─────────────────────────────
+const router = new Elysia({ prefix: "/llm-providers" })
 
   /**
    * Get the static registry of known providers and models.
-   * Useful for populating UI when adding a new provider.
-   * GET /api/llm-providers/registry
+   * GET /api/admin/llm-providers/registry
    */
   .get(
     "/registry",
@@ -100,11 +93,9 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
     },
   )
 
-  // ─── List all configured providers ──────────────────────────────────────
-
   /**
    * Get all configured LLM providers (API keys masked).
-   * GET /api/llm-providers
+   * GET /api/admin/llm-providers
    */
   .get(
     "/",
@@ -119,11 +110,9 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
     },
   )
 
-  // ─── Get single provider ────────────────────────────────────────────────
-
   /**
    * Get a single LLM provider by ID (API key masked).
-   * GET /api/llm-providers/:id
+   * GET /api/admin/llm-providers/:id
    */
   .get(
     "/:id",
@@ -141,12 +130,9 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
     },
   )
 
-  // ─── Create a new provider ──────────────────────────────────────────────
-
   /**
    * Create a new LLM provider configuration.
-   * POST /api/llm-providers
-   * Body: { providerId, name, enabled, apiKey, models }
+   * POST /api/admin/llm-providers
    */
   .post(
     "/",
@@ -185,12 +171,9 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
     },
   )
 
-  // ─── Update a provider ──────────────────────────────────────────────────
-
   /**
    * Update an existing LLM provider configuration.
-   * PUT /api/llm-providers/:id
-   * Body: { name?, enabled?, apiKey?, models? }
+   * PUT /api/admin/llm-providers/:id
    */
   .put(
     "/:id",
@@ -234,11 +217,9 @@ const router = new Elysia({ prefix: "/api/llm-providers" })
     },
   )
 
-  // ─── Delete a provider ──────────────────────────────────────────────────
-
   /**
    * Delete an LLM provider configuration.
-   * DELETE /api/llm-providers/:id
+   * DELETE /api/admin/llm-providers/:id
    */
   .delete(
     "/:id",

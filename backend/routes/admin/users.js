@@ -1,9 +1,7 @@
 import { Elysia } from 'elysia';
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import User from "../models/User.js";
-import { authPlugin } from '../middleware/auth.js';
-import requireRole from '../middleware/requireRole.js';
+import User from "../../models/User.js";
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 const BCRYPT_ROUNDS = 12;
@@ -29,14 +27,13 @@ const updateUserBodySchema = z.object({
     .optional(),
 });
 
-const router = new Elysia({ prefix: '/api/users' })
-  .use(authPlugin)
-  .use(requireRole('admin'))
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+const router = new Elysia({ prefix: '/users' })
 
   /**
-   * GET /api/users
+   * GET /api/admin/users
    * List all users. Supports query params: ?search=&status=&page=1&limit=20
-   * Admin only.
    */
   .get('/', async ({ query: rawQuery, status }) => {
     try {
@@ -93,8 +90,8 @@ const router = new Elysia({ prefix: '/api/users' })
   })
 
   /**
-   * GET /api/users/:id
-   * Get a single user by ID. Admin only.
+   * GET /api/admin/users/:id
+   * Get a single user by ID.
    */
   .get('/:id', async ({ params, status }) => {
     try {
@@ -112,8 +109,8 @@ const router = new Elysia({ prefix: '/api/users' })
   })
 
   /**
-   * PUT /api/users/:id
-   * Update a user's status, roles, profile, or tags. Admin only.
+   * PUT /api/admin/users/:id
+   * Update a user's status, roles, profile, or tags.
    * Body can include: { status, roles, display_name, tags, password }
    */
   .put('/:id', async ({ params, body, user: currentUser, status }) => {
@@ -179,8 +176,8 @@ const router = new Elysia({ prefix: '/api/users' })
   })
 
   /**
-   * DELETE /api/users/:id
-   * Delete a user. Admin only.
+   * DELETE /api/admin/users/:id
+   * Delete a user.
    */
   .delete('/:id', async ({ params, user: currentUser, status }) => {
     try {

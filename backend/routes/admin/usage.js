@@ -1,15 +1,9 @@
 import { Elysia } from 'elysia';
 import mongoose from "mongoose";
 import { z } from "zod";
-import Conversation from "../models/Conversation.js";
-import User from "../models/User.js";
-import SubResource from "../models/SubResource.js";
-import { authPlugin } from '../middleware/auth.js';
-import requireRole from '../middleware/requireRole.js';
-
-const router = new Elysia({ prefix: '/api/usage' })
-  .use(authPlugin)
-  .use(requireRole('admin'));
+import Conversation from "../../models/Conversation.js";
+import User from "../../models/User.js";
+import SubResource from "../../models/SubResource.js";
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
@@ -39,19 +33,14 @@ const usageQuerySchema = z.object({
 /**
  * For a given conversation, find the userId of the first user-role message.
  * Since messages are no longer stored in MongoDB, we cannot determine the user
- * from the message collection. Returns null — usage filtering by user will rely
- * on the conversation's updatedAt and other metadata instead.
+ * from the message collection. Returns null.
  */
 async function getConversationUserId(conversationId) {
-  // Messages are stored in OpenCode (ephemeral). User attribution is not available
-  // once the container is gone. For the usage dashboard we return null.
   return null;
 }
 
 /**
  * For a given conversation, get an approximate "last activity" timestamp.
- * Since messages are no longer in MongoDB, we use conversation.updatedAt
- * which is refreshed after each prompt completes.
  */
 async function getLastMessageTime(conversationId) {
   try {
@@ -64,8 +53,12 @@ async function getLastMessageTime(conversationId) {
   }
 }
 
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+const router = new Elysia({ prefix: '/usage' });
+
 /**
- * GET /api/usage/filters
+ * GET /api/admin/usage/filters
  *
  * Returns the list of users and sub-resources (repositories) available for
  * filtering. Used to populate the dropdown selectors in the UI.
@@ -105,7 +98,7 @@ router.get("/filters", async ({ status }) => {
 });
 
 /**
- * GET /api/usage
+ * GET /api/admin/usage
  *
  * Returns aggregated usage data for the admin dashboard.
  *
@@ -148,11 +141,9 @@ router.get("/", async ({ query, status }) => {
       .lean();
 
     // ── Step 3: If filtering by user, resolve user ownership per convo ───
-    // Also build a map of conversationId -> userId for per-user aggregation
     const convoUserMap = new Map();
 
     if (filterUserId || true) {
-      // We always need user mapping for the per-user cost chart
       await Promise.all(
         conversations.map(async (conv) => {
           const userId = await getConversationUserId(conv._id.toString());
@@ -191,7 +182,7 @@ router.get("/", async ({ query, status }) => {
     const dailyConvoMap = new Map();
 
     for (const conv of conversations) {
-      const dayKey = conv.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD
+      const dayKey = conv.createdAt.toISOString().slice(0, 10);
       dailyCostMap.set(dayKey, (dailyCostMap.get(dayKey) || 0) + (conv.cost?.total || 0));
       dailyConvoMap.set(dayKey, (dailyConvoMap.get(dayKey) || 0) + 1);
     }
@@ -226,7 +217,7 @@ router.get("/", async ({ query, status }) => {
       userCostMap.set(key, (userCostMap.get(key) || 0) + (conv.cost?.total || 0));
     }
 
-    // Resolve user display names (include both conversation owners and PR creators)
+    // Resolve user display names
     const allUserIds = new Set([...userCostMap.keys()]);
     for (const conv of conversations) {
       for (const pr of (conv.pullRequests || [])) {
@@ -264,10 +255,8 @@ router.get("/", async ({ query, status }) => {
     const repoNameMap = new Map();
     for (const conv of conversations) {
       if (!conv.subResource) continue;
-      // subResource is populated, so extract _id
       const srId = conv.subResource._id ? conv.subResource._id.toString() : conv.subResource.toString();
       repoCostMap.set(srId, (repoCostMap.get(srId) || 0) + (conv.cost?.total || 0));
-      // Build name map from populated data if available
       if (conv.subResource._id && !repoNameMap.has(srId)) {
         const sr = conv.subResource;
         const label = sr.resource?.name ? `${sr.resource.name} / ${sr.name}` : sr.name;
@@ -297,8 +286,6 @@ router.get("/", async ({ query, status }) => {
       .sort((a, b) => b.cost - a.cost);
 
     // ── Step 9: Pull request aggregations ────────────────────────────────
-    // Collect all PRs from conversations in the date range, bucketed by
-    // the PR's own createdAt date (not the conversation's createdAt).
     const dailyPrMap = new Map();
     let totalPullRequests = 0;
     let conversationsWithPRs = 0;
@@ -307,7 +294,6 @@ router.get("/", async ({ query, status }) => {
       const prs = conv.pullRequests || [];
       if (prs.length > 0) conversationsWithPRs++;
       for (const pr of prs) {
-        // Only count PRs whose createdAt falls within the date range
         const prDate = new Date(pr.createdAt);
         if (prDate >= from && prDate <= to) {
           totalPullRequests++;
@@ -317,7 +303,6 @@ router.get("/", async ({ query, status }) => {
       }
     }
 
-    // Build the daily PR series (reuse the same day range as cost/convos)
     const pullRequestsOverTime = [];
     const prCursor = new Date(from);
     prCursor.setUTCHours(0, 0, 0, 0);

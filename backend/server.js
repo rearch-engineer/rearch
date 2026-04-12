@@ -6,24 +6,13 @@ import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
 import toolsRoutes from "./routes/tools.js";
-import SkillRoutes from "./routes/skill.js";
 import authRoutes from "./routes/auth.js";
-import userRoutes from "./routes/users.js";
 import Queue from "./queue";
-import jobRoutes from "./routes/jobs.js";
-import usageRoutes from "./routes/usage.js";
-import settingsRoutes, {
-  publicRouter as publicSettingsRoutes,
-} from "./routes/settings.js";
-import mcpRoutes from "./routes/mcp.js";
-import llmProviderRoutes from "./routes/llmProviders.js";
-import {
-  publicRouter as suggestedPromptsPublicRoutes,
-  adminRouter as suggestedPromptsAdminRoutes,
-} from "./routes/suggestedPrompts.js";
+import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
+import { publicRouter as suggestedPromptsPublicRoutes } from "./routes/suggestedPrompts.js";
+import adminRoutes from "./routes/admin/index.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
-import requireRole from "./middleware/requireRole.js";
 import User from "./models/User.js";
 import {
   privateRouter as fileRoutes,
@@ -143,14 +132,7 @@ const app = new Elysia()
   .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────
-  .use(SkillRoutes)
-  .use(userRoutes)
-  .use(jobRoutes)
-  .use(usageRoutes)
-  .use(settingsRoutes)
-  .use(mcpRoutes)
-  .use(llmProviderRoutes)
-  .use(suggestedPromptsAdminRoutes)
+  .use(adminRoutes)
 
   // ─── Start ────────────────────────────────────────────────────────────
   .listen(PORT);

@@ -1,8 +1,6 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
-import McpServer from "../models/McpServer.js";
-import { authPlugin } from "../middleware/auth.js";
-import requireRole from "../middleware/requireRole.js";
+import McpServer from "../../models/McpServer.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -12,7 +10,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 let galleryData = [];
 try {
-  const raw = readFileSync(join(__dirname, "..", "mcp-gallery.json"), "utf-8");
+  const raw = readFileSync(join(__dirname, "..", "..", "mcp-gallery.json"), "utf-8");
   galleryData = JSON.parse(raw);
 } catch (err) {
   console.warn("Could not load mcp-gallery.json:", err.message);
@@ -92,15 +90,11 @@ const MCP_PROXY_URL = process.env.MCP_PROXY_URL || "http://mcp-proxy:3100";
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
-const router = new Elysia({ prefix: "/api/mcp" })
-  .use(authPlugin)
-  .use(requireRole("admin"))
-
-  // ─── List all MCP servers ───────────────────────────────────────────────
+const router = new Elysia({ prefix: "/mcp" })
 
   /**
    * Get all MCP servers
-   * GET /api/mcp/servers
+   * GET /api/admin/mcp/servers
    */
   .get(
     "/servers",
@@ -115,12 +109,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Add a new MCP server ──────────────────────────────────────────────
-
   /**
    * Add a new MCP server
-   * POST /api/mcp/servers
-   * Body: { name, type, url?, command?, headers?, environment?, enabled? }
+   * POST /api/admin/mcp/servers
    */
   .post(
     "/servers",
@@ -158,12 +149,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Update an MCP server ──────────────────────────────────────────────
-
   /**
    * Update an existing MCP server
-   * PUT /api/mcp/servers/:name
-   * Body: { type, url?, command?, headers?, environment?, enabled? }
+   * PUT /api/admin/mcp/servers/:name
    */
   .put(
     "/servers/:name",
@@ -208,11 +196,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Delete an MCP server ──────────────────────────────────────────────
-
   /**
    * Remove an MCP server
-   * DELETE /api/mcp/servers/:name
+   * DELETE /api/admin/mcp/servers/:name
    */
   .delete(
     "/servers/:name",
@@ -238,11 +224,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Gallery ────────────────────────────────────────────────────────────
-
   /**
    * Get the MCP server gallery (popular pre-configured servers)
-   * GET /api/mcp/gallery
+   * GET /api/admin/mcp/gallery
    */
   .get(
     "/gallery",
@@ -256,11 +240,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Proxy status ──────────────────────────────────────────────────────
-
   /**
    * Get MCP proxy health status
-   * GET /api/mcp/status
+   * GET /api/admin/mcp/status
    */
   .get(
     "/status",
@@ -277,11 +259,9 @@ const router = new Elysia({ prefix: "/api/mcp" })
     },
   )
 
-  // ─── Reload proxy ──────────────────────────────────────────────────────
-
   /**
    * Signal MCP proxy to reload its configuration
-   * POST /api/mcp/reload
+   * POST /api/admin/mcp/reload
    */
   .post(
     "/reload",

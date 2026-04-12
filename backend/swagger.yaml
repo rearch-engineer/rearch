@@ -42,6 +42,14 @@ tags:
     description: BullMQ job queue monitoring (admin only)
   - name: Usage
     description: Usage analytics and reporting (admin only)
+  - name: LLM Providers
+    description: LLM provider configuration management (admin only)
+  - name: MCP Servers
+    description: MCP server configuration and proxy management (admin only)
+  - name: Docker Rebuild
+    description: Docker image rebuild scheduling (admin only)
+  - name: Suggested Prompts
+    description: Suggested prompts and categories for conversations
   - name: Admin
     description: Admin UI endpoints (BullBoard queue dashboard)
 
@@ -523,6 +531,163 @@ components:
             type: string
           default: []
           example: ["example.com", "company.org"]
+
+    LlmProviderModel:
+      type: object
+      required:
+        - modelId
+        - name
+      properties:
+        modelId:
+          type: string
+          example: gpt-4
+        name:
+          type: string
+          example: GPT-4
+        enabled:
+          type: boolean
+          default: true
+
+    LlmProvider:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        providerId:
+          type: string
+          example: openai
+          description: Lowercase alphanumeric with hyphens/underscores
+        name:
+          type: string
+          example: OpenAI
+        enabled:
+          type: boolean
+          default: true
+        apiKey:
+          type: string
+          description: Masked API key (only partial key shown in responses)
+          example: "sk-...****"
+        hasApiKey:
+          type: boolean
+          description: Whether an API key is configured
+        baseUrl:
+          type: string
+          format: uri
+          nullable: true
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/LlmProviderModel"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    McpServer:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        name:
+          type: string
+          description: Unique server name (alphanumeric, hyphens, underscores)
+          example: my-server
+        type:
+          type: string
+          enum: [remote, local]
+        url:
+          type: string
+          format: uri
+          description: Required for remote type
+        command:
+          type: array
+          items:
+            type: string
+          description: Required for local type
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        environment:
+          type: object
+          additionalProperties:
+            type: string
+        enabled:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SuggestedPromptCategory:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        name:
+          type: string
+          example: Code Review
+        slug:
+          type: string
+          example: code-review
+          description: Lowercase alphanumeric with hyphens
+        description:
+          type: string
+          default: ""
+        order:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SuggestedPrompt:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: MongoDB ObjectId
+        title:
+          type: string
+          example: Review my code
+        prompt:
+          type: string
+          example: Please review the code in this repository for best practices
+        category:
+          oneOf:
+            - type: string
+              description: ObjectId reference
+            - $ref: "#/components/schemas/SuggestedPromptCategory"
+        icon:
+          type: string
+          default: SmartToyOutlined
+        iconColor:
+          type: string
+          default: "#6b7280"
+        imageFileId:
+          type: string
+          nullable: true
+          description: GridFS file ID for prompt image
+        order:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     Error:
       type: object
@@ -1028,7 +1193,7 @@ paths:
   # Users (Admin only)
   # ===========================================================================
 
-  /api/users:
+  /api/admin/users:
     get:
       tags:
         - Users
@@ -1080,7 +1245,7 @@ paths:
         "403":
           description: Admin role required
 
-  /api/users/{id}:
+  /api/admin/users/{id}:
     get:
       tags:
         - Users
@@ -3104,7 +3269,7 @@ paths:
   # Skills (Admin only)
   # ===========================================================================
 
-  /api/skills:
+  /api/admin/skills:
     get:
       tags:
         - Skills
@@ -3151,7 +3316,7 @@ paths:
         "403":
           description: Admin role required
 
-  /api/skills/{id}:
+  /api/admin/skills/{id}:
     get:
       tags:
         - Skills
@@ -3227,12 +3392,12 @@ paths:
   # Settings
   # ===========================================================================
 
-  /api/settings:
+  /api/admin/settings:
     get:
       tags:
         - Settings
-      summary: Get all settings
-      description: Retrieves all application settings. Available to any authenticated user.
+      summary: Get all settings (admin only)
+      description: Retrieves all application settings. Admin only.
       responses:
         "200":
           description: List of settings
@@ -3243,7 +3408,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Setting"
 
-  /api/settings/signup:
+  /api/admin/settings/signup:
     put:
       tags:
         - Settings
@@ -3315,7 +3480,7 @@ paths:
   # Container Cleanup (Admin only)
   # ===========================================================================
 
-  /api/settings/container-cleanup:
+  /api/admin/settings/container-cleanup:
     get:
       tags:
         - Settings
@@ -3404,7 +3569,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/settings/container-cleanup/trigger:
+  /api/admin/settings/container-cleanup/trigger:
     post:
       tags:
         - Settings
@@ -3450,10 +3615,983 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   # ===========================================================================
+  # LLM Providers (Admin only)
+  # ===========================================================================
+
+  /api/admin/llm-providers:
+    get:
+      tags:
+        - LLM Providers
+      summary: List all configured LLM providers (admin only)
+      description: Returns all configured LLM providers sorted by providerId. API keys are masked in responses.
+      responses:
+        "200":
+          description: List of LLM providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LlmProvider"
+        "403":
+          description: Admin role required
+
+    post:
+      tags:
+        - LLM Providers
+      summary: Create a new LLM provider (admin only)
+      description: Creates a new LLM provider configuration. The API key is encrypted at rest.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - providerId
+                - name
+                - apiKey
+                - models
+              properties:
+                providerId:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  pattern: "^[a-z0-9_-]+$"
+                  description: Lowercase alphanumeric with hyphens/underscores
+                  example: openai
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: OpenAI
+                enabled:
+                  type: boolean
+                  default: true
+                apiKey:
+                  type: string
+                  minLength: 1
+                baseUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                models:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/LlmProviderModel"
+      responses:
+        "201":
+          description: Provider created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmProvider"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/admin/llm-providers/registry:
+    get:
+      tags:
+        - LLM Providers
+      summary: Get the static registry of known LLM providers and models (admin only)
+      description: Returns the built-in registry of known providers and their available models, useful for populating UI dropdowns.
+      responses:
+        "200":
+          description: Provider registry
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "403":
+          description: Admin role required
+
+  /api/admin/llm-providers/{id}:
+    get:
+      tags:
+        - LLM Providers
+      summary: Get a single LLM provider (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider MongoDB ObjectId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Provider details (API key masked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmProvider"
+        "403":
+          description: Admin role required
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - LLM Providers
+      summary: Update an LLM provider (admin only)
+      description: Updates an existing provider. API key is only re-encrypted if a non-empty value is provided.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider MongoDB ObjectId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                enabled:
+                  type: boolean
+                apiKey:
+                  type: string
+                  description: Omit or send empty to keep existing key
+                baseUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                models:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/LlmProviderModel"
+      responses:
+        "200":
+          description: Updated provider (API key masked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmProvider"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - LLM Providers
+      summary: Delete an LLM provider (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Provider MongoDB ObjectId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Provider deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  providerId:
+                    type: string
+        "403":
+          description: Admin role required
+        "404":
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # MCP Servers (Admin only)
+  # ===========================================================================
+
+  /api/admin/mcp/servers:
+    get:
+      tags:
+        - MCP Servers
+      summary: List all MCP servers (admin only)
+      description: Returns all configured MCP servers sorted by name.
+      responses:
+        "200":
+          description: List of MCP servers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/McpServer"
+        "403":
+          description: Admin role required
+
+    post:
+      tags:
+        - MCP Servers
+      summary: Create a new MCP server (admin only)
+      description: |
+        Creates a new MCP server configuration.
+        - Remote servers require a `url`.
+        - Local servers require a non-empty `command` array.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  pattern: "^[a-zA-Z0-9_-]+$"
+                  example: my-mcp-server
+                type:
+                  type: string
+                  enum: [remote, local]
+                url:
+                  type: string
+                  format: uri
+                  description: Required for remote type
+                command:
+                  type: array
+                  items:
+                    type: string
+                  description: Required for local type
+                headers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                environment:
+                  type: object
+                  additionalProperties:
+                    type: string
+                enabled:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Server created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/McpServer"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "409":
+          description: Server with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/mcp/servers/{name}:
+    put:
+      tags:
+        - MCP Servers
+      summary: Update an MCP server (admin only)
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Server name
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum: [remote, local]
+                url:
+                  type: string
+                  format: uri
+                command:
+                  type: array
+                  items:
+                    type: string
+                headers:
+                  type: object
+                  additionalProperties:
+                    type: string
+                environment:
+                  type: object
+                  additionalProperties:
+                    type: string
+                enabled:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Updated server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/McpServer"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - MCP Servers
+      summary: Delete an MCP server (admin only)
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Server name
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Server deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "403":
+          description: Admin role required
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/mcp/gallery:
+    get:
+      tags:
+        - MCP Servers
+      summary: Get MCP server gallery (admin only)
+      description: Returns the static gallery of available MCP servers that can be installed.
+      responses:
+        "200":
+          description: Gallery data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "403":
+          description: Admin role required
+
+  /api/admin/mcp/status:
+    get:
+      tags:
+        - MCP Servers
+      summary: Get MCP proxy health status (admin only)
+      description: Proxies a health check to the MCP proxy service. Returns healthy/unhealthy status with a 5-second timeout.
+      responses:
+        "200":
+          description: MCP proxy status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  healthy:
+                    type: boolean
+                  error:
+                    type: string
+                    description: Present when healthy is false
+        "403":
+          description: Admin role required
+
+  /api/admin/mcp/reload:
+    post:
+      tags:
+        - MCP Servers
+      summary: Reload MCP proxy configuration (admin only)
+      description: Sends a reload signal to the MCP proxy to pick up configuration changes. 10-second timeout.
+      responses:
+        "200":
+          description: Reload triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        "403":
+          description: Admin role required
+        "502":
+          description: MCP proxy unreachable or reload failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Docker Rebuild (Admin only)
+  # ===========================================================================
+
+  /api/admin/settings/docker-rebuild:
+    get:
+      tags:
+        - Docker Rebuild
+      summary: Get docker rebuild schedule settings (admin only)
+      description: Returns the current docker image rebuild schedule configuration.
+      responses:
+        "200":
+          description: Docker rebuild settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    example: false
+                  intervalHours:
+                    type: number
+                    example: 24
+                  lastTriggeredAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+        "403":
+          description: Admin role required
+
+    put:
+      tags:
+        - Docker Rebuild
+      summary: Update docker rebuild schedule settings (admin only)
+      description: Updates the docker rebuild schedule. Changes are applied immediately to the BullMQ repeatable job.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                intervalHours:
+                  type: number
+                  minimum: 0.0167
+                  maximum: 720
+                  description: Interval in hours (~1 minute to 30 days)
+      responses:
+        "200":
+          description: Updated setting document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setting"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+
+  /api/admin/settings/docker-rebuild/trigger:
+    post:
+      tags:
+        - Docker Rebuild
+      summary: Trigger immediate rebuild of all docker images (admin only)
+      description: Immediately queues rebuild jobs for all docker images and updates the lastTriggeredAt timestamp.
+      responses:
+        "200":
+          description: Rebuild triggered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  jobCount:
+                    type: integer
+                    description: Number of rebuild jobs queued
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+        "403":
+          description: Admin role required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Suggested Prompts (Public)
+  # ===========================================================================
+
+  /api/suggested-prompts:
+    get:
+      tags:
+        - Suggested Prompts
+      summary: List all suggested prompts
+      description: Returns all suggested prompts with populated category, sorted by order then title.
+      responses:
+        "200":
+          description: List of suggested prompts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SuggestedPrompt"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/suggested-prompts/categories:
+    get:
+      tags:
+        - Suggested Prompts
+      summary: List all suggested prompt categories
+      description: Returns all categories sorted by order then name.
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SuggestedPromptCategory"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/suggested-prompts/for-repo/{subResourceId}:
+    get:
+      tags:
+        - Suggested Prompts
+      summary: Get suggested prompts for a specific repository
+      description: |
+        Returns prompts filtered based on the SubResource's `rearch.suggestedPrompts` configuration.
+        Filtering modes: `all` (default, returns all prompts), `selected` (filters by specific prompt IDs),
+        `categories` (filters by category IDs).
+      parameters:
+        - name: subResourceId
+          in: path
+          required: true
+          description: SubResource MongoDB ObjectId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Filtered list of prompts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SuggestedPrompt"
+        "400":
+          description: Invalid subResource ID format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: SubResource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
+  # Suggested Prompts (Admin)
+  # ===========================================================================
+
+  /api/admin/suggested-prompts:
+    post:
+      tags:
+        - Suggested Prompts
+      summary: Create a suggested prompt (admin only)
+      description: Creates a new suggested prompt. Accepts multipart form data for optional image upload.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - prompt
+                - category
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                prompt:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                category:
+                  type: string
+                  description: Category ObjectId (24 hex characters)
+                icon:
+                  type: string
+                  maxLength: 100
+                  default: SmartToyOutlined
+                iconColor:
+                  type: string
+                  maxLength: 20
+                  default: "#6b7280"
+                order:
+                  type: integer
+                  default: 0
+                image:
+                  type: string
+                  format: binary
+                  description: Optional image file for the prompt
+      responses:
+        "201":
+          description: Prompt created (with populated category)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestedPrompt"
+        "400":
+          description: Validation error or category not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+        "403":
+          description: Admin role required
+
+  /api/admin/suggested-prompts/{id}:
+    put:
+      tags:
+        - Suggested Prompts
+      summary: Update a suggested prompt (admin only)
+      description: Updates a prompt. Accepts multipart form data. Send `removeImage=true` to delete existing image.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Prompt MongoDB ObjectId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                prompt:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+                category:
+                  type: string
+                  description: Category ObjectId
+                icon:
+                  type: string
+                  maxLength: 100
+                iconColor:
+                  type: string
+                  maxLength: 20
+                order:
+                  type: integer
+                image:
+                  type: string
+                  format: binary
+                removeImage:
+                  type: string
+                  description: Set to "true" to remove existing image
+      responses:
+        "200":
+          description: Updated prompt (with populated category)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestedPrompt"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+        "403":
+          description: Admin role required
+        "404":
+          description: Prompt not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Suggested Prompts
+      summary: Delete a suggested prompt (admin only)
+      description: Deletes a prompt and its associated image from GridFS if one exists.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Prompt MongoDB ObjectId
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Prompt deleted
+        "403":
+          description: Admin role required
+        "404":
+          description: Prompt not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/suggested-prompts/categories:
+    post:
+      tags:
+        - Suggested Prompts
+      summary: Create a suggested prompt category (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                slug:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: "^[a-z0-9-]+$"
+                description:
+                  type: string
+                  maxLength: 500
+                  default: ""
+                order:
+                  type: integer
+                  default: 0
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestedPromptCategory"
+        "400":
+          description: Validation error or duplicate slug
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+        "403":
+          description: Admin role required
+
+  /api/admin/suggested-prompts/categories/{id}:
+    put:
+      tags:
+        - Suggested Prompts
+      summary: Update a suggested prompt category (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category MongoDB ObjectId
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                slug:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  pattern: "^[a-z0-9-]+$"
+                description:
+                  type: string
+                  maxLength: 500
+                order:
+                  type: integer
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuggestedPromptCategory"
+        "400":
+          description: Validation error or duplicate slug
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+        "403":
+          description: Admin role required
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Suggested Prompts
+      summary: Delete a suggested prompt category (admin only)
+      description: Deletes a category. Refuses if prompts still reference it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category MongoDB ObjectId
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Category deleted
+        "400":
+          description: Category still has associated prompts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Admin role required
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ===========================================================================
   # Jobs (Admin only)
   # ===========================================================================
 
-  /api/jobs:
+  /api/admin/jobs:
     get:
       tags:
         - Jobs
@@ -3536,7 +4674,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/jobs/{queue}/{id}:
+  /api/admin/jobs/{queue}/{id}:
     get:
       tags:
         - Jobs
@@ -3622,7 +4760,7 @@ paths:
   # Usage Analytics (Admin only)
   # ===========================================================================
 
-  /api/usage/filters:
+  /api/admin/usage/filters:
     get:
       tags:
         - Usage
@@ -3669,7 +4807,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/usage:
+  /api/admin/usage:
     get:
       tags:
         - Usage

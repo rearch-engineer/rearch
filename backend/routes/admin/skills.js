@@ -1,8 +1,6 @@
 import { Elysia } from 'elysia';
 import { z } from 'zod';
-import Skill from '../models/Skill.js';
-import { authPlugin } from '../middleware/auth.js';
-import requireRole from '../middleware/requireRole.js';
+import Skill from '../../models/Skill.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -20,9 +18,9 @@ const updateSkillSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
-const router = new Elysia({ prefix: '/api/skills' })
-  .use(authPlugin)
-  .use(requireRole('admin'))
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+const router = new Elysia({ prefix: '/skills' })
 
   // List all skills
   .get('/', async () => {
