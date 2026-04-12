@@ -40,8 +40,8 @@ const createResourceSchema = z.object({
     .min(2, "Name must be at least 2 characters.")
     .max(100)
     .trim(),
-  provider: z.enum(["jira", "bitbucket"], {
-    errorMap: () => ({ message: "Provider must be 'jira' or 'bitbucket'." }),
+  provider: z.enum(["bitbucket"], {
+    errorMap: () => ({ message: "Provider must be 'bitbucket'." }),
   }),
   data: z.record(z.unknown()).refine((val) => Object.keys(val).length > 0, {
     message: "Data must be a non-empty object.",

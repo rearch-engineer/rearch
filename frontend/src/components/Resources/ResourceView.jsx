@@ -13,29 +13,6 @@ function ResourceView({ open, onClose, resource }) {
   if (!resource) return null;
 
   const renderDataDetails = () => {
-    if (resource.provider === 'jira') {
-      return (
-        <Stack spacing={1}>
-          <Box>
-            <Typography level="body-sm" fontWeight="bold">Installation URL:</Typography>
-            <Typography level="body-md">
-              <a href={resource.data.installationUrl} target="_blank" rel="noopener noreferrer">
-                {resource.data.installationUrl}
-              </a>
-            </Typography>
-          </Box>
-          <Box>
-            <Typography level="body-sm" fontWeight="bold">Login Account (Email):</Typography>
-            <Typography level="body-md">{resource.data.email}</Typography>
-          </Box>
-          <Box>
-            <Typography level="body-sm" fontWeight="bold">Authentication Token:</Typography>
-            <Typography level="body-md">{resource.data.apiToken ? '••••••••••••' : 'Not set'}</Typography>
-          </Box>
-        </Stack>
-      );
-    }
-
     if (resource.provider === 'bitbucket') {
       return (
         <Stack spacing={1}>

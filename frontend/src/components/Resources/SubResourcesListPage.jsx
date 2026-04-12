@@ -15,8 +15,6 @@ import SubResourceImportModal from "./SubResourceImportModal";
 
 function getTypeLabel(type) {
   switch (type) {
-    case "jira-ticket":
-      return "Ticket";
     case "bitbucket-repository":
       return "Repository";
     default:
@@ -26,8 +24,6 @@ function getTypeLabel(type) {
 
 function getTypeChipColor(type) {
   switch (type) {
-    case "jira-ticket":
-      return "#0052CC";
     case "bitbucket-repository":
       return "#10a37f";
     default:
@@ -37,8 +33,6 @@ function getTypeChipColor(type) {
 
 function getProviderLabel(provider) {
   switch (provider) {
-    case "jira":
-      return "Jira Tickets";
     case "bitbucket":
       return "Repositories";
     default:
@@ -47,11 +41,6 @@ function getProviderLabel(provider) {
 }
 
 function getSubResourceSubtitle(subResource) {
-  if (subResource.type === "jira-ticket") {
-    return subResource.data?.key
-      ? `${subResource.data.key}${subResource.data.status ? ` · ${subResource.data.status}` : ""}`
-      : null;
-  }
   if (subResource.type === "bitbucket-repository") {
     return subResource.data?.fullName || null;
   }

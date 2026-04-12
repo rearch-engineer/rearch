@@ -4,14 +4,13 @@ A full-stack AI-powered application that connects developers with AI coding assi
 
 ## Overview
 
-ReArch provides a familiar user interface where users can have AI-assisted conversations scoped to specific code repositories. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket and Jira for end-to-end developer workflows.
+ReArch provides a familiar user interface where users can have AI-assisted conversations scoped to specific code repositories. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket for end-to-end developer workflows.
 
 **Key capabilities:**
 
 - Per-conversation Docker containers running OpenCode AI sessions
 - Real-time streaming chat via Socket.IO
 - Bitbucket repository integration (clone, browse, create pull requests)
-- Jira issue tracking integration
 - Role-based access control (admin / user)
 - File upload and management via GridFS (MongoDB)
 - Background job processing with BullMQ and Redis
@@ -149,7 +148,7 @@ rearch/
 │   ├── routes/            # API route handlers
 │   ├── middleware/        # Auth and role middleware
 │   ├── utils/             # Docker, GridFS, Git, Bitbucket helpers
-│   ├── tools/             # AI tool definitions (Jira, Bitbucket, etc.)
+│   ├── tools/             # AI tool definitions (Bitbucket, etc.)
 │   ├── migrations/        # Database migrations
 │   └── server.js          # Entry point
 ├── frontend/              # React SPA

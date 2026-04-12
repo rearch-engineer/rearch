@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/joy';
 import { ArrowBack } from '@mui/icons-material';
 import { api } from '../../api/client';
-import JiraTicketDetails from './SubResources/Jira/JiraTicketDetails';
 import BitbucketRepositoryDetails from './SubResources/Bitbucket/BitbucketRepositoryDetails';
 
 function SubResourceDetailsPage() {
@@ -61,16 +60,6 @@ function SubResourceDetailsPage() {
     if (!subResource) return null;
 
     switch (subResource.type) {
-      case 'jira-ticket':
-        return (
-          <JiraTicketDetails
-            subResource={subResource}
-            onUpdate={handleSubResourceUpdate}
-            onDelete={handleDelete}
-            deleting={deleting}
-            deleteError={deleteError}
-          />
-        );
       case 'bitbucket-repository':
         return (
           <BitbucketRepositoryDetails

@@ -29,7 +29,7 @@ tags:
   - name: Files
     description: File upload and download endpoints (GridFS-backed)
   - name: Resources
-    description: Resource management including Jira and Bitbucket repositories
+    description: Resource management including Bitbucket repositories
   - name: SubResources
     description: Sub-resource management (import, actions, files) within resources
   - name: Tools
@@ -286,14 +286,13 @@ components:
           example: Project Documentation
         provider:
           type: string
-          enum: [file, jira, bitbucket]
+          enum: [file, bitbucket]
           example: bitbucket
         data:
           type: object
           description: Provider-specific data structure
           oneOf:
             - $ref: "#/components/schemas/FileResourceData"
-            - $ref: "#/components/schemas/JiraResourceData"
             - $ref: "#/components/schemas/BitbucketResourceData"
         createdAt:
           type: string
@@ -411,7 +410,7 @@ components:
           description: Reference to GridFS stored file
         externalId:
           type: string
-          description: ID from external system (e.g. Jira attachment ID)
+          description: ID from external system
         createdAt:
           type: string
           format: date-time
@@ -445,24 +444,6 @@ components:
           type: string
           format: date-time
           example: "2024-01-15T10:30:00.000Z"
-
-    JiraResourceData:
-      type: object
-      required:
-        - projectKey
-        - issueType
-        - url
-      properties:
-        projectKey:
-          type: string
-          example: PROJ
-        issueType:
-          type: string
-          example: Task
-        url:
-          type: string
-          format: uri
-          example: https://company.atlassian.net/browse/PROJ
 
     BitbucketResourceData:
       type: object
@@ -2362,7 +2343,7 @@ paths:
       tags:
         - Resources
       summary: Create resource (non-file)
-      description: Creates a new resource for Jira or Bitbucket providers (not for file uploads). Executes a create hook if available.
+      description: Creates a new resource for Bitbucket providers (not for file uploads). Executes a create hook if available.
       requestBody:
         required: true
         content:
@@ -2381,13 +2362,12 @@ paths:
                   example: My Bitbucket Workspace
                 provider:
                   type: string
-                  enum: [jira, bitbucket]
+                  enum: [bitbucket]
                   example: bitbucket
                 data:
                   type: object
                   description: Provider-specific data structure
                   oneOf:
-                    - $ref: "#/components/schemas/JiraResourceData"
                     - $ref: "#/components/schemas/BitbucketResourceData"
       responses:
         "201":

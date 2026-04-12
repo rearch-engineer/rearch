@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Typography } from "@mui/joy";
 import { api } from "../../api/client";
-import JiraResourceForm from "./SubResources/Jira/JiraResourceForm";
 import BitbucketResourceForm from "./SubResources/Bitbucket/BitbucketResourceForm";
 
 function ResourceFormPage() {
@@ -44,10 +43,6 @@ function ResourceFormPage() {
         <Typography>Loading resource...</Typography>
       </Box>
     );
-  }
-
-  if (provider === "jira") {
-    return <JiraResourceForm />;
   }
 
   if (provider === "bitbucket") {

@@ -3,57 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Box, Card, Typography, Chip, Stack, Button } from "@mui/joy";
 import { ArrowBack } from "@mui/icons-material";
 
-// Jira SVG logo component
-const JiraIcon = () => (
-  <svg
-    width="48"
-    height="48"
-    viewBox="0 0 256 256"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <defs>
-      <linearGradient
-        id="jira-grad-1"
-        x1="243.352"
-        y1="14.326"
-        x2="141.037"
-        y2="117.476"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0.18" stopColor="#0052CC" />
-        <stop offset="1" stopColor="#2684FF" />
-      </linearGradient>
-      <linearGradient
-        id="jira-grad-2"
-        x1="12.959"
-        y1="241.343"
-        x2="115.274"
-        y2="138.193"
-        gradientUnits="userSpaceOnUse"
-      >
-        <stop offset="0.18" stopColor="#0052CC" />
-        <stop offset="1" stopColor="#2684FF" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M244.658 0H121.707c0 55.502 44.99 100.492 100.492 100.492h11.129v10.721c0 55.502 44.99 100.492 100.492 100.492V11.162C333.82 4.997 328.823 0 322.658 0h-78z"
-      transform="scale(0.77) translate(-2, -2)"
-      fill="url(#jira-grad-1)"
-    />
-    <path
-      d="M183.822 61.262H60.871c0 55.502 44.99 100.492 100.492 100.492h11.129v10.721c0 55.502 44.99 100.492 100.492 100.492V72.424c0-6.165-4.997-11.162-11.162-11.162h-78z"
-      transform="scale(0.77) translate(-2, -2)"
-      fill="#2684FF"
-    />
-    <path
-      d="M122.951 122.489H0c0 55.502 44.99 100.492 100.492 100.492h11.129v10.721C111.621 289.204 156.611 334.194 212.113 334.194V133.651c0-6.165-4.997-11.162-11.162-11.162h-78z"
-      transform="scale(0.77) translate(-2, -2)"
-      fill="url(#jira-grad-2)"
-    />
-  </svg>
-);
-
 // Bitbucket SVG logo component
 const BitbucketIcon = () => (
   <svg
@@ -89,18 +38,6 @@ const BitbucketIcon = () => (
 );
 
 const resourceTypes = [
-  {
-    slug: "jira",
-    title: "Jira",
-    category: "Project Management",
-    categoryColor: "#0052CC",
-    description:
-      "Track issues, manage projects, and link Jira to your conversations for seamless collaboration.",
-    icon: <JiraIcon />,
-    bgTint: "rgba(0, 82, 204, 0.08)",
-    bgTintHover: "rgba(0, 82, 204, 0.13)",
-    pricing: "Free",
-  },
   {
     slug: "bitbucket",
     title: "Bitbucket",

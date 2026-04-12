@@ -5,7 +5,7 @@
 
 /**
  * Load a hook for a specific provider and hook type
- * @param {string} provider - The resource provider (e.g., 'bitbucket', 'jira', 'file')
+ * @param {string} provider - The resource provider (e.g., 'bitbucket', 'file')
  * @param {string} hookType - The hook type ('create', 'update', 'delete')
  * @returns {Function|null} The hook function or null if not found
  */

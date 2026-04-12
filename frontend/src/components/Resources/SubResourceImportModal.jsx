@@ -1,6 +1,5 @@
 import React from 'react';
 import { Modal, ModalDialog, ModalClose, Typography } from '@mui/joy';
-import JiraImportForm from './SubResources/Jira/JiraImportForm';
 import BitbucketImportForm from './SubResources/Bitbucket/BitbucketImportForm';
 
 function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
@@ -8,8 +7,6 @@ function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
 
   const getTitle = () => {
     switch (resource.provider) {
-      case 'jira':
-        return 'Import Jira Ticket';
       case 'bitbucket':
         return 'Import Repository';
       default:
@@ -19,8 +16,6 @@ function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
 
   const renderForm = () => {
     switch (resource.provider) {
-      case 'jira':
-        return <JiraImportForm resource={resource} onImportSuccess={onImportSuccess} />;
       case 'bitbucket':
         return <BitbucketImportForm resource={resource} onImportSuccess={onImportSuccess} />;
       default:

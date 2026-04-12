@@ -7,7 +7,6 @@ import ResourceFormPage from '../components/Resources/ResourceFormPage';
 import ResourceDetailsPage from '../components/Resources/ResourceDetailsPage';
 import SubResourceDetailsPage from '../components/Resources/SubResourceDetailsPage';
 import SubResourcesListPage from '../components/Resources/SubResourcesListPage';
-import JiraResourceForm from '../components/Resources/SubResources/Jira/JiraResourceForm';
 import BitbucketResourceForm from '../components/Resources/SubResources/Bitbucket/BitbucketResourceForm';
 import '../App.css';
 
@@ -17,7 +16,6 @@ function ResourcesPage() {
       <Routes>
         <Route path="/" element={<ResourceListPage />} />
         <Route path="/new" element={<ResourceTypeSelection />} />
-        <Route path="/new/jira" element={<JiraResourceForm />} />
         <Route path="/new/bitbucket" element={<BitbucketResourceForm />} />
         <Route path="/:id" element={<ResourceDetailsPage />} />
         <Route path="/:id/edit" element={<ResourceFormPage />} />

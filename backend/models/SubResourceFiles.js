@@ -25,7 +25,7 @@ const subResourceFilesSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
-  externalId: { // Please note: this is the ID from the external system (e.g., Jira attachment ID)
+  externalId: { // ID from the external system
     type: String,
     trim: true
   }
