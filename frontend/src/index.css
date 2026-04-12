@@ -15,7 +15,8 @@
   --text-primary: #000000;
   --text-secondary: #565869;
   --text-tertiary: #8e8ea0;
-  --border-color: #d9d9e3;
+  --border-color: #DEDEDE;
+  --scrollbar-thumb: #C0C0C0;
   --accent-color: #10a37f;
   --accent-hover: #0d8c6d;
   --user-message-bg: #f7f7f8;
@@ -50,6 +51,7 @@
   --text-secondary: #c5c5d2;
   --text-tertiary: #8e8ea0;
   --border-color: #565869;
+  --scrollbar-thumb: #5A5A5A;
   --accent-color: #10a37f;
   --accent-hover: #0d8c6d;
   --user-message-bg: #444654;
