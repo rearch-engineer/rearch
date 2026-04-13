@@ -33,7 +33,11 @@ export const sanitizeImageUrl = (url) => {
     }
 
     const imagePathPattern = /\.(png|jpe?g|webp|gif|bmp|svg)$/i;
-    return imagePathPattern.test(parsed.pathname) ? url : undefined;
+    const apiFilePattern = /\/files\/(public\/)?[a-f0-9]+$/i;
+    return imagePathPattern.test(parsed.pathname) ||
+      apiFilePattern.test(parsed.pathname)
+      ? url
+      : undefined;
   } catch {
     return undefined;
   }
