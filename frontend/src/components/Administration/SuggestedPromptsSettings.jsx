@@ -241,6 +241,15 @@ export default function SuggestedPromptsSettings() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedImageTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+      if (!allowedImageTypes.includes(file.type)) {
+        setPromptImage(null);
+        setPromptImagePreview(null);
+        setRemoveImage(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
       setPromptImage(file);
       setPromptImagePreview(URL.createObjectURL(file));
       setRemoveImage(false);
