@@ -5,6 +5,7 @@ import { Box, Typography, Button } from '@mui/joy';
 import { ArrowBack } from '@mui/icons-material';
 import { api } from '../../../api/client';
 import BitbucketRepositoryDetails from './SubResources/Bitbucket/BitbucketRepositoryDetails';
+import GithubRepositoryDetails from './SubResources/Github/GithubRepositoryDetails';
 
 function SubResourceDetailsPage() {
   const { t } = useTranslation("Administration");
@@ -65,6 +66,16 @@ function SubResourceDetailsPage() {
       case 'bitbucket-repository':
         return (
           <BitbucketRepositoryDetails
+            subResource={subResource}
+            onUpdate={handleSubResourceUpdate}
+            onDelete={handleDelete}
+            deleting={deleting}
+            deleteError={deleteError}
+          />
+        );
+      case 'github-repository':
+        return (
+          <GithubRepositoryDetails
             subResource={subResource}
             onUpdate={handleSubResourceUpdate}
             onDelete={handleDelete}

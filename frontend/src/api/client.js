@@ -605,6 +605,48 @@ export const api = {
     return response.data;
   },
 
+  createGithubResource: async (data, pemFile) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("appId", data.data.appId);
+    formData.append("installationId", data.data.installationId);
+    if (pemFile) {
+      formData.append("privateKeyFile", pemFile);
+    }
+
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/resources/github`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data;
+  },
+
+  updateGithubResource: async (id, data, pemFile) => {
+    const formData = new FormData();
+    if (data.name) formData.append("name", data.name);
+    if (data.data.appId) formData.append("appId", data.data.appId);
+    if (data.data.installationId) formData.append("installationId", data.data.installationId);
+    if (pemFile) {
+      formData.append("privateKeyFile", pemFile);
+    }
+
+    const response = await axios.put(
+      `${API_BASE_URL}/admin/resources/github/${id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data;
+  },
+
   uploadFileResource: async (name, file) => {
     const formData = new FormData();
     formData.append("name", name);

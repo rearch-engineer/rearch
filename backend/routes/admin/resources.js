@@ -34,8 +34,8 @@ const createResourceSchema = z.object({
     .min(2, "Name must be at least 2 characters.")
     .max(100)
     .trim(),
-  provider: z.enum(["bitbucket"], {
-    errorMap: () => ({ message: "Provider must be 'bitbucket'." }),
+  provider: z.enum(["bitbucket", "github"], {
+    errorMap: () => ({ message: "Provider must be 'bitbucket' or 'github'." }),
   }),
   data: z.record(z.unknown()).refine((val) => Object.keys(val).length > 0, {
     message: "Data must be a non-empty object.",
@@ -249,11 +249,7 @@ router.get("/:id/subresources/:subId", async ({ params, status }) => {
       return status(404, { error: "Subresource not found" });
     }
 
-    const obj = subresource.toObject();
-    if (obj.data) {
-      delete obj.data.branches;
-    }
-    return obj;
+    return subresource.toObject();
   } catch (err) {
     return status(500, { error: err.message });
   }
@@ -466,6 +462,181 @@ router.post("/", async ({ body, status }) => {
   }
 });
 
+// Create GitHub resource with PEM file upload
+router.post("/github", async ({ body, status }) => {
+  try {
+    const name = body.name;
+    const appId = body.appId;
+    const installationId = body.installationId;
+    const file = body.privateKeyFile;
+
+    if (!name || name.length < 2 || name.length > 100) {
+      return status(400, { error: "Name must be between 2 and 100 characters." });
+    }
+    if (!appId) return status(400, { error: "App ID is required." });
+    if (!installationId) return status(400, { error: "Installation ID is required." });
+    if (!file) return status(400, { error: "Private key PEM file is required." });
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const bucket = getGridFSBucket();
+
+    const uploadStream = bucket.openUploadStream(file.name || "private-key.pem", {
+      contentType: "application/x-pem-file",
+      metadata: {
+        originalName: file.name,
+        resourceType: "github-private-key",
+        uploadDate: new Date(),
+      },
+    });
+
+    uploadStream.end(fileBuffer);
+
+    await new Promise((resolve, reject) => {
+      uploadStream.on("finish", resolve);
+      uploadStream.on("error", reject);
+    });
+
+    const privateKeyFileId = uploadStream.id;
+
+    let resource = new Resource({
+      name: name.trim(),
+      provider: "github",
+      data: {
+        appId,
+        installationId,
+        privateKeyFileId,
+      },
+    });
+
+    resource = await resource.save();
+
+    try {
+      const enhancedData = await executeCreateHook(resource);
+      resource.data = enhancedData;
+      await resource.save();
+
+      return new Response(JSON.stringify(resource), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (hookError) {
+      await Resource.findByIdAndDelete(resource._id);
+      try {
+        await bucket.delete(new mongoose.Types.ObjectId(privateKeyFileId));
+      } catch (_) {}
+      throw new Error(`Create hook failed: ${hookError.message}`);
+    }
+  } catch (err) {
+    console.error("Error creating GitHub resource:", err);
+    return status(400, { error: err.message });
+  }
+});
+
+// Update GitHub resource with optional PEM file upload
+router.put("/github/:id", async ({ params, body, status }) => {
+  if (!OBJECT_ID_RE.test(params.id)) {
+    return status(400, { error: "Invalid ID format." });
+  }
+
+  try {
+    const originalResource = await Resource.findById(params.id);
+    if (!originalResource) {
+      return status(404, { error: "Resource not found" });
+    }
+
+    if (originalResource.provider !== "github") {
+      return status(400, { error: "Resource is not a GitHub resource." });
+    }
+
+    const originalData = {
+      name: originalResource.name,
+      data: { ...originalResource.data },
+    };
+
+    const updateFields = {};
+    if (body.name) updateFields.name = body.name.trim();
+
+    const newData = { ...originalResource.data };
+    if (body.appId) newData.appId = body.appId;
+    if (body.installationId) newData.installationId = body.installationId;
+
+    let newFileId = null;
+    const file = body.privateKeyFile;
+    if (file) {
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const bucket = getGridFSBucket();
+
+      const uploadStream = bucket.openUploadStream(file.name || "private-key.pem", {
+        contentType: "application/x-pem-file",
+        metadata: {
+          originalName: file.name,
+          resourceType: "github-private-key",
+          uploadDate: new Date(),
+        },
+      });
+
+      uploadStream.end(fileBuffer);
+
+      await new Promise((resolve, reject) => {
+        uploadStream.on("finish", resolve);
+        uploadStream.on("error", reject);
+      });
+
+      newFileId = uploadStream.id;
+      newData.privateKeyFileId = newFileId;
+      // Remove legacy inline key if present
+      delete newData.privateKey;
+    }
+
+    updateFields.data = newData;
+
+    const updatedResource = await Resource.findByIdAndUpdate(
+      params.id,
+      updateFields,
+      { new: true, runValidators: true },
+    );
+
+    if (!updatedResource) {
+      return status(404, { error: "Resource not found" });
+    }
+
+    try {
+      const enhancedData = await executeUpdateHook(
+        updatedResource.provider,
+        originalResource,
+        updatedResource,
+      );
+      updatedResource.data = enhancedData;
+      await updatedResource.save();
+
+      // Delete old PEM file from GridFS after successful update
+      if (newFileId && originalData.data.privateKeyFileId) {
+        const bucket = getGridFSBucket();
+        try {
+          await bucket.delete(new mongoose.Types.ObjectId(originalData.data.privateKeyFileId));
+        } catch (_) {}
+      }
+
+      return updatedResource;
+    } catch (hookError) {
+      // Rollback
+      await Resource.findByIdAndUpdate(params.id, originalData, {
+        runValidators: true,
+      });
+      // Delete newly uploaded file on rollback
+      if (newFileId) {
+        const bucket = getGridFSBucket();
+        try {
+          await bucket.delete(new mongoose.Types.ObjectId(newFileId));
+        } catch (_) {}
+      }
+      throw new Error(`Update hook failed: ${hookError.message}`);
+    }
+  } catch (err) {
+    return status(400, { error: err.message });
+  }
+});
+
 // Upload file and create file resource
 router.post("/upload", async ({ body, status }) => {
   const parsed = uploadResourceSchema.safeParse({ name: body.name });
@@ -617,6 +788,13 @@ router.delete("/:id", async ({ params, status }) => {
     if (resource.provider === "file" && resource.data.fileId) {
       const bucket = getGridFSBucket();
       await bucket.delete(new mongoose.Types.ObjectId(resource.data.fileId));
+    }
+
+    if (resource.provider === "github" && resource.data.privateKeyFileId) {
+      const bucket = getGridFSBucket();
+      try {
+        await bucket.delete(new mongoose.Types.ObjectId(resource.data.privateKeyFileId));
+      } catch (_) {}
     }
 
     await Resource.findByIdAndDelete(params.id);

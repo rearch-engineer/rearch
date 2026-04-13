@@ -33,9 +33,15 @@ su - coder -c "git config --global user.name '$GIT_USER_NAME'"
 echo "  -> Git name configured: $GIT_USER_NAME"
 
 if [ -n "$GIT_TOKEN" ]; then
-    su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"https://bitbucket.org/\""
-    su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"git@bitbucket.org:\""
-    echo "  -> Git credentials configured for Bitbucket"
+    if [ "$GIT_PROVIDER" = "github" ]; then
+        su - coder -c "git config --global url.\"https://x-access-token:${GIT_TOKEN}@github.com/\".insteadOf \"https://github.com/\""
+        su - coder -c "git config --global url.\"https://x-access-token:${GIT_TOKEN}@github.com/\".insteadOf \"git@github.com:\""
+        echo "  -> Git credentials configured for GitHub"
+    else
+        su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"https://bitbucket.org/\""
+        su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"git@bitbucket.org:\""
+        echo "  -> Git credentials configured for Bitbucket"
+    fi
 fi
 
 # =============================================================================

@@ -26,6 +26,7 @@ import ResourceDetailsPage from "../../components/Administration/Resources/Resou
 import SubResourceDetailsPage from "../../components/Administration/Resources/SubResourceDetailsPage";
 import SubResourcesListPage from "../../components/Administration/Resources/SubResourcesListPage";
 import BitbucketResourceForm from "../../components/Administration/Resources/SubResources/Bitbucket/BitbucketResourceForm";
+import GithubResourceForm from "../../components/Administration/Resources/SubResources/Github/GithubResourceForm";
 
 export default function AdministrationPage() {
   return (
@@ -49,6 +50,10 @@ export default function AdministrationPage() {
         <Route
           path="/resources/new/bitbucket"
           element={<BitbucketResourceForm />}
+        />
+        <Route
+          path="/resources/new/github"
+          element={<GithubResourceForm />}
         />
         <Route path="/resources/:id" element={<ResourceDetailsPage />} />
         <Route path="/resources/:id/edit" element={<ResourceFormPage />} />

@@ -53,6 +53,7 @@ function BitbucketRepositoryDetails({
   onDelete,
   deleting = false,
   deleteError = null,
+  providerLabel = "Bitbucket",
 }) {
   const { t } = useTranslation("Administration");
   const { data, rearch } = subResource;
@@ -95,7 +96,7 @@ function BitbucketRepositoryDetails({
   useEffect(() => {
     const loadRepositorySubResources = async () => {
       try {
-        const subResources = await api.getAllAdminSubResources("bitbucket-repository");
+        const subResources = await api.getAllAdminSubResources();
         setRepositorySubResources(subResources);
       } catch (err) {
         console.error("Failed to load repository subresources:", err);
@@ -505,7 +506,7 @@ function BitbucketRepositoryDetails({
           </IconButton>
         )}
         <Chip color="success" variant="soft" size="lg">
-          {t("bitbucketRepoDetails.bitbucketRepository")}
+          {providerLabel} {t("bitbucketRepoDetails.repository")}
         </Chip>
         {data?.isPrivate && (
           <Chip color="warning" variant="soft" size="sm">

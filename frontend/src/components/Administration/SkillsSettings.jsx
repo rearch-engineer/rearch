@@ -62,7 +62,7 @@ export default function SkillsSettings() {
 
   const loadRepositorySubResources = async () => {
     try {
-      const subResources = await api.getAllSubResources("bitbucket-repository");
+      const subResources = await api.getAllSubResources();
       setRepositorySubResources(subResources);
     } catch (err) {
       console.error("Failed to load repository subresources:", err);

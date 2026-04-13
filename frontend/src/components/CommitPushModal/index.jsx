@@ -984,7 +984,7 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
             }}
           >
             <CircularProgress size="md" />
-            <Typography level="body-md" dangerouslySetInnerHTML={{ __html: t('committingAndPushing', { branch: branchName }) }} />
+            <Typography level="body-md"><span dangerouslySetInnerHTML={{ __html: t('committingAndPushing', { branch: branchName }) }} /></Typography>
           </Box>
         )}
 

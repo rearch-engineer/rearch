@@ -29,7 +29,7 @@ tags:
   - name: Files
     description: File upload and download endpoints (GridFS-backed)
   - name: Resources
-    description: Resource management including Bitbucket repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
+    description: Resource management including Bitbucket and GitHub repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
   - name: SubResources
     description: Sub-resource management (import, actions, files) within resources. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
   - name: Skills
@@ -119,11 +119,11 @@ components:
         repository:
           type: string
           example: 507f1f77bcf86cd799439013
-          description: Reference to a Resource of type bitbucket
+          description: Reference to a Resource of type bitbucket or github
         subResource:
           type: string
           example: 507f1f77bcf86cd799439014
-          description: Reference to a SubResource (bitbucket-repository)
+          description: Reference to a SubResource (bitbucket-repository or github-repository)
         contextUsage:
           type: object
           properties:
@@ -292,7 +292,7 @@ components:
           example: Project Documentation
         provider:
           type: string
-          enum: [file, bitbucket]
+          enum: [file, bitbucket, github]
           example: bitbucket
         data:
           type: object
@@ -300,6 +300,7 @@ components:
           oneOf:
             - $ref: "#/components/schemas/FileResourceData"
             - $ref: "#/components/schemas/BitbucketResourceData"
+            - $ref: "#/components/schemas/GithubResourceData"
         createdAt:
           type: string
           format: date-time
@@ -340,7 +341,7 @@ components:
           default: ""
         type:
           type: string
-          description: Sub-resource type (e.g. bitbucket-repository)
+          description: Sub-resource type (e.g. bitbucket-repository, github-repository)
         data:
           type: object
           description: Provider-specific data
@@ -464,6 +465,22 @@ components:
         username:
           type: string
           description: Bitbucket username
+
+    GithubResourceData:
+      type: object
+      description: GitHub App connection data
+      properties:
+        appId:
+          type: string
+          example: "123456"
+          description: GitHub App ID
+        privateKeyFileId:
+          type: string
+          description: GridFS ObjectId of the uploaded PEM private key file
+        installationId:
+          type: string
+          example: "12345678"
+          description: GitHub App installation ID (identifies which org/account installed the app)
 
     Skill:
       type: object
@@ -1365,7 +1382,7 @@ paths:
         - Conversations
       summary: Create a new conversation
       description: |
-        Creates a new conversation linked to a Bitbucket repository and sub-resource.
+        Creates a new conversation linked to a repository (Bitbucket or GitHub) and sub-resource.
         Triggers a BullMQ job for container setup.
         The authenticated user is automatically added to the `participants` array as the creator.
       requestBody:
@@ -1385,11 +1402,11 @@ paths:
                 repository:
                   type: string
                   example: 507f1f77bcf86cd799439013
-                  description: ID of a Resource with provider 'bitbucket'
+                  description: ID of a Resource with provider 'bitbucket' or 'github'
                 subResource:
                   type: string
                   example: 507f1f77bcf86cd799439014
-                  description: ID of a SubResource of type 'bitbucket-repository' belonging to the resource
+                  description: ID of a SubResource of type 'bitbucket-repository' or 'github-repository' belonging to the resource
       responses:
         "200":
           description: Conversation created successfully
@@ -2188,8 +2205,8 @@ paths:
     post:
       tags:
         - Git
-      summary: Create a Bitbucket pull request
-      description: Creates a pull request on Bitbucket for the conversation's repository using the specified source branch
+      summary: Create a pull request
+      description: Creates a pull request on the conversation's repository provider (Bitbucket or GitHub) using the specified source branch
       parameters:
         - name: id
           in: path
@@ -2218,7 +2235,7 @@ paths:
                   description: The branch to create the PR from
                 reviewers:
                   type: array
-                  description: Optional list of Bitbucket user UUIDs to assign as PR reviewers
+                  description: Optional list of user UUIDs (Bitbucket) or usernames (GitHub) to assign as PR reviewers
                   items:
                     type: string
                   maxItems: 20
@@ -2229,7 +2246,7 @@ paths:
             application/json:
               schema:
                 type: object
-                description: Bitbucket pull request response object
+                description: Pull request response object
                 properties:
                   id:
                     type: integer
@@ -2277,11 +2294,11 @@ paths:
     get:
       tags:
         - Git
-      summary: List Bitbucket workspace members
+      summary: List repository members/collaborators
       description: >
-        Returns workspace members from the Bitbucket workspace linked to this conversation's repository.
+        Returns members or collaborators from the repository linked to this conversation.
+        For Bitbucket, returns workspace members. For GitHub, returns repository collaborators.
         Useful for selecting PR reviewers. Supports searching by display name via the `search` query parameter.
-        Auto-paginates through all Bitbucket pages (up to 1000 members).
       parameters:
         - name: id
           in: path
@@ -2809,16 +2826,17 @@ paths:
                   type: string
                   minLength: 2
                   maxLength: 100
-                  example: My Bitbucket Workspace
+                  example: My Workspace
                 provider:
                   type: string
-                  enum: [bitbucket]
+                  enum: [bitbucket, github]
                   example: bitbucket
                 data:
                   type: object
                   description: Provider-specific data structure
                   oneOf:
                     - $ref: "#/components/schemas/BitbucketResourceData"
+                    - $ref: "#/components/schemas/GithubResourceData"
       responses:
         "201":
           description: Resource created successfully

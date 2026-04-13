@@ -217,7 +217,7 @@ const ChatInterface = ({
       setSelectedRepoResourceId("");
       setRepoSearchQuery("");
       try {
-        const repos = await api.getAllSubResources("bitbucket-repository");
+        const repos = await api.getAllSubResources();
         const enabledRepos = repos.filter((repo) => repo.rearch?.enabled);
         setAllRepositories(enabledRepos);
 

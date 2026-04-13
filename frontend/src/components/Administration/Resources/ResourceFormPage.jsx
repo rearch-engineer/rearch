@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { Box, Typography } from "@mui/joy";
 import { api } from "../../../api/client";
 import BitbucketResourceForm from "./SubResources/Bitbucket/BitbucketResourceForm";
+import GithubResourceForm from "./SubResources/Github/GithubResourceForm";
 
 function ResourceFormPage() {
   const { t } = useTranslation("Administration");
@@ -49,6 +50,10 @@ function ResourceFormPage() {
 
   if (provider === "bitbucket") {
     return <BitbucketResourceForm />;
+  }
+
+  if (provider === "github") {
+    return <GithubResourceForm />;
   }
 
   return (

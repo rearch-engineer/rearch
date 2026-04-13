@@ -5,7 +5,8 @@ import { z } from "zod";
 import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
 import SubResourceFiles from "../models/SubResourceFiles.js";
-import { getFileContents } from "../utils/attlasian/bitbucket.js";
+import { getFileContents as getBitbucketFileContents } from "../utils/attlasian/bitbucket.js";
+import { getFileContents as getGithubFileContents } from "../utils/github/github.js";
 import {
   downloadFileStream,
   getFileInfo,
@@ -164,11 +165,7 @@ router.get("/:id/subresources/:subId", async ({ params, status }) => {
       return status(404, { error: "Subresource not found" });
     }
 
-    const obj = subresource.toObject();
-    if (obj.data) {
-      delete obj.data.branches;
-    }
-    return obj;
+    return subresource.toObject();
   } catch (err) {
     return status(500, { error: err.message });
   }
@@ -193,23 +190,42 @@ router.get(
         return status(404, { error: "Subresource not found" });
       }
 
-      const workspace = parentResource.data?.workspace;
-      const repoSlug = subResource.externalId;
       const ref = query?.ref || "HEAD";
+      let contents;
 
-      if (!workspace || !repoSlug) {
-        return status(400, {
-          error: "Workspace and repository slug are required",
-        });
+      if (parentResource.provider === "github") {
+        const fullName = subResource.data?.fullName || subResource.externalId;
+        if (!fullName || !fullName.includes("/")) {
+          return status(400, {
+            error: "Cannot determine owner/repo from subresource",
+          });
+        }
+        const [owner, repo] = fullName.split("/");
+        contents = await getGithubFileContents(
+          parentResource.data,
+          owner,
+          repo,
+          ".rearch/Dockerfile",
+          ref,
+        );
+      } else {
+        const workspace = parentResource.data?.workspace;
+        const repoSlug = subResource.externalId;
+
+        if (!workspace || !repoSlug) {
+          return status(400, {
+            error: "Workspace and repository slug are required",
+          });
+        }
+
+        contents = await getBitbucketFileContents(
+          parentResource.data,
+          workspace,
+          repoSlug,
+          ".rearch/Dockerfile",
+          ref,
+        );
       }
-
-      const contents = await getFileContents(
-        parentResource.data,
-        workspace,
-        repoSlug,
-        ".rearch/Dockerfile",
-        ref,
-      );
 
       return { contents };
     } catch (err) {

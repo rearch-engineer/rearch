@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ModalDialog, ModalClose, Typography } from '@mui/joy';
 import BitbucketImportForm from './SubResources/Bitbucket/BitbucketImportForm';
+import GithubImportForm from './SubResources/Github/GithubImportForm';
 
 function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
   const { t } = useTranslation("Administration");
@@ -10,6 +11,7 @@ function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
   const getTitle = () => {
     switch (resource.provider) {
       case 'bitbucket':
+      case 'github':
         return t('subResourceImport.importRepository');
       default:
         return t('subResourceImport.importSubresource');
@@ -20,6 +22,8 @@ function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
     switch (resource.provider) {
       case 'bitbucket':
         return <BitbucketImportForm resource={resource} onImportSuccess={onImportSuccess} />;
+      case 'github':
+        return <GithubImportForm resource={resource} onImportSuccess={onImportSuccess} />;
       default:
         return (
           <Typography level="body-sm" color="neutral">

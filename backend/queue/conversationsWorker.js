@@ -183,9 +183,21 @@ const conversationsWorker = new Worker(
       const appPort = repository.data.appPort || "3000";
       const appStartCommand = repository.data.appStartCommand || "npm run dev";
 
-      // Get Bitbucket credentials from the parent resource data
-      const bitbucketEmail = repository.data.email || "";
-      const bitbucketToken = repository.data.apiToken || "";
+      // Get credentials from the parent resource based on provider type
+      const provider = repository.provider || "bitbucket";
+      let gitEmail = "";
+      let gitToken = "";
+
+      if (provider === "github") {
+        // For GitHub Apps, generate an installation access token
+        const { getInstallationToken } = await import("../utils/github/github.js");
+        gitToken = await getInstallationToken(repository.data);
+        gitEmail = "github-app@users.noreply.github.com";
+      } else {
+        // Bitbucket: use email + API token
+        gitEmail = repository.data.email || "";
+        gitToken = repository.data.apiToken || "";
+      }
 
       // Derive repository URL from subresource clone links (prefer HTTPS)
       let repoUrl = "";
@@ -223,8 +235,9 @@ const conversationsWorker = new Worker(
         providerConfig,
         appPort,
         appStartCommand,
-        bitbucketEmail,
-        bitbucketToken,
+        gitEmail,
+        gitToken,
+        gitProvider: provider,
         rearchServices: subResource.rearch?.services || [],
         resourceConstraints: subResource.rearch?.resources || {},
         log: (msg) => jobLog(job, "conversations", msg),

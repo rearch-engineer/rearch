@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
   Typography,
-  Chip,
   Stack,
   Button,
   Card,
@@ -47,13 +46,34 @@ const BitbucketIcon = ({ size = 48 }) => (
   </svg>
 );
 
+// GitHub SVG logo component
+const GitHubIcon = ({ size = 48 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 98 96"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 const providerMeta = {
   bitbucket: {
     label: "Bitbucket (Atlassian)",
-    category: "Developer Tools",
-    categoryColor: "#0052CC",
     bgTint: "rgba(38, 132, 255, 0.08)",
     icon: (size) => <BitbucketIcon size={size} />,
+  },
+  github: {
+    label: "GitHub",
+    bgTint: "rgba(36, 41, 47, 0.08)",
+    icon: (size) => <GitHubIcon size={size} />,
   },
 };
 
@@ -145,6 +165,28 @@ function ResourceDetailsPage() {
         </>
       );
     }
+
+    if (resource.provider === "github") {
+      return (
+        <>
+          <DetailRow label={t("resourceDetails.appId")}>
+            <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
+              {resource.data.appId}
+            </Typography>
+          </DetailRow>
+          <DetailRow label={t("resourceDetails.installationId")}>
+            <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
+              {resource.data.installationId}
+            </Typography>
+          </DetailRow>
+          <DetailRow label={t("resourceDetails.privateKey")}>
+            <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
+              {resource.data.privateKey ? "••••••••••••" : t("resourceDetails.notSet")}
+            </Typography>
+          </DetailRow>
+        </>
+      );
+    }
   };
 
   if (loading) {
@@ -185,13 +227,11 @@ function ResourceDetailsPage() {
 
   const meta = providerMeta[resource.provider] || {
     label: resource.provider,
-    category: "Integration",
-    categoryColor: "#6b7280",
     bgTint: "rgba(107,114,128,0.08)",
     icon: () => null,
   };
 
-  const hasSubResources = resource.provider === "bitbucket";
+  const hasSubResources = ["bitbucket", "github"].includes(resource.provider);
 
   return (
     <Box
@@ -283,22 +323,6 @@ function ResourceDetailsPage() {
                 {resource.name}
               </Typography>
 
-              <Box>
-                <Chip
-                  size="sm"
-                  variant="soft"
-                  sx={{
-                    bgcolor: `${meta.categoryColor}18`,
-                    color: meta.categoryColor,
-                    fontWeight: 600,
-                    fontSize: "0.7rem",
-                    borderRadius: "4px",
-                    height: "22px",
-                  }}
-                >
-                  {meta.category}
-                </Chip>
-              </Box>
 
               <Typography
                 level="body-sm"

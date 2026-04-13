@@ -24,9 +24,13 @@ import {
 } from "../utils/opencodeContainer.js";
 import { execInContainer, gitExec } from "../utils/containerExec.js";
 import {
-  createPullRequest,
+  createPullRequest as createBitbucketPR,
   listWorkspaceMembers,
 } from "../utils/attlasian/bitbucket.js";
+import {
+  createPullRequest as createGithubPR,
+  listCollaborators as listGithubCollaborators,
+} from "../utils/github/github.js";
 import { authPlugin } from "../middleware/auth.js";
 
 const docker = new Docker();
@@ -151,9 +155,9 @@ const router = new Elysia({ prefix: "/api" })
         return { error: "resource-not-found" };
       }
 
-      if (resourceDoc.provider !== "bitbucket") {
+      if (!["bitbucket", "github"].includes(resourceDoc.provider)) {
         set.status = 400;
-        return { error: "Resource must be of type bitbucket" };
+        return { error: "Resource must be of type bitbucket or github" };
       }
 
       // Check if subResource exists and belongs to the given resource
@@ -170,10 +174,10 @@ const router = new Elysia({ prefix: "/api" })
         };
       }
 
-      if (subResourceDoc.type !== "bitbucket-repository") {
+      if (!["bitbucket-repository", "github-repository"].includes(subResourceDoc.type)) {
         set.status = 400;
         return {
-          error: "SubResource must be of type bitbucket-repository",
+          error: "SubResource must be of type bitbucket-repository or github-repository",
         };
       }
 
@@ -206,10 +210,10 @@ const router = new Elysia({ prefix: "/api" })
     }
 
     try {
-      // Find the subresource by name (case-insensitive), must be an enabled bitbucket-repository
+      // Find the subresource by name (case-insensitive), must be an enabled repository
       const subResourceDoc = await SubResource.findOne({
         name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-        type: "bitbucket-repository",
+        type: { $in: ["bitbucket-repository", "github-repository"] },
         "rearch.enabled": true,
       }).populate("resource");
 
@@ -218,9 +222,9 @@ const router = new Elysia({ prefix: "/api" })
         return { error: "repository-not-found" };
       }
 
-      if (!subResourceDoc.resource || subResourceDoc.resource.provider !== "bitbucket") {
+      if (!subResourceDoc.resource || !["bitbucket", "github"].includes(subResourceDoc.resource.provider)) {
         set.status = 400;
-        return { error: "Resource must be of type bitbucket" };
+        return { error: "Resource must be of type bitbucket or github" };
       }
 
       const repositoryId = subResourceDoc.resource._id.toString();
@@ -1382,7 +1386,7 @@ const router = new Elysia({ prefix: "/api" })
         };
       }
 
-      // Extract workspace and repo slug from the subresource fullName (e.g., "workspace/repo-slug")
+      // Extract owner/workspace and repo slug from the subresource fullName (e.g., "workspace/repo-slug")
       const fullName = subResource.data?.fullName;
       if (!fullName || !fullName.includes("/")) {
         set.status = 400;
@@ -1391,16 +1395,27 @@ const router = new Elysia({ prefix: "/api" })
         };
       }
 
-      const [workspace, repoSlug] = fullName.split("/");
+      const [ownerOrWorkspace, repoSlug] = fullName.split("/");
       const destinationBranch = subResource.data?.mainBranch || "main";
 
-      const pr = await createPullRequest(resource.data, workspace, repoSlug, {
-        title,
-        description: description || "",
-        sourceBranch,
-        destinationBranch,
-        reviewers,
-      });
+      let pr;
+      if (resource.provider === "github") {
+        pr = await createGithubPR(resource.data, ownerOrWorkspace, repoSlug, {
+          title,
+          description: description || "",
+          sourceBranch,
+          destinationBranch,
+          reviewers,
+        });
+      } else {
+        pr = await createBitbucketPR(resource.data, ownerOrWorkspace, repoSlug, {
+          title,
+          description: description || "",
+          sourceBranch,
+          destinationBranch,
+          reviewers,
+        });
+      }
 
       // Persist the PR record on the conversation
       await Conversation.findByIdAndUpdate(conversationId, {
@@ -1425,8 +1440,9 @@ const router = new Elysia({ prefix: "/api" })
   })
 
   /**
-   * List Bitbucket workspace members for reviewer selection
-   * GET /conversations/:id/bitbucket-members
+   * List repository members/collaborators for reviewer selection.
+   * Dispatches to the correct provider (Bitbucket workspace members or GitHub collaborators).
+   * GET /conversations/:id/bitbucket-members (kept for backward compatibility)
    */
   .get(
     "/conversations/:id/bitbucket-members",
@@ -1462,15 +1478,26 @@ const router = new Elysia({ prefix: "/api" })
           };
         }
 
-        const [workspace] = fullName.split("/");
+        const [ownerOrWorkspace, repoSlug] = fullName.split("/");
         const search = query?.search?.trim() || "";
-        const members = await listWorkspaceMembers(resource.data, workspace, {
-          search,
-        });
+
+        let members;
+        if (resource.provider === "github") {
+          members = await listGithubCollaborators(
+            resource.data,
+            ownerOrWorkspace,
+            repoSlug,
+            { search },
+          );
+        } else {
+          members = await listWorkspaceMembers(resource.data, ownerOrWorkspace, {
+            search,
+          });
+        }
 
         return { members };
       } catch (err) {
-        console.error("Error listing workspace members:", err);
+        console.error("Error listing members/collaborators:", err);
         set.status = 500;
         return { error: err.message };
       }
