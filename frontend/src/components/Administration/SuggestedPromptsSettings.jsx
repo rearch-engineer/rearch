@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { sanitizeUrl } from "../../utils/sanitize";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -677,7 +678,7 @@ export default function SuggestedPromptsSettings() {
                   <Stack spacing={1}>
                     {promptImagePreview && (
                       <Box sx={{ position: "relative", borderRadius: "sm", overflow: "hidden", border: "1px solid var(--border-color)" }}>
-                        <AspectRatio ratio="16/9"><img src={promptImagePreview} alt="Preview" style={{ objectFit: "cover" }} /></AspectRatio>
+                        <AspectRatio ratio="16/9"><img src={sanitizeUrl(promptImagePreview)} alt="Preview" style={{ objectFit: "cover" }} /></AspectRatio>
                         <IconButton size="sm" variant="solid" color="danger" onClick={handleRemoveImage} sx={{ position: "absolute", top: 4, right: 4, minWidth: 28, minHeight: 28 }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
                       </Box>
                     )}
@@ -1034,7 +1035,7 @@ export default function SuggestedPromptsSettings() {
                     >
                       <AspectRatio ratio="16/9">
                         <img
-                          src={promptImagePreview}
+                          src={sanitizeUrl(promptImagePreview)}
                           alt="Preview"
                           style={{ objectFit: "cover" }}
                         />
