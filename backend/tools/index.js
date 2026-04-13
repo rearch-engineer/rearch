@@ -16,11 +16,4 @@ const tools = {
   ),
 };
 
-// Export metadata separately for the /tools route
-export const toolsMetadata = [
-  weather.metadata,
-  file.metadata,
-  bitbucket.metadata,
-];
-
 export default tools;

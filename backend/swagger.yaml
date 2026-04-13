@@ -32,8 +32,6 @@ tags:
     description: Resource management including Bitbucket repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
   - name: SubResources
     description: Sub-resource management (import, actions, files) within resources. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
-  - name: Tools
-    description: Available AI tools endpoints
   - name: Skills
     description: Skill management (admin only)
   - name: Settings
@@ -931,6 +929,11 @@ paths:
                   enum: [light, dark, system]
                   description: UI theme preference
                   example: dark
+                language:
+                  type: string
+                  enum: [en, es, fr, nl]
+                  description: UI language preference
+                  example: en
       responses:
         "200":
           description: Updated user profile (without password hash)
@@ -3262,33 +3265,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-
-  # ===========================================================================
-  # Tools
-  # ===========================================================================
-
-  /api/tools:
-    get:
-      tags:
-        - Tools
-      summary: Get all available tools
-      description: Retrieves a list of all AI tools available for use in conversations
-      responses:
-        "200":
-          description: List of available tools
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    name:
-                      type: string
-                      example: weather
-                    description:
-                      type: string
-                      example: Get current weather information for a location
 
   # ===========================================================================
   # Skills (Admin only)

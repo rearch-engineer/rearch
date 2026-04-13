@@ -1,0 +1,20 @@
+{
+  "expandSidebar": "Zijbalk uitvouwen",
+  "collapseSidebar": "Zijbalk invouwen",
+  "home": "Start",
+  "search": "Zoeken",
+  "searchShortcut": "Zoeken (Ctrl+P)",
+  "conversations": "Gesprekken",
+  "newConversation": "Nieuw gesprek",
+  "noConversationsYet": "Nog geen gesprekken",
+  "clickToStart": "Klik op + om te beginnen",
+  "rename": "Hernoemen",
+  "delete": "Verwijderen",
+  "help": "Help",
+  "administration": "Beheer",
+  "account": "Account",
+  "deleteConversation": "Gesprek verwijderen",
+  "deleteConfirmation": "Weet u zeker dat u wilt verwijderen",
+  "deleteWarning": "Alle bijbehorende berichten en niet-opgeslagen wijzigingen worden verwijderd.",
+  "cancel": "Annuleren"
+}

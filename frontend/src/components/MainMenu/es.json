@@ -1,0 +1,20 @@
+{
+  "expandSidebar": "Expandir barra lateral",
+  "collapseSidebar": "Contraer barra lateral",
+  "home": "Inicio",
+  "search": "Buscar",
+  "searchShortcut": "Buscar (Ctrl+P)",
+  "conversations": "Conversaciones",
+  "newConversation": "Nueva conversación",
+  "noConversationsYet": "Aún no hay conversaciones",
+  "clickToStart": "Haz clic en + para comenzar",
+  "rename": "Renombrar",
+  "delete": "Eliminar",
+  "help": "Ayuda",
+  "administration": "Administración",
+  "account": "Cuenta",
+  "deleteConversation": "Eliminar conversación",
+  "deleteConfirmation": "¿Estás seguro de que deseas eliminar",
+  "deleteWarning": "Todos los mensajes asociados y los cambios sin guardar serán eliminados.",
+  "cancel": "Cancelar"
+}

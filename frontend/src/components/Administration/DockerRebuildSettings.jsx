@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -26,11 +27,11 @@ import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
 import { useConfirm } from "../../contexts/ConfirmContext";
 
-const UNIT_OPTIONS = [
-  { value: "minutes", label: "Minutes", toHours: (v) => v / 60, fromHours: (h) => Math.round(h * 60), min: 1, max: 43200 },
-  { value: "hours", label: "Hours", toHours: (v) => v, fromHours: (h) => h, min: 1, max: 720 },
-  { value: "days", label: "Days", toHours: (v) => v * 24, fromHours: (h) => h / 24, min: 1, max: 30 },
-  { value: "weeks", label: "Weeks", toHours: (v) => v * 168, fromHours: (h) => h / 168, min: 1, max: 4 },
+const UNIT_DEFS = [
+  { value: "minutes", labelKey: "dockerRebuild.unitMinutes", toHours: (v) => v / 60, fromHours: (h) => Math.round(h * 60), min: 1, max: 43200 },
+  { value: "hours", labelKey: "dockerRebuild.unitHours", toHours: (v) => v, fromHours: (h) => h, min: 1, max: 720 },
+  { value: "days", labelKey: "dockerRebuild.unitDays", toHours: (v) => v * 24, fromHours: (h) => h / 24, min: 1, max: 30 },
+  { value: "weeks", labelKey: "dockerRebuild.unitWeeks", toHours: (v) => v * 168, fromHours: (h) => h / 168, min: 1, max: 4 },
 ];
 
 /**
@@ -44,6 +45,7 @@ function hoursToDisplay(totalHours) {
 }
 
 export default function DockerRebuildSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -83,7 +85,7 @@ export default function DockerRebuildSettings() {
       );
       setHasRearchEnabled(anyRearchEnabled);
     } catch (err) {
-      toast.error("Failed to load docker rebuild settings: " + err.message);
+      toast.error(t("dockerRebuild.failedToLoadSettings", { message: err.message }));
     } finally {
       setLoading(false);
       setCheckingRearch(false);
@@ -91,7 +93,7 @@ export default function DockerRebuildSettings() {
   };
 
   const getIntervalHours = (amount, unit) => {
-    const unitDef = UNIT_OPTIONS.find((u) => u.value === unit);
+    const unitDef = UNIT_DEFS.find((u) => u.value === unit);
     return unitDef ? unitDef.toHours(amount) : amount;
   };
 
@@ -107,10 +109,10 @@ export default function DockerRebuildSettings() {
   };
 
   const handleAmountCommit = async () => {
-    const unitDef = UNIT_OPTIONS.find((u) => u.value === intervalUnit);
+    const unitDef = UNIT_DEFS.find((u) => u.value === intervalUnit);
     const val = Number(intervalAmount);
     if (!Number.isInteger(val) || val < unitDef.min || val > unitDef.max) {
-      toast.error(`Enter a value between ${unitDef.min} and ${unitDef.max} ${intervalUnit}.`);
+      toast.error(t("dockerRebuild.enterValueBetween", { min: unitDef.min, max: unitDef.max, unit: intervalUnit }));
       return;
     }
     await handleSave({ intervalHours: getIntervalHours(val, intervalUnit) });
@@ -124,7 +126,7 @@ export default function DockerRebuildSettings() {
     if (!newUnit) return;
     // Convert the current amount to hours, then back to the new unit
     const currentHours = getIntervalHours(intervalAmount || 1, intervalUnit);
-    const newUnitDef = UNIT_OPTIONS.find((u) => u.value === newUnit);
+    const newUnitDef = UNIT_DEFS.find((u) => u.value === newUnit);
     let newAmount = Math.round(newUnitDef.fromHours(currentHours));
     newAmount = Math.max(newUnitDef.min, Math.min(newUnitDef.max, newAmount));
     setIntervalUnit(newUnit);
@@ -143,11 +145,9 @@ export default function DockerRebuildSettings() {
         intervalHours: hours,
       };
       await api.updateDockerRebuildSettings(data);
-      toast.success("Docker rebuild settings saved.");
+      toast.success(t("dockerRebuild.settingsSaved"));
     } catch (err) {
-      toast.error(
-        "Failed to save docker rebuild settings: " + err.message
-      );
+      toast.error(t("dockerRebuild.failedToSaveSettings", { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -155,9 +155,9 @@ export default function DockerRebuildSettings() {
 
   const handleTriggerRebuildAll = async () => {
     const confirmed = await confirm({
-      title: "Rebuild All Images",
-      message: "This will rebuild all Docker images for every subresource with ReArch enabled. Continue?",
-      confirmText: "Continue",
+      title: t("dockerRebuild.rebuildAllConfirmTitle"),
+      message: t("dockerRebuild.rebuildAllConfirmMessage"),
+      confirmText: t("dockerRebuild.continue"),
       confirmColor: "warning",
     });
     if (!confirmed) return;
@@ -166,20 +166,16 @@ export default function DockerRebuildSettings() {
       setTriggering(true);
       const result = await api.triggerDockerRebuildAll();
       setLastTriggeredAt(new Date().toISOString());
-      toast.success(
-        `Rebuild triggered: ${result.jobCount} job(s) queued.`
-      );
+      toast.success(t("dockerRebuild.rebuildTriggered", { count: result.jobCount }));
     } catch (err) {
-      toast.error(
-        "Failed to trigger rebuild: " + err.message
-      );
+      toast.error(t("dockerRebuild.failedToTriggerRebuild", { message: err.message }));
     } finally {
       setTriggering(false);
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "Never";
+    if (!dateString) return t("dockerRebuild.never");
     return new Date(dateString).toLocaleString();
   };
 
@@ -204,7 +200,7 @@ export default function DockerRebuildSettings() {
       <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
         <Box sx={{ maxWidth: 960, mx: 'auto' }}>
         <Typography level="h3" sx={{ mb: 3 }}>
-          Docker Image Rebuilds
+          {t("dockerRebuild.title")}
         </Typography>
         <Alert
           variant="soft"
@@ -213,12 +209,10 @@ export default function DockerRebuildSettings() {
         >
           <Box>
             <Typography level="title-sm">
-              No ReArch integrations enabled
+              {t("dockerRebuild.noRearchEnabled")}
             </Typography>
             <Typography level="body-sm">
-              Docker image rebuild scheduling is only available when at least one
-              subresource has the ReArch integration enabled. Enable ReArch on a
-              repository's settings to use this feature.
+              {t("dockerRebuild.noRearchEnabledDescription")}
             </Typography>
           </Box>
         </Alert>
@@ -231,7 +225,7 @@ export default function DockerRebuildSettings() {
     <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'auto' }}>
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
       <Typography level="h3" sx={{ mb: 3 }}>
-        Docker Image Rebuilds
+        {t("dockerRebuild.title")}
       </Typography>
 
       {/* Scheduled Rebuilds Card */}
@@ -244,16 +238,14 @@ export default function DockerRebuildSettings() {
             sx={{ mb: 2 }}
           >
             <ScheduleIcon sx={{ color: "var(--text-secondary)" }} />
-            <Typography level="title-md">Scheduled Rebuilds</Typography>
+            <Typography level="title-md">{t("dockerRebuild.scheduledRebuilds")}</Typography>
           </Stack>
 
           <Typography
             level="body-sm"
             sx={{ color: "var(--text-secondary)", mb: 2 }}
           >
-            Automatically rebuild all Docker images for subresources with
-            ReArch enabled at a regular interval. This ensures images stay
-            up-to-date with the latest code changes.
+            {t("dockerRebuild.scheduledRebuildsDescription")}
           </Typography>
 
           <Stack spacing={2.5}>
@@ -263,7 +255,7 @@ export default function DockerRebuildSettings() {
               sx={{ justifyContent: "space-between", alignItems: "center" }}
             >
               <Box>
-                <FormLabel sx={{ mb: 0 }}>Enable scheduled rebuilds</FormLabel>
+                <FormLabel sx={{ mb: 0 }}>{t("dockerRebuild.enableScheduledRebuilds")}</FormLabel>
               </Box>
               <Switch
                 checked={enabled}
@@ -278,7 +270,7 @@ export default function DockerRebuildSettings() {
                 <Divider />
 
                 <FormControl>
-                  <FormLabel>Rebuild every</FormLabel>
+                  <FormLabel>{t("dockerRebuild.rebuildEvery")}</FormLabel>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Input
                       size="sm"
@@ -290,8 +282,8 @@ export default function DockerRebuildSettings() {
                       disabled={saving}
                       slotProps={{
                         input: {
-                          min: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.min ?? 1,
-                          max: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.max ?? 720,
+                          min: UNIT_DEFS.find((u) => u.value === intervalUnit)?.min ?? 1,
+                          max: UNIT_DEFS.find((u) => u.value === intervalUnit)?.max ?? 720,
                         },
                       }}
                       sx={{ width: 100, fontFamily: "monospace" }}
@@ -303,9 +295,9 @@ export default function DockerRebuildSettings() {
                       disabled={saving}
                       sx={{ minWidth: 120 }}
                     >
-                      {UNIT_OPTIONS.map((u) => (
+                      {UNIT_DEFS.map((u) => (
                         <Option key={u.value} value={u.value}>
-                          {u.label}
+                          {t(u.labelKey)}
                         </Option>
                       ))}
                     </Select>
@@ -320,7 +312,7 @@ export default function DockerRebuildSettings() {
                     fontWeight="bold"
                     sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                   >
-                    Last triggered
+                    {t("dockerRebuild.lastTriggered")}
                   </Typography>
                   <Chip
                     size="sm"
@@ -346,16 +338,14 @@ export default function DockerRebuildSettings() {
             sx={{ mb: 2 }}
           >
             <BuildIcon sx={{ color: "var(--text-secondary)" }} />
-            <Typography level="title-md">Manual Rebuild</Typography>
+            <Typography level="title-md">{t("dockerRebuild.manualRebuild")}</Typography>
           </Stack>
 
           <Typography
             level="body-sm"
             sx={{ color: "var(--text-secondary)", mb: 2 }}
           >
-            Immediately trigger a rebuild of all Docker images for every
-            subresource with ReArch enabled. Each subresource will be queued as
-            a separate job that you can monitor in the Jobs section.
+            {t("dockerRebuild.manualRebuildDescription")}
           </Typography>
 
           <Button
@@ -367,7 +357,7 @@ export default function DockerRebuildSettings() {
             loading={triggering}
             onClick={handleTriggerRebuildAll}
           >
-            Rebuild All Docker Images
+            {t("dockerRebuild.rebuildAllDockerImages")}
           </Button>
         </CardContent>
       </Card>

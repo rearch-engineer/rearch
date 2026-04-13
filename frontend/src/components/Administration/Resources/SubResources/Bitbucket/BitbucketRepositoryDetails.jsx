@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Typography,
@@ -53,6 +54,7 @@ function BitbucketRepositoryDetails({
   deleting = false,
   deleteError = null,
 }) {
+  const { t } = useTranslation("Administration");
   const { data, rearch } = subResource;
   const toast = useToast();
   const confirm = useConfirm();
@@ -93,7 +95,7 @@ function BitbucketRepositoryDetails({
   useEffect(() => {
     const loadRepositorySubResources = async () => {
       try {
-        const subResources = await api.getAllSubResources("bitbucket-repository");
+        const subResources = await api.getAllAdminSubResources("bitbucket-repository");
         setRepositorySubResources(subResources);
       } catch (err) {
         console.error("Failed to load repository subresources:", err);
@@ -209,7 +211,7 @@ function BitbucketRepositoryDetails({
       internalPort !== "" &&
       editedRearch.services.some((s) => s.internalPort === internalPort)
     ) {
-      toast.error(`Port ${internalPort} is already in use by another service.`);
+      toast.error(t("bitbucketRepoDetails.portAlreadyInUse", { port: internalPort }));
       return;
     }
     setEditedRearch((prev) => ({
@@ -336,7 +338,7 @@ function BitbucketRepositoryDetails({
       setLoadingDockerfile(true);
       try {
         const branch = editedRearch.dockerImageFromBranch || undefined;
-        const result = await api.getSubResourceDockerfile(
+        const result = await api.getAdminSubResourceDockerfile(
           subResource.resource,
           subResource._id,
           branch,
@@ -348,20 +350,14 @@ function BitbucketRepositoryDetails({
           services: services.length > 0 ? services : prev.services,
         }));
         if (services.length === 0) {
-          toast.error(
-            "No EXPOSE lines found in .rearch/Dockerfile. Services were not changed.",
-          );
+          toast.error(t("bitbucketRepoDetails.noExposeLinesFound"));
         }
       } catch (err) {
         const is404 = err.response?.status === 404;
         if (is404) {
-          toast.error(
-            "No .rearch/Dockerfile found in the repository. Services were not changed.",
-          );
+          toast.error(t("bitbucketRepoDetails.noDockerfileFound"));
         } else {
-          toast.error(
-            `Failed to read Dockerfile: ${err.response?.data?.error || err.message}`,
-          );
+          toast.error(t("bitbucketRepoDetails.failedToReadDockerfile", { message: err.response?.data?.error || err.message }));
         }
         // Keep existing services on error
         setEditedRearch((prev) => ({ ...prev, template: newTemplate }));
@@ -401,13 +397,9 @@ function BitbucketRepositoryDetails({
         "sync",
       );
 
-      toast.success(
-        `Sync process started successfully! Job ID: ${response.jobId}`,
-      );
+      toast.success(t("bitbucketRepoDetails.syncStarted", { jobId: response.jobId }));
     } catch (error) {
-      toast.error(
-        `Failed to start Sync process: ${error.response?.data?.error || error.message}`,
-      );
+      toast.error(t("bitbucketRepoDetails.failedToSync", { message: error.response?.data?.error || error.message }));
     } finally {
       setSyncing(false);
     }
@@ -423,13 +415,9 @@ function BitbucketRepositoryDetails({
         "rebuild",
       );
 
-      toast.success(
-        `Docker build started successfully! Job ID: ${response.jobId}`,
-      );
+      toast.success(t("bitbucketRepoDetails.dockerBuildStarted", { jobId: response.jobId }));
     } catch (error) {
-      toast.error(
-        `Failed to start Docker build: ${error.response?.data?.error || error.message}`,
-      );
+      toast.error(t("bitbucketRepoDetails.failedToDockerBuild", { message: error.response?.data?.error || error.message }));
     } finally {
       setRebuilding(false);
     }
@@ -438,9 +426,9 @@ function BitbucketRepositoryDetails({
   const handleDelete = async () => {
     if (!onDelete) return;
     const confirmed = await confirm({
-      title: "Delete Subresource",
-      message: "Delete this subresource? This action cannot be undone.",
-      confirmText: "Delete",
+      title: t("bitbucketRepoDetails.deleteSubresource"),
+      message: t("bitbucketRepoDetails.deleteSubresourceConfirm"),
+      confirmText: t("bitbucketRepoDetails.delete"),
       confirmColor: "danger",
     });
     if (!confirmed) return;
@@ -460,9 +448,7 @@ function BitbucketRepositoryDetails({
         onUpdate(updatedSubResource);
       }
     } catch (error) {
-      toast.error(
-        `Failed to save ReArch settings: ${error.response?.data?.error || error.message}`,
-      );
+      toast.error(t("bitbucketRepoDetails.failedToSaveRearch", { message: error.response?.data?.error || error.message }));
     } finally {
       setSavingRearch(false);
     }
@@ -513,17 +499,17 @@ function BitbucketRepositoryDetails({
             href={data.links.html}
             target="_blank"
             rel="noopener noreferrer"
-            title="Open in Bitbucket"
+            title={t("bitbucketRepoDetails.openInBitbucket")}
           >
             <OpenInNew />
           </IconButton>
         )}
         <Chip color="success" variant="soft" size="lg">
-          Bitbucket Repository
+          {t("bitbucketRepoDetails.bitbucketRepository")}
         </Chip>
         {data?.isPrivate && (
           <Chip color="warning" variant="soft" size="sm">
-            Private
+            {t("bitbucketRepoDetails.private")}
           </Chip>
         )}
         <Button
@@ -535,7 +521,7 @@ function BitbucketRepositoryDetails({
           onClick={handleDelete}
           sx={{ ml: "auto" }}
         >
-          Delete
+          {t("bitbucketRepoDetails.delete")}
         </Button>
       </Box>
 
@@ -550,7 +536,7 @@ function BitbucketRepositoryDetails({
             sx={{ width: "100%" }}
           >
             <Typography level="title-md" sx={{ color: "var(--text-primary)" }}>
-              Actions
+              {t("bitbucketRepoDetails.actions")}
             </Typography>
             <Stack direction="row" spacing={2}>
               <Button
@@ -562,7 +548,7 @@ function BitbucketRepositoryDetails({
                 loading={syncing}
                 onClick={handleSync}
               >
-                Sync
+                {t("bitbucketRepoDetails.sync")}
               </Button>
               {rearch?.enabled && (
                 <Button
@@ -574,14 +560,14 @@ function BitbucketRepositoryDetails({
                     navigator.clipboard
                       .writeText(url)
                       .then(() => {
-                        toast.success("Start link copied to clipboard");
+                        toast.success(t("bitbucketRepoDetails.startLinkCopied"));
                       })
                       .catch(() => {
-                        toast.error("Failed to copy link");
+                        toast.error(t("bitbucketRepoDetails.failedToCopyLink"));
                       });
                   }}
                 >
-                  Copy Start Link
+                  {t("bitbucketRepoDetails.copyStartLink")}
                 </Button>
               )}
               {rearch?.dockerImageFromBranch && (
@@ -595,7 +581,7 @@ function BitbucketRepositoryDetails({
                   onClick={handleRebuild}
                   disabled={!rearch?.enabled}
                 >
-                  Build Docker Image
+                  {t("bitbucketRepoDetails.buildDockerImage")}
                 </Button>
               )}
             </Stack>
@@ -618,7 +604,7 @@ function BitbucketRepositoryDetails({
                 level="title-md"
                 sx={{ color: "var(--text-primary)" }}
               >
-                ReArch Settings
+                {t("bitbucketRepoDetails.rearchSettings")}
               </Typography>
             </Stack>
             {!isEditingRearch && (
@@ -640,12 +626,12 @@ function BitbucketRepositoryDetails({
                 sx={{ justifyContent: "space-between", alignItems: "center" }}
               >
                 <Box>
-                  <FormLabel sx={{ mb: 0 }}>Enable ReArch</FormLabel>
+                  <FormLabel sx={{ mb: 0 }}>{t("bitbucketRepoDetails.enableRearch")}</FormLabel>
                   <Typography
                     level="body-xs"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    Allow this repository to be used as a ReArch environment
+                    {t("bitbucketRepoDetails.enableRearchDescription")}
                   </Typography>
                 </Box>
                 <Switch
@@ -661,7 +647,7 @@ function BitbucketRepositoryDetails({
                 />
               </FormControl>
               <Box>
-                <FormLabel sx={{ mb: 1 }}>Template</FormLabel>
+                <FormLabel sx={{ mb: 1 }}>{t("bitbucketRepoDetails.template")}</FormLabel>
                 <Box
                   sx={{
                     display: "grid",
@@ -783,13 +769,13 @@ function BitbucketRepositoryDetails({
                         level="title-sm"
                         sx={{ color: "var(--text-primary)" }}
                       >
-                        Help Guide
+                        {t("bitbucketRepoDetails.helpGuide")}
                       </Typography>
                       <Typography
                         level="body-xs"
                         sx={{ color: "var(--text-secondary)" }}
                       >
-                        Not sure which to pick? Read the docs
+                        {t("bitbucketRepoDetails.helpGuideDescription")}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -799,14 +785,14 @@ function BitbucketRepositoryDetails({
                   sx={{ mt: 1, color: "var(--text-secondary)" }}
                 >
                   {editedRearch.template
-                    ? "A built-in Dockerfile will be used. The repository does not need a .rearch/ folder."
+                    ? t("bitbucketRepoDetails.templateBuiltIn")
                     : loadingDockerfile
-                      ? "Reading .rearch/Dockerfile to detect exposed ports…"
-                      : "The repository must contain a .rearch/ folder with a Dockerfile."}
+                      ? t("bitbucketRepoDetails.templateLoadingDockerfile")
+                      : t("bitbucketRepoDetails.templateCustom")}
                 </Typography>
               </Box>
               <FormControl>
-                <FormLabel>Docker Image from Branch</FormLabel>
+                <FormLabel>{t("bitbucketRepoDetails.dockerImageFromBranch")}</FormLabel>
                 <Select
                   value={editedRearch.dockerImageFromBranch}
                   onChange={(e, newValue) =>
@@ -815,7 +801,7 @@ function BitbucketRepositoryDetails({
                       dockerImageFromBranch: newValue || "",
                     }))
                   }
-                  placeholder="Select a branch"
+                  placeholder={t("bitbucketRepoDetails.selectBranch")}
                   sx={{ bgcolor: "var(--bg-primary)" }}
                 >
                   {data?.branches?.map((branch) => (
@@ -834,7 +820,7 @@ function BitbucketRepositoryDetails({
                   alignItems="center"
                   sx={{ mb: 1 }}
                 >
-                  <FormLabel sx={{ mb: 0 }}>Container Services</FormLabel>
+                  <FormLabel sx={{ mb: 0 }}>{t("bitbucketRepoDetails.containerServices")}</FormLabel>
                   {loadingDockerfile && <CircularProgress size="sm" />}
                 </Stack>
                 <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
@@ -857,7 +843,7 @@ function BitbucketRepositoryDetails({
                     level="body-sm"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    No services configured. Click a button above to add one.
+                    {t("bitbucketRepoDetails.noServicesConfigured")}
                   </Typography>
                 ) : (
                   <Stack spacing={1} sx={{ alignItems: "flex-start" }}>
@@ -879,7 +865,7 @@ function BitbucketRepositoryDetails({
                             sx={{ position: "relative" }}
                             ref={pickerOpen ? iconPickerRef : null}
                           >
-                            <Tooltip title="Choose icon" placement="top">
+                            <Tooltip title={t("bitbucketRepoDetails.chooseIcon")} placement="top">
                               <IconButton
                                 size="sm"
                                 variant="soft"
@@ -1020,14 +1006,12 @@ function BitbucketRepositoryDetails({
 
               {/* Skills multi-select */}
               <Box>
-                <FormLabel sx={{ mb: 1 }}>Skills Repositories</FormLabel>
+                <FormLabel sx={{ mb: 1 }}>{t("bitbucketRepoDetails.skillsRepositories")}</FormLabel>
                 <Typography
                   level="body-xs"
                   sx={{ mb: 1, color: "var(--text-secondary)" }}
                 >
-                  Select repositories containing skills specific to this
-                  repository. These are cloned alongside default skills when a
-                  conversation starts.
+                  {t("bitbucketRepoDetails.skillsRepositoriesDescription")}
                 </Typography>
                 <Select
                   multiple
@@ -1038,7 +1022,7 @@ function BitbucketRepositoryDetails({
                       skills: newValue || [],
                     }))
                   }
-                  placeholder="Select skill repositories"
+                  placeholder={t("bitbucketRepoDetails.selectSkillRepositories")}
                   sx={{ bgcolor: "var(--bg-primary)" }}
                 >
                   {repositorySubResources.map((r) => (
@@ -1051,17 +1035,16 @@ function BitbucketRepositoryDetails({
 
               {/* Resource Constraints */}
               <Box>
-                <FormLabel sx={{ mb: 1 }}>Resource Constraints</FormLabel>
+                <FormLabel sx={{ mb: 1 }}>{t("bitbucketRepoDetails.resourceConstraints")}</FormLabel>
                 <Typography
                   level="body-xs"
                   sx={{ mb: 1.5, color: "var(--text-secondary)" }}
                 >
-                  Set Docker resource limits for containers created from this
-                  repository. Leave at 0 for no limit.
+                  {t("bitbucketRepoDetails.resourceConstraintsDescription")}
                 </Typography>
                 <Stack spacing={1.5}>
                   <FormControl>
-                    <FormLabel>Memory Limit (MB)</FormLabel>
+                    <FormLabel>{t("bitbucketRepoDetails.memoryLimit")}</FormLabel>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Input
                         size="sm"
@@ -1102,7 +1085,7 @@ function BitbucketRepositoryDetails({
                     </Stack>
                   </FormControl>
                   <FormControl>
-                    <FormLabel>CPU Limit (quota units, 100000 = 1 CPU)</FormLabel>
+                    <FormLabel>{t("bitbucketRepoDetails.cpuLimit")}</FormLabel>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Input
                         size="sm"
@@ -1148,7 +1131,7 @@ function BitbucketRepositoryDetails({
                     </Stack>
                   </FormControl>
                   <FormControl>
-                    <FormLabel>PID Limit (max processes)</FormLabel>
+                    <FormLabel>{t("bitbucketRepoDetails.pidLimit")}</FormLabel>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Input
                         size="sm"
@@ -1200,7 +1183,7 @@ function BitbucketRepositoryDetails({
                   onClick={handleCancelEditRearch}
                   disabled={savingRearch}
                 >
-                  Cancel
+                  {t("bitbucketRepoDetails.cancel")}
                 </Button>
                 <Button
                   data-testid="rearch-save-btn"
@@ -1212,7 +1195,7 @@ function BitbucketRepositoryDetails({
                   loading={savingRearch}
                   disabled={hasDuplicatePorts || loadingDockerfile}
                 >
-                  Save
+                  {t("bitbucketRepoDetails.save")}
                 </Button>
               </Stack>
             </Stack>
@@ -1231,14 +1214,14 @@ function BitbucketRepositoryDetails({
                     fontWeight="bold"
                     sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                   >
-                    ReArch Enabled
+                    {t("bitbucketRepoDetails.rearchEnabled")}
                   </Typography>
                   <Chip
                     size="sm"
                     variant="soft"
                     color={rearch?.enabled ? "success" : "neutral"}
                   >
-                    {rearch?.enabled ? "Enabled" : "Disabled"}
+                    {rearch?.enabled ? t("bitbucketRepoDetails.enabled") : t("bitbucketRepoDetails.disabled")}
                   </Chip>
                 </Box>
               </Box>
@@ -1248,7 +1231,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Template
+                  {t("bitbucketRepoDetails.template")}
                 </Typography>
                 {rearch?.template ? (
                   <Chip size="sm" variant="soft" color="success">
@@ -1260,7 +1243,7 @@ function BitbucketRepositoryDetails({
                     level="body-md"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    Custom (.rearch in repo)
+                    {t("bitbucketRepoDetails.customDockerfile")}
                   </Typography>
                 )}
               </Box>
@@ -1270,7 +1253,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Docker Image from Branch
+                  {t("bitbucketRepoDetails.dockerImageFromBranch")}
                 </Typography>
                 <Typography
                   level="body-md"
@@ -1281,7 +1264,7 @@ function BitbucketRepositoryDetails({
                   }}
                 >
                   {rearch?.dockerImageFromBranch ||
-                    "No branch selected. Click the edit button to select one."}
+                    t("bitbucketRepoDetails.noBranchSelected")}
                 </Typography>
               </Box>
               <Box>
@@ -1290,7 +1273,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Docker Image Tag
+                  {t("bitbucketRepoDetails.dockerImageTag")}
                 </Typography>
                 <Typography
                   level="body-md"
@@ -1301,7 +1284,7 @@ function BitbucketRepositoryDetails({
                     fontFamily: rearch?.dockerImage ? "monospace" : "inherit",
                   }}
                 >
-                  {rearch?.dockerImage || "Auto-generated on build"}
+                  {rearch?.dockerImage || t("bitbucketRepoDetails.autoGeneratedOnBuild")}
                 </Typography>
               </Box>
               <Box>
@@ -1310,7 +1293,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Container Services
+                  {t("bitbucketRepoDetails.containerServices")}
                 </Typography>
                 {rearch?.services && rearch.services.length > 0 ? (
                   <Stack spacing={0.5}>
@@ -1344,7 +1327,7 @@ function BitbucketRepositoryDetails({
                     level="body-md"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    No services configured.
+                    {t("bitbucketRepoDetails.noServicesConfiguredView")}
                   </Typography>
                 )}
               </Box>
@@ -1354,7 +1337,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Skills Repositories
+                  {t("bitbucketRepoDetails.skillsRepositories")}
                 </Typography>
                 {rearch?.skills && rearch.skills.length > 0 ? (
                   <Stack spacing={0.5}>
@@ -1379,7 +1362,7 @@ function BitbucketRepositoryDetails({
                     level="body-md"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    No repo-specific skills configured.
+                    {t("bitbucketRepoDetails.noRepoSpecificSkills")}
                   </Typography>
                 )}
               </Box>
@@ -1389,13 +1372,13 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Resource Constraints
+                  {t("bitbucketRepoDetails.resourceConstraints")}
                 </Typography>
                 {rearch?.resources && (rearch.resources.memoryMb > 0 || rearch.resources.cpuQuota > 0 || rearch.resources.pidsLimit > 0) ? (
                   <Stack spacing={0.5}>
                     {rearch.resources.memoryMb > 0 && (
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>Memory:</Typography>
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>{t("bitbucketRepoDetails.memory")}</Typography>
                         <Chip size="sm" variant="soft" color="primary">
                           {rearch.resources.memoryMb >= 1024
                             ? `${(rearch.resources.memoryMb / 1024).toFixed(rearch.resources.memoryMb % 1024 === 0 ? 0 : 1)} GB`
@@ -1405,7 +1388,7 @@ function BitbucketRepositoryDetails({
                     )}
                     {rearch.resources.cpuQuota > 0 && (
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>CPU:</Typography>
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>{t("bitbucketRepoDetails.cpu")}</Typography>
                         <Chip size="sm" variant="soft" color="primary">
                           {rearch.resources.cpuQuota / 100000} CPU(s)
                         </Chip>
@@ -1413,7 +1396,7 @@ function BitbucketRepositoryDetails({
                     )}
                     {rearch.resources.pidsLimit > 0 && (
                       <Stack direction="row" spacing={1} alignItems="center">
-                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>PIDs:</Typography>
+                        <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>{t("bitbucketRepoDetails.pids")}</Typography>
                         <Chip size="sm" variant="soft" color="primary">
                           {rearch.resources.pidsLimit}
                         </Chip>
@@ -1425,7 +1408,7 @@ function BitbucketRepositoryDetails({
                     level="body-md"
                     sx={{ color: "var(--text-secondary)" }}
                   >
-                    No resource constraints configured (unlimited).
+                    {t("bitbucketRepoDetails.noResourceConstraints")}
                   </Typography>
                 )}
               </Box>
@@ -1441,7 +1424,7 @@ function BitbucketRepositoryDetails({
             level="title-md"
             sx={{ mb: 2, color: "var(--text-primary)" }}
           >
-            Repository Details
+            {t("bitbucketRepoDetails.repositoryDetails")}
           </Typography>
           <Stack spacing={2}>
             {data?.fullName && (
@@ -1451,7 +1434,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Full Name
+                  {t("bitbucketRepoDetails.fullName")}
                 </Typography>
                 <Typography
                   level="body-lg"
@@ -1468,7 +1451,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Description
+                  {t("bitbucketRepoDetails.description")}
                 </Typography>
                 <Typography
                   level="body-lg"
@@ -1486,7 +1469,7 @@ function BitbucketRepositoryDetails({
                     fontWeight="bold"
                     sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                   >
-                    Language
+                    {t("bitbucketRepoDetails.language")}
                   </Typography>
                   <Chip
                     color="primary"
@@ -1504,7 +1487,7 @@ function BitbucketRepositoryDetails({
                     fontWeight="bold"
                     sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                   >
-                    Main Branch
+                    {t("bitbucketRepoDetails.mainBranch")}
                   </Typography>
                   <Chip
                     color="neutral"
@@ -1522,7 +1505,7 @@ function BitbucketRepositoryDetails({
                     fontWeight="bold"
                     sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                   >
-                    Size
+                    {t("bitbucketRepoDetails.size")}
                   </Typography>
                   <Typography
                     level="body-lg"
@@ -1540,7 +1523,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Owner
+                  {t("bitbucketRepoDetails.owner")}
                 </Typography>
                 <Typography
                   level="body-lg"
@@ -1557,7 +1540,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Project
+                  {t("bitbucketRepoDetails.project")}
                 </Typography>
                 <Typography
                   level="body-lg"
@@ -1578,7 +1561,7 @@ function BitbucketRepositoryDetails({
             level="title-md"
             sx={{ mb: 2, color: "var(--text-primary)" }}
           >
-            Metadata
+            {t("bitbucketRepoDetails.metadata")}
           </Typography>
           <Stack spacing={2}>
             <Box>
@@ -1587,7 +1570,7 @@ function BitbucketRepositoryDetails({
                 fontWeight="bold"
                 sx={{ color: "var(--text-secondary)", mb: 0.5 }}
               >
-                Created
+                {t("bitbucketRepoDetails.created")}
               </Typography>
               <Typography level="body-lg" sx={{ color: "var(--text-primary)" }}>
                 {formatDate(data?.createdOn || subResource.createdAt)}
@@ -1599,7 +1582,7 @@ function BitbucketRepositoryDetails({
                 fontWeight="bold"
                 sx={{ color: "var(--text-secondary)", mb: 0.5 }}
               >
-                Last Updated
+                {t("bitbucketRepoDetails.lastUpdated")}
               </Typography>
               <Typography level="body-lg" sx={{ color: "var(--text-primary)" }}>
                 {formatDate(data?.updatedOn || subResource.updatedAt)}
@@ -1612,7 +1595,7 @@ function BitbucketRepositoryDetails({
                   fontWeight="bold"
                   sx={{ color: "var(--text-secondary)", mb: 0.5 }}
                 >
-                  Last Synced
+                  {t("bitbucketRepoDetails.lastSynced")}
                 </Typography>
                 <Typography
                   level="body-lg"

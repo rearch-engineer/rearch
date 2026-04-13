@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Sheet,
@@ -123,6 +124,7 @@ function CostTooltip({ active, payload, label }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function UsageSettings() {
+  const { t } = useTranslation("Administration");
   // ── State ────────────────────────────────────────────────────────────
   const [dateFrom, setDateFrom] = useState(daysAgoStr(7));
   const [dateTo, setDateTo] = useState(toDateString(new Date()));
@@ -209,7 +211,7 @@ export default function UsageSettings() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography level="h3" sx={{ mb: 3 }}>
-          Usage
+          {t("usage.title")}
         </Typography>
       </Box>
 
@@ -247,7 +249,7 @@ export default function UsageSettings() {
             slotProps={{ input: { max: dateTo } }}
             sx={{ width: 150 }}
           />
-          <Typography level="body-sm" sx={{ color: "text.tertiary" }}>to</Typography>
+          <Typography level="body-sm" sx={{ color: "text.tertiary" }}>{t("usage.to")}</Typography>
           <Input
             type="date"
             size="sm"
@@ -260,13 +262,13 @@ export default function UsageSettings() {
           {/* User filter */}
           <Select
             size="sm"
-            placeholder="All users"
+            placeholder={t("usage.allUsers")}
             value={filterUserId}
             onChange={(_, val) => setFilterUserId(val || "")}
             sx={{ minWidth: 160 }}
             slotProps={{ listbox: { sx: { maxHeight: 280 } } }}
           >
-            <Option value="">All users</Option>
+            <Option value="">{t("usage.allUsers")}</Option>
             {filters.users.map((u) => (
               <Option key={u._id} value={u._id}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -285,13 +287,13 @@ export default function UsageSettings() {
           {/* Repo filter */}
           <Select
             size="sm"
-            placeholder="All repositories"
+            placeholder={t("usage.allRepositories")}
             value={filterSubResource}
             onChange={(_, val) => setFilterSubResource(val || "")}
             sx={{ minWidth: 200 }}
             slotProps={{ listbox: { sx: { maxHeight: 280 } } }}
           >
-            <Option value="">All repositories</Option>
+            <Option value="">{t("usage.allRepositories")}</Option>
             {Object.entries(groupedSubResources).map(([group, items]) => (
               <React.Fragment key={group}>
                 <Option disabled value={`__group_${group}`} sx={{ fontWeight: "bold", fontSize: "xs", opacity: 0.7 }}>
@@ -322,37 +324,37 @@ export default function UsageSettings() {
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
             <KpiCard
               icon={<AttachMoneyIcon />}
-              label="Total Cost"
+              label={t("usage.totalCost")}
               value={`$${data.summary.totalCost.toFixed(4)}`}
               sublabel={data.summary.currency}
             />
             <KpiCard
               icon={<ChatBubbleOutlineIcon />}
-              label="Conversations"
+              label={t("usage.conversations")}
               value={data.summary.totalConversations}
             />
             <KpiCard
               icon={<TrendingUpIcon />}
-              label="Avg Cost / Conversation"
+              label={t("usage.avgCostPerConversation")}
               value={`$${data.summary.avgCostPerConversation.toFixed(4)}`}
             />
             <KpiCard
               icon={<RadioButtonCheckedIcon />}
-              label="Active Conversations"
+              label={t("usage.activeConversations")}
               value={data.summary.activeConversations}
-              sublabel="Last message < 24h ago"
+              sublabel={t("usage.activeConversationsSublabel")}
             />
             <KpiCard
               icon={<MergeIcon />}
-              label="Pull Requests"
+              label={t("usage.pullRequests")}
               value={data.summary.totalPullRequests}
             />
             <KpiCard
               icon={<CallSplitIcon />}
-              label="Conversations with PRs"
+              label={t("usage.conversationsWithPRs")}
               value={data.summary.conversationsWithPRs}
               sublabel={data.summary.totalConversations > 0
-                ? `${Math.round((data.summary.conversationsWithPRs / data.summary.totalConversations) * 100)}% of total`
+                ? t("usage.percentOfTotal", { percent: Math.round((data.summary.conversationsWithPRs / data.summary.totalConversations) * 100) })
                 : undefined}
             />
           </Box>
@@ -361,7 +363,7 @@ export default function UsageSettings() {
 
           {/* Cost Over Time */}
           <Typography level="title-md" sx={{ mb: 2 }}>
-            Cost Over Time
+            {t("usage.costOverTime")}
           </Typography>
           <Sheet
             variant="outlined"
@@ -386,7 +388,7 @@ export default function UsageSettings() {
                   <Line
                     type="monotone"
                     dataKey="cost"
-                    name="Cost (USD)"
+                    name={t("usage.costUSD")}
                     stroke="#1976d2"
                     strokeWidth={2}
                     dot={{ r: 3 }}
@@ -397,7 +399,7 @@ export default function UsageSettings() {
             ) : (
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                 <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                  No data for selected period
+                  {t("usage.noDataForPeriod")}
                 </Typography>
               </Box>
             )}
@@ -405,7 +407,7 @@ export default function UsageSettings() {
 
           {/* Conversations Over Time */}
           <Typography level="title-md" sx={{ mb: 2 }}>
-            Conversations Over Time
+            {t("usage.conversationsOverTime")}
           </Typography>
           <Sheet
             variant="outlined"
@@ -425,7 +427,7 @@ export default function UsageSettings() {
                   <Legend />
                   <Bar
                     dataKey="count"
-                    name="Conversations"
+                    name={t("usage.conversationsLabel")}
                     fill="#42a5f5"
                     radius={[4, 4, 0, 0]}
                   />
@@ -434,7 +436,7 @@ export default function UsageSettings() {
             ) : (
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                 <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                  No data for selected period
+                  {t("usage.noDataForPeriod")}
                 </Typography>
               </Box>
             )}
@@ -442,7 +444,7 @@ export default function UsageSettings() {
 
           {/* Pull Requests Over Time */}
           <Typography level="title-md" sx={{ mb: 2 }}>
-            Pull Requests Over Time
+            {t("usage.pullRequestsOverTime")}
           </Typography>
           <Sheet
             variant="outlined"
@@ -462,7 +464,7 @@ export default function UsageSettings() {
                   <Legend />
                   <Bar
                     dataKey="count"
-                    name="Pull Requests"
+                    name={t("usage.pullRequestsLabel")}
                     fill="#ab47bc"
                     radius={[4, 4, 0, 0]}
                   />
@@ -471,7 +473,7 @@ export default function UsageSettings() {
             ) : (
               <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                 <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                  No data for selected period
+                  {t("usage.noDataForPeriod")}
                 </Typography>
               </Box>
             )}
@@ -488,7 +490,7 @@ export default function UsageSettings() {
             {/* Cost per User */}
             <Box>
               <Typography level="title-md" sx={{ mb: 2 }}>
-                Cost per User
+                {t("usage.costPerUser")}
               </Typography>
               <Sheet
                 variant="outlined"
@@ -515,11 +517,11 @@ export default function UsageSettings() {
                         tick={{ fontSize: 11 }}
                       />
                       <Tooltip
-                        formatter={(value) => [`$${value.toFixed(4)}`, "Cost"]}
+                        formatter={(value) => [`$${value.toFixed(4)}`, t("usage.tableCost")]}
                       />
                       <Bar
                         dataKey="cost"
-                        name="Cost (USD)"
+                        name={t("usage.costUSD")}
                         fill="#66bb6a"
                         radius={[0, 4, 4, 0]}
                       />
@@ -528,7 +530,7 @@ export default function UsageSettings() {
                 ) : (
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                     <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                      No data
+                      {t("usage.noData")}
                     </Typography>
                   </Box>
                 )}
@@ -538,7 +540,7 @@ export default function UsageSettings() {
             {/* Cost per Resource/Repo */}
             <Box>
               <Typography level="title-md" sx={{ mb: 2 }}>
-                Cost per Repository
+                {t("usage.costPerRepository")}
               </Typography>
               <Sheet
                 variant="outlined"
@@ -565,11 +567,11 @@ export default function UsageSettings() {
                         tick={{ fontSize: 11 }}
                       />
                       <Tooltip
-                        formatter={(value) => [`$${value.toFixed(4)}`, "Cost"]}
+                        formatter={(value) => [`$${value.toFixed(4)}`, t("usage.tableCost")]}
                       />
                       <Bar
                         dataKey="cost"
-                        name="Cost (USD)"
+                        name={t("usage.costUSD")}
                         fill="#ffa726"
                         radius={[0, 4, 4, 0]}
                       />
@@ -578,7 +580,7 @@ export default function UsageSettings() {
                 ) : (
                   <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                     <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                      No data
+                      {t("usage.noData")}
                     </Typography>
                   </Box>
                 )}
@@ -599,7 +601,7 @@ export default function UsageSettings() {
             {/* Conversations Table */}
             <Box>
               <Typography level="title-md" sx={{ mb: 2 }}>
-                Conversations ({data.conversationsList?.length || 0})
+                {t("usage.conversationsCount", { count: data.conversationsList?.length || 0 })}
               </Typography>
               <Sheet
                 variant="outlined"
@@ -619,12 +621,12 @@ export default function UsageSettings() {
                 >
                   <thead>
                     <tr>
-                      <th>Title</th>
-                      <th>User</th>
-                      <th>Repository</th>
-                      <th style={{ textAlign: "right" }}>Cost</th>
-                      <th style={{ textAlign: "right" }}>PRs</th>
-                      <th>Created</th>
+                      <th>{t("usage.tableTitle")}</th>
+                      <th>{t("usage.tableUser")}</th>
+                      <th>{t("usage.tableRepository")}</th>
+                      <th style={{ textAlign: "right" }}>{t("usage.tableCost")}</th>
+                      <th style={{ textAlign: "right" }}>{t("usage.tablePRs")}</th>
+                      <th>{t("usage.tableCreated")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -632,7 +634,7 @@ export default function UsageSettings() {
                       <tr>
                         <td colSpan={6} style={{ textAlign: "center", padding: "2rem" }}>
                           <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                            No conversations for selected period
+                            {t("usage.noConversationsForPeriod")}
                           </Typography>
                         </td>
                       </tr>
@@ -692,7 +694,7 @@ export default function UsageSettings() {
             {/* Pull Requests Table */}
             <Box>
               <Typography level="title-md" sx={{ mb: 2 }}>
-                Pull Requests ({data.pullRequestsList?.length || 0})
+                {t("usage.pullRequestsCount", { count: data.pullRequestsList?.length || 0 })}
               </Typography>
               <Sheet
                 variant="outlined"
@@ -712,11 +714,11 @@ export default function UsageSettings() {
                 >
                   <thead>
                     <tr>
-                      <th>Title</th>
-                      <th>Branch</th>
-                      <th>Conversation</th>
-                      <th>Created By</th>
-                      <th>Created</th>
+                      <th>{t("usage.tableTitle")}</th>
+                      <th>{t("usage.tableBranch")}</th>
+                      <th>{t("usage.tableConversation")}</th>
+                      <th>{t("usage.tableCreatedBy")}</th>
+                      <th>{t("usage.tableCreated")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -724,7 +726,7 @@ export default function UsageSettings() {
                       <tr>
                         <td colSpan={5} style={{ textAlign: "center", padding: "2rem" }}>
                           <Typography level="body-sm" sx={{ color: "text.tertiary" }}>
-                            No pull requests for selected period
+                            {t("usage.noPullRequestsForPeriod")}
                           </Typography>
                         </td>
                       </tr>

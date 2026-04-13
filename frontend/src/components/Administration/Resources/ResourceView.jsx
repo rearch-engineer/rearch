@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from "react-i18next";
 import {
   Modal,
   ModalDialog,
@@ -10,6 +11,7 @@ import {
 } from '@mui/joy';
 
 function ResourceView({ open, onClose, resource }) {
+  const { t } = useTranslation("Administration");
   if (!resource) return null;
 
   const renderDataDetails = () => {
@@ -17,11 +19,11 @@ function ResourceView({ open, onClose, resource }) {
       return (
         <Stack spacing={1}>
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Workspace:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.workspace")}</Typography>
             <Typography level="body-md">{resource.data.workspace}</Typography>
           </Box>
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Username:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.username")}</Typography>
             <Typography level="body-md">{resource.data.username}</Typography>
           </Box>
         </Stack>
@@ -34,31 +36,31 @@ function ResourceView({ open, onClose, resource }) {
       <ModalDialog sx={{ minWidth: 500 }}>
         <ModalClose />
         <Typography level="h4" sx={{ mb: 2 }}>
-          Resource Details
+          {t("resourceView.resourceDetails")}
         </Typography>
 
         <Stack spacing={2}>
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Name:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.name")}</Typography>
             <Typography level="h5">{resource.name}</Typography>
           </Box>
 
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Provider:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.provider")}</Typography>
             <Chip color="primary" variant="soft" sx={{ mt: 0.5 }}>
               {resource.provider}
             </Chip>
           </Box>
 
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Created:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.created")}</Typography>
             <Typography level="body-md">
               {new Date(resource.createdAt).toLocaleString()}
             </Typography>
           </Box>
 
           <Box>
-            <Typography level="body-sm" fontWeight="bold">Last Updated:</Typography>
+            <Typography level="body-sm" fontWeight="bold">{t("resourceView.lastUpdated")}</Typography>
             <Typography level="body-md">
               {new Date(resource.updatedAt).toLocaleString()}
             </Typography>
@@ -66,7 +68,7 @@ function ResourceView({ open, onClose, resource }) {
 
           <Box sx={{ mt: 2 }}>
             <Typography level="body-sm" fontWeight="bold" sx={{ mb: 1 }}>
-              Data:
+              {t("resourceView.data")}
             </Typography>
             {renderDataDetails()}
           </Box>

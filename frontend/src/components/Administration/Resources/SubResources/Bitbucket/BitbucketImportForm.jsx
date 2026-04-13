@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useTranslation } from "react-i18next";
 import { Input, Button, List, ListItem, ListItemButton, Typography, CircularProgress, Stack, Chip } from '@mui/joy';
 import { Search } from '@mui/icons-material';
 import { api } from '../../../../../api/client';
 import { useToast } from '../../../../../contexts/ToastContext';
 
 function BitbucketImportForm({ resource, onImportSuccess }) {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -17,7 +19,7 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
       const results = await api.searchSubResources(resource._id, searchQuery);
       setSearchResults(results);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to search repositories');
+      toast.error(err.response?.data?.error || t("bitbucketImport.failedToSearchRepositories"));
       setSearchResults([]);
     } finally {
       setSearching(false);
@@ -34,7 +36,7 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
       });
       onImportSuccess();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to import repository');
+      toast.error(err.response?.data?.error || t("bitbucketImport.failedToImportRepository"));
     } finally {
       setImporting(null);
     }
@@ -49,13 +51,13 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
   return (
     <Stack spacing={2}>
       <Typography level="body-sm" color="neutral">
-        Search for Bitbucket repositories to import
+        {t("bitbucketImport.searchDescription")}
       </Typography>
 
       <Stack direction="row" spacing={1}>
         <Input
           data-testid="import-search-input"
-          placeholder="Search repositories..."
+          placeholder={t("bitbucketImport.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -68,7 +70,7 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
           onClick={handleSearch}
           loading={searching}
         >
-          Search
+          {t("bitbucketImport.search")}
         </Button>
       </Stack>
 
@@ -100,7 +102,7 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
                   <CircularProgress size="sm" />
                 ) : (
                   <Chip size="sm" variant="soft" color="primary">
-                    Import
+                    {t("bitbucketImport.import")}
                   </Chip>
                 )}
               </ListItemButton>
@@ -111,7 +113,7 @@ function BitbucketImportForm({ resource, onImportSuccess }) {
 
       {!searching && searchResults.length === 0 && searchQuery && (
         <Typography level="body-sm" color="neutral" textAlign="center" sx={{ py: 2 }}>
-          No repositories found
+          {t("bitbucketImport.noRepositoriesFound")}
         </Typography>
       )}
     </Stack>

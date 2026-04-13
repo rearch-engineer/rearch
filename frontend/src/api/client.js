@@ -558,6 +558,48 @@ export const api = {
     return response.data;
   },
 
+  // Admin Resources (includes full data field)
+  getAdminResources: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/resources`);
+    return response.data;
+  },
+
+  getAdminResource: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/resources/${id}`);
+    return response.data;
+  },
+
+  getAdminSubResources: async (resourceId) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
+    );
+    return response.data;
+  },
+
+  getAdminSubResource: async (resourceId, subResourceId) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
+    );
+    return response.data;
+  },
+
+  getAllAdminSubResources: async (type) => {
+    const params = type ? `?type=${encodeURIComponent(type)}` : "";
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/subresources${params}`,
+    );
+    return response.data;
+  },
+
+  getAdminSubResourceDockerfile: async (resourceId, subResourceId, ref) => {
+    const params = ref ? { ref } : {};
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/dockerfile`,
+      { params },
+    );
+    return response.data;
+  },
+
   createResource: async (data) => {
     const response = await axios.post(`${API_BASE_URL}/admin/resources`, data);
     return response.data;
@@ -671,12 +713,6 @@ export const api = {
       `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}/dockerfile`,
       { params },
     );
-    return response.data;
-  },
-
-  // Tools
-  getTools: async () => {
-    const response = await axios.get(`${API_BASE_URL}/tools`);
     return response.data;
   },
 

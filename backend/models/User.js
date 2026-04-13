@@ -48,9 +48,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
       },
-      notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: false }
+      language: {
+        type: String,
+        enum: ['en', 'es', 'fr', 'nl'],
+        default: 'en'
       }
     }
   },

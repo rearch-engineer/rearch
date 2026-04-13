@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/joy';
 import { ArrowBack } from '@mui/icons-material';
@@ -6,6 +7,7 @@ import { api } from '../../../api/client';
 import BitbucketRepositoryDetails from './SubResources/Bitbucket/BitbucketRepositoryDetails';
 
 function SubResourceDetailsPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const { id, subId } = useParams();
   const [subResource, setSubResource] = useState(null);
@@ -19,15 +21,15 @@ function SubResourceDetailsPage() {
       try {
         setLoading(true);
         setError(null);
-        const foundSubResource = await api.getSubResource(id, subId);
+        const foundSubResource = await api.getAdminSubResource(id, subId);
         if (foundSubResource) {
           setSubResource(foundSubResource);
         } else {
-          setError('Subresource not found');
+          setError(t("subResourceDetails.subresourceNotFound"));
         }
       } catch (error) {
         console.error('Error loading subresource:', error);
-        setError(error.message || 'Failed to load subresource');
+        setError(error.message || t("subResourceDetails.failedToLoadSubresource"));
       } finally {
         setLoading(false);
       }
@@ -50,7 +52,7 @@ function SubResourceDetailsPage() {
       await api.deleteSubResource(subResource.resource, subResource._id);
       navigate(`/administration/resources/${subResource.resource}/subresources`);
     } catch (err) {
-      setDeleteError(err.response?.data?.error || err.message || 'Failed to delete subresource');
+      setDeleteError(err.response?.data?.error || err.message || t("subResourceDetails.failedToLoadSubresource"));
     } finally {
       setDeleting(false);
     }
@@ -74,7 +76,7 @@ function SubResourceDetailsPage() {
         return (
           <Box sx={{ textAlign: 'center', mt: 4 }}>
             <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>
-              Unknown subresource type: {subResource.type}
+              {t("subResourceDetails.unknownSubresourceType", { type: subResource.type })}
             </Typography>
           </Box>
         );
@@ -93,7 +95,7 @@ function SubResourceDetailsPage() {
           color: 'var(--text-primary)',
         }}
       >
-        <Typography level="body-lg">Loading subresource...</Typography>
+        <Typography level="body-lg">{t("subResourceDetails.loadingSubresource")}</Typography>
       </Box>
     );
   }
@@ -120,7 +122,7 @@ function SubResourceDetailsPage() {
           startDecorator={<ArrowBack />}
           onClick={() => navigate(`/administration/resources/${id}/subresources`)}
         >
-          Back to list
+          {t("subResourceDetails.backToList")}
         </Button>
       </Box>
     );

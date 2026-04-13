@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Box,
@@ -54,6 +55,7 @@ const BitbucketIcon = ({ size = 48 }) => (
 );
 
 function BitbucketResourceForm() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
@@ -77,7 +79,7 @@ function BitbucketResourceForm() {
   const loadResource = async (resourceId) => {
     try {
       setLoading(true);
-      const resources = await api.getResources();
+      const resources = await api.getAdminResources();
       const resource = resources.find((r) => r._id === resourceId);
       if (resource) {
         setFormData({
@@ -101,14 +103,14 @@ function BitbucketResourceForm() {
       formData.name.length < 2 ||
       formData.name.length > 100
     ) {
-      newErrors.name = "Name must be between 2 and 100 characters";
+      newErrors.name = t("bitbucketResourceForm.nameError");
     }
 
-    if (!formData.data.workspace) newErrors.workspace = "Workspace is required";
-    if (!formData.data.email) newErrors.email = "Email is required";
+    if (!formData.data.workspace) newErrors.workspace = t("bitbucketResourceForm.workspaceRequired");
+    if (!formData.data.email) newErrors.email = t("bitbucketResourceForm.emailRequired");
     if (!formData.data.cloneUsername)
-      newErrors.cloneUsername = "Clone Username is required";
-    if (!formData.data.apiToken) newErrors.apiToken = "API Token is required";
+      newErrors.cloneUsername = t("bitbucketResourceForm.cloneUsernameRequired");
+    if (!formData.data.apiToken) newErrors.apiToken = t("bitbucketResourceForm.apiTokenRequired");
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,7 +133,7 @@ function BitbucketResourceForm() {
       navigate("/administration/resources");
     } catch (error) {
       console.error("Error submitting form:", error);
-      setErrors({ submit: "Failed to save resource. Please try again." });
+      setErrors({ submit: t("bitbucketResourceForm.failedToSave") });
     } finally {
       setLoading(false);
     }
@@ -157,7 +159,7 @@ function BitbucketResourceForm() {
           color: "var(--text-primary)",
         }}
       >
-        <Typography>Loading resource...</Typography>
+        <Typography>{t("bitbucketResourceForm.loadingResource")}</Typography>
       </Box>
     );
   }
@@ -187,7 +189,7 @@ function BitbucketResourceForm() {
           }
           sx={{ mb: 2 }}
         >
-          {isEditMode ? "Resources" : "Add a Resource"}
+          {isEditMode ? t("bitbucketResourceForm.backToResources") : t("bitbucketResourceForm.backToAddResource")}
         </Button>
 
         {/* Header with icon - matches marketplace style */}
@@ -217,7 +219,7 @@ function BitbucketResourceForm() {
                   fontSize: { xs: "1.5rem", md: "1.75rem" },
                 }}
               >
-                {isEditMode ? "Edit Bitbucket Resource" : "Connect Bitbucket"}
+                {isEditMode ? t("bitbucketResourceForm.editBitbucketResource") : t("bitbucketResourceForm.connectBitbucket")}
               </Typography>
             </Stack>
             <Typography
@@ -228,8 +230,7 @@ function BitbucketResourceForm() {
                 mt: 0.5,
               }}
             >
-              Connect to Bitbucket workspaces and repositories to bring your
-              code activity into context.
+              {t("bitbucketResourceForm.connectDescription")}
             </Typography>
           </Box>
         </Box>
@@ -247,7 +248,7 @@ function BitbucketResourceForm() {
             <Stack spacing={3}>
               <FormControl error={!!errors.name}>
                 <FormLabel sx={{ color: "var(--text-secondary)" }}>
-                  Name
+                  {t("bitbucketResourceForm.name")}
                 </FormLabel>
                 <Input
                   data-testid="bb-resource-name"
@@ -255,7 +256,7 @@ function BitbucketResourceForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Resource name"
+                  placeholder={t("bitbucketResourceForm.namePlaceholder")}
                   size="lg"
                   sx={{
                     bgcolor: "var(--bg-secondary)",
@@ -267,7 +268,7 @@ function BitbucketResourceForm() {
 
               <FormControl error={!!errors.workspace}>
                 <FormLabel sx={{ color: "var(--text-secondary)" }}>
-                  Workspace
+                  {t("bitbucketResourceForm.workspace")}
                 </FormLabel>
                 <Input
                   data-testid="bb-resource-workspace"
@@ -275,7 +276,7 @@ function BitbucketResourceForm() {
                   onChange={(e) =>
                     handleDataChange("workspace", e.target.value)
                   }
-                  placeholder="your-workspace-slug"
+                  placeholder={t("bitbucketResourceForm.workspacePlaceholder")}
                   size="lg"
                   sx={{
                     bgcolor: "var(--bg-secondary)",
@@ -289,13 +290,13 @@ function BitbucketResourceForm() {
 
               <FormControl error={!!errors.email}>
                 <FormLabel sx={{ color: "var(--text-secondary)" }}>
-                  Email
+                  {t("bitbucketResourceForm.email")}
                 </FormLabel>
                 <Input
                   data-testid="bb-resource-email"
                   value={formData.data.email || ""}
                   onChange={(e) => handleDataChange("email", e.target.value)}
-                  placeholder="your-email@example.com"
+                  placeholder={t("bitbucketResourceForm.emailPlaceholder")}
                   type="email"
                   size="lg"
                   sx={{
@@ -310,7 +311,7 @@ function BitbucketResourceForm() {
 
               <FormControl error={!!errors.cloneUsername}>
                 <FormLabel sx={{ color: "var(--text-secondary)" }}>
-                  Clone Username
+                  {t("bitbucketResourceForm.cloneUsername")}
                 </FormLabel>
                 <Input
                   data-testid="bb-resource-clone-username"
@@ -318,7 +319,7 @@ function BitbucketResourceForm() {
                   onChange={(e) =>
                     handleDataChange("cloneUsername", e.target.value)
                   }
-                  placeholder="your-bitbucket-username"
+                  placeholder={t("bitbucketResourceForm.cloneUsernamePlaceholder")}
                   size="lg"
                   sx={{
                     bgcolor: "var(--bg-secondary)",
@@ -332,13 +333,13 @@ function BitbucketResourceForm() {
 
               <FormControl error={!!errors.apiToken}>
                 <FormLabel sx={{ color: "var(--text-secondary)" }}>
-                  API Token
+                  {t("bitbucketResourceForm.apiToken")}
                 </FormLabel>
                 <Input
                   data-testid="bb-resource-api-token"
                   value={formData.data.apiToken || ""}
                   onChange={(e) => handleDataChange("apiToken", e.target.value)}
-                  placeholder="Your Bitbucket API Token"
+                  placeholder={t("bitbucketResourceForm.apiTokenPlaceholder")}
                   type="password"
                   size="lg"
                   sx={{
@@ -377,7 +378,7 @@ function BitbucketResourceForm() {
                     },
                   }}
                 >
-                  How to get your Bitbucket credentials
+                  {t("bitbucketResourceForm.howToGetCredentials")}
                 </Button>
                 {showHelp && (
                   <Box
@@ -393,7 +394,7 @@ function BitbucketResourceForm() {
                           level="title-sm"
                           sx={{ mb: 0.5, color: "var(--text-secondary)" }}
                         >
-                          Workspace
+                          {t("bitbucketResourceForm.helpWorkspace")}
                         </Typography>
                         <List
                           marker="decimal"
@@ -404,13 +405,13 @@ function BitbucketResourceForm() {
                           }}
                         >
                           <ListItem>
-                            Log in to Bitbucket in your browser.
+                            {t("bitbucketResourceForm.helpWorkspaceStep1")}
                           </ListItem>
                           <ListItem>
-                            Click on your workspace name in the top navigation.
+                            {t("bitbucketResourceForm.helpWorkspaceStep2")}
                           </ListItem>
                           <ListItem>
-                            The workspace slug is visible in the URL:{" "}
+                            {t("bitbucketResourceForm.helpWorkspaceStep3")}{" "}
                             <Typography
                               level="body-xs"
                               fontFamily="monospace"
@@ -428,14 +429,13 @@ function BitbucketResourceForm() {
                           level="title-sm"
                           sx={{ mb: 0.5, color: "var(--text-secondary)" }}
                         >
-                          Email
+                          {t("bitbucketResourceForm.helpEmail")}
                         </Typography>
                         <Typography
                           level="body-sm"
                           sx={{ color: "var(--text-tertiary)" }}
                         >
-                          Use the email address associated with your
-                          Atlassian/Bitbucket account.
+                          {t("bitbucketResourceForm.helpEmailDescription")}
                         </Typography>
                       </Box>
 
@@ -444,7 +444,7 @@ function BitbucketResourceForm() {
                           level="title-sm"
                           sx={{ mb: 0.5, color: "var(--text-secondary)" }}
                         >
-                          Clone Username
+                          {t("bitbucketResourceForm.helpCloneUsername")}
                         </Typography>
                         <List
                           marker="decimal"
@@ -455,7 +455,7 @@ function BitbucketResourceForm() {
                           }}
                         >
                           <ListItem>
-                            Go to{" "}
+                            {t("bitbucketResourceForm.helpCloneUsernameStep1")}{" "}
                             <Typography
                               level="body-xs"
                               fontFamily="monospace"
@@ -466,9 +466,7 @@ function BitbucketResourceForm() {
                             </Typography>
                           </ListItem>
                           <ListItem>
-                            Your username is displayed under "Bitbucket profile
-                            settings". This is the username used for HTTPS clone
-                            operations.
+                            {t("bitbucketResourceForm.helpCloneUsernameStep2")}
                           </ListItem>
                         </List>
                       </Box>
@@ -478,7 +476,7 @@ function BitbucketResourceForm() {
                           level="title-sm"
                           sx={{ mb: 0.5, color: "var(--text-secondary)" }}
                         >
-                          API Token
+                          {t("bitbucketResourceForm.helpApiToken")}
                         </Typography>
                         <List
                           marker="decimal"
@@ -489,7 +487,7 @@ function BitbucketResourceForm() {
                           }}
                         >
                           <ListItem>
-                            Go to{" "}
+                            {t("bitbucketResourceForm.helpApiTokenStep1")}{" "}
                             <Typography
                               level="body-xs"
                               fontFamily="monospace"
@@ -500,17 +498,17 @@ function BitbucketResourceForm() {
                             </Typography>
                           </ListItem>
                           <ListItem>
-                            Click "Create API token with scopes".
+                            {t("bitbucketResourceForm.helpApiTokenStep2")}
                           </ListItem>
                           <ListItem>
-                            Give it a name (e.g. "Chat Integration").
+                            {t("bitbucketResourceForm.helpApiTokenStep3")}
                           </ListItem>
                           <ListItem>
-                            Choose the desired expiration date.
+                            {t("bitbucketResourceForm.helpApiTokenStep4")}
                           </ListItem>
-                          <ListItem>Choose Bitbucket.</ListItem>
+                          <ListItem>{t("bitbucketResourceForm.helpApiTokenStep5")}</ListItem>
                           <ListItem>
-                            Select the scopes:{" "}
+                            {t("bitbucketResourceForm.helpApiTokenStep6")}{" "}
                             <Typography
                               level="body-xs"
                               fontFamily="monospace"
@@ -530,8 +528,7 @@ function BitbucketResourceForm() {
                             </Typography>
                           </ListItem>
                           <ListItem>
-                            Copy the generated token and paste it into the field
-                            above.
+                            {t("bitbucketResourceForm.helpApiTokenStep7")}
                           </ListItem>
                         </List>
                       </Box>
@@ -558,7 +555,7 @@ function BitbucketResourceForm() {
                     "&:hover": { bgcolor: "#0747A6" },
                   }}
                 >
-                  {isEditMode ? "Update Resource" : "Create Resource"}
+                  {isEditMode ? t("bitbucketResourceForm.updateResource") : t("bitbucketResourceForm.createResource")}
                 </Button>
                 <Button
                   variant="outlined"
@@ -574,7 +571,7 @@ function BitbucketResourceForm() {
                   disabled={loading}
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Cancel
+                  {t("bitbucketResourceForm.cancel")}
                 </Button>
               </Stack>
             </Stack>

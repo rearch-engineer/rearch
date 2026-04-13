@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -61,6 +62,7 @@ const providerMeta = {
 };
 
 function ResourceCard({ resource, onClick, onDelete }) {
+  const { t } = useTranslation("Administration");
   const meta = providerMeta[resource.provider] || {
     label: resource.provider,
     category: "Integration",
@@ -201,7 +203,7 @@ function ResourceCard({ resource, onClick, onDelete }) {
                 color: "#dc2626",
               },
             }}
-            title="Delete resource"
+            title={t("resources.deleteResource")}
           >
             <Delete sx={{ fontSize: 16 }} />
           </Box>
@@ -212,6 +214,7 @@ function ResourceCard({ resource, onClick, onDelete }) {
 }
 
 function ResourceListPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const [resources, setResources] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -226,7 +229,7 @@ function ResourceListPage() {
   const loadResources = async () => {
     try {
       setLoading(true);
-      const data = await api.getResources();
+      const data = await api.getAdminResources();
       setResources(data);
     } catch (error) {
       console.error("Error loading resources:", error);
@@ -268,14 +271,14 @@ function ResourceListPage() {
       {/* Header */}
       <Box sx={{ maxWidth: 960, mx: "auto", mb: 4 }}>
         <Typography level="h3" sx={{ mb: 3 }}>
-          Resources
+          {t("resources.title")}
         </Typography>
       </Box>
 
       {/* Search & actions */}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ maxWidth: 960, mx: "auto", mb: 3 }}>
         <Input
-          placeholder="Search resources..."
+          placeholder={t("resources.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           startDecorator={<Search sx={{ color: "var(--text-secondary)" }} />}
@@ -293,7 +296,7 @@ function ResourceListPage() {
           onClick={() => navigate("/administration/resources/new")}
           sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
         >
-          Connect
+          {t("resources.connect")}
         </Button>
       </Stack>
 
@@ -302,7 +305,7 @@ function ResourceListPage() {
         {loading ? (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-              Loading resources...
+              {t("resources.loadingResources")}
             </Typography>
           </Box>
         ) : filteredResources.length === 0 ? (
@@ -314,13 +317,13 @@ function ResourceListPage() {
                     level="body-lg"
                     sx={{ color: "var(--text-secondary)", mb: 1 }}
                   >
-                    No resources match "{searchQuery}"
+                    {t("resources.noResourcesMatch", { query: searchQuery })}
                   </Typography>
                   <Typography
                     level="body-sm"
                     sx={{ color: "var(--text-tertiary)" }}
                   >
-                    Try a different search term
+                    {t("resources.tryDifferentSearch")}
                   </Typography>
                 </>
               ) : (
@@ -329,13 +332,13 @@ function ResourceListPage() {
                     level="body-lg"
                     sx={{ color: "var(--text-secondary)", mb: 1 }}
                   >
-                    No resources yet
+                    {t("resources.noResourcesYet")}
                   </Typography>
                   <Typography
                     level="body-sm"
                     sx={{ color: "var(--text-tertiary)", mb: 3 }}
                   >
-                    Connect your first integration to get started
+                    {t("resources.connectFirstIntegration")}
                   </Typography>
                   <Button
                     variant="soft"
@@ -343,7 +346,7 @@ function ResourceListPage() {
                     startDecorator={<Add />}
                     onClick={() => navigate("/administration/resources/new")}
                   >
-                    Add Resource
+                    {t("resources.addResource")}
                   </Button>
                 </>
               )}
@@ -372,20 +375,20 @@ function ResourceListPage() {
       >
         <ModalDialog variant="outlined" role="alertdialog">
           <ModalClose />
-          <Typography level="h4">Confirm Delete</Typography>
+          <Typography level="h4">{t("resources.confirmDelete")}</Typography>
           <Typography>
-            Are you sure you want to delete "{resourceToDelete?.name}"?
+            {t("resources.confirmDeleteMessage", { name: resourceToDelete?.name })}
           </Typography>
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
             <Button color="danger" onClick={handleDeleteConfirm}>
-              Delete
+              {t("resources.delete")}
             </Button>
             <Button
               variant="outlined"
               color="neutral"
               onClick={() => setDeleteConfirmOpen(false)}
             >
-              Cancel
+              {t("resources.cancel")}
             </Button>
           </Stack>
         </ModalDialog>

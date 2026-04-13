@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { CssVarsProvider } from '@mui/joy/styles';
 import InitColorSchemeScript from '@mui/joy/InitColorSchemeScript';
 import CssBaseline from '@mui/joy/CssBaseline';
+import './i18n';
 import './index.css';
 import App from './App';
 

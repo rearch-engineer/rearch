@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -19,7 +20,7 @@ import {
   ModalClose,
   Chip,
   AspectRatio,
-
+  Table,
 } from "@mui/joy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -91,6 +92,7 @@ const ICON_OPTIONS = [
 ];
 
 export default function SuggestedPromptsSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const confirm = useConfirm();
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -130,7 +132,7 @@ export default function SuggestedPromptsSettings() {
       const data = await api.getSuggestedPromptCategories();
       setCategories(data);
     } catch (err) {
-      toast.error("Failed to load categories: " + err.message);
+      toast.error(t("suggestedPrompts.failedToLoadCategories", { message: err.message }));
     } finally {
       setLoadingCategories(false);
     }
@@ -158,10 +160,10 @@ export default function SuggestedPromptsSettings() {
       setSavingCategory(true);
       if (editingCategory) {
         await api.updateSuggestedPromptCategory(editingCategory._id, categoryForm);
-        toast.success("Category updated");
+        toast.success(t("suggestedPrompts.categoryUpdated"));
       } else {
         await api.createSuggestedPromptCategory(categoryForm);
-        toast.success("Category created");
+        toast.success(t("suggestedPrompts.categoryCreated"));
       }
       setCategoryModalOpen(false);
       setCategoryForm(EMPTY_CATEGORY);
@@ -169,22 +171,22 @@ export default function SuggestedPromptsSettings() {
       loadCategories();
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
-      toast.error("Failed to save category: " + msg);
+      toast.error(t("suggestedPrompts.failedToSaveCategory", { message: msg }));
     } finally {
       setSavingCategory(false);
     }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!(await confirm({ title: "Delete Category", message: "Delete this category and all its prompts? This cannot be undone.", confirmText: "Delete", confirmColor: "danger" }))) return;
+    if (!(await confirm({ title: t("suggestedPrompts.deleteCategory"), message: t("suggestedPrompts.deleteCategoryConfirm"), confirmText: t("suggestedPrompts.delete"), confirmColor: "danger" }))) return;
     try {
       await api.deleteSuggestedPromptCategory(id);
-      toast.success("Category and its prompts deleted");
+      toast.success(t("suggestedPrompts.categoryAndPromptsDeleted"));
       loadCategories();
       loadPrompts();
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
-      toast.error("Failed to delete category: " + msg);
+      toast.error(t("suggestedPrompts.failedToDeleteCategory", { message: msg }));
     }
   };
 
@@ -203,7 +205,7 @@ export default function SuggestedPromptsSettings() {
       const data = await api.getSuggestedPrompts();
       setPrompts(data);
     } catch (err) {
-      toast.error("Failed to load prompts: " + err.message);
+      toast.error(t("suggestedPrompts.failedToLoadPrompts", { message: err.message }));
     } finally {
       setLoadingPrompts(false);
     }
@@ -273,10 +275,10 @@ export default function SuggestedPromptsSettings() {
 
       if (editingPrompt) {
         await api.updateSuggestedPrompt(editingPrompt._id, formData);
-        toast.success("Prompt updated");
+        toast.success(t("suggestedPrompts.promptUpdated"));
       } else {
         await api.createSuggestedPrompt(formData);
-        toast.success("Prompt created");
+        toast.success(t("suggestedPrompts.promptCreated"));
       }
       setPromptModalOpen(false);
       setPromptForm(EMPTY_PROMPT);
@@ -294,20 +296,20 @@ export default function SuggestedPromptsSettings() {
           .join("; ");
         if (fieldErrors) msg += ` (${fieldErrors})`;
       }
-      toast.error("Failed to save prompt: " + msg);
+      toast.error(t("suggestedPrompts.failedToSavePrompt", { message: msg }));
     } finally {
       setSavingPrompt(false);
     }
   };
 
   const handleDeletePrompt = async (id) => {
-    if (!(await confirm({ title: "Delete Prompt", message: "Delete this suggested prompt?", confirmText: "Delete", confirmColor: "danger" }))) return;
+    if (!(await confirm({ title: t("suggestedPrompts.deletePrompt"), message: t("suggestedPrompts.deletePromptConfirm"), confirmText: t("suggestedPrompts.delete"), confirmColor: "danger" }))) return;
     try {
       await api.deleteSuggestedPrompt(id);
-      toast.success("Prompt deleted");
+      toast.success(t("suggestedPrompts.promptDeleted"));
       loadPrompts();
     } catch (err) {
-      toast.error("Failed to delete prompt: " + err.message);
+      toast.error(t("suggestedPrompts.failedToDeletePrompt", { message: err.message }));
     }
   };
 
@@ -343,7 +345,7 @@ export default function SuggestedPromptsSettings() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading...
+          {t("suggestedPrompts.loading")}
         </Typography>
       </Box>
     );
@@ -386,7 +388,7 @@ export default function SuggestedPromptsSettings() {
               onClick={() => { setSelectedCategory(null); setSubSearch(""); }}
               sx={{ mb: 1, ml: -1 }}
             >
-              Back to categories
+              {t("suggestedPrompts.backToCategories")}
             </Button>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 0.5 }}>
               <CategoryIcon sx={{ fontSize: 24, color: "var(--text-secondary)" }} />
@@ -409,7 +411,7 @@ export default function SuggestedPromptsSettings() {
             <FormControl sx={{ flex: 1 }}>
               <Input
                 size="sm"
-                placeholder="Search prompts in this category..."
+                placeholder={t("suggestedPrompts.searchPromptsInCategory")}
                 value={subSearch}
                 onChange={(e) => setSubSearch(e.target.value)}
                 startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
@@ -432,7 +434,7 @@ export default function SuggestedPromptsSettings() {
                 setPromptModalOpen(true);
               }}
             >
-              Add Prompt
+              {t("suggestedPrompts.addPrompt")}
             </Button>
             <IconButton
               size="sm"
@@ -460,11 +462,11 @@ export default function SuggestedPromptsSettings() {
           {categoryPrompts.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 8 }}>
               <Typography level="body-lg" sx={{ color: "var(--text-secondary)", mb: 1 }}>
-                {subSearch ? "No prompts match your search" : "No prompts in this category yet"}
+                {subSearch ? t("suggestedPrompts.noPromptsMatch") : t("suggestedPrompts.noPromptsInCategory")}
               </Typography>
               {!subSearch && (
                 <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
-                  Click "Add Prompt" to create one.
+                  {t("suggestedPrompts.clickAddPrompt")}
                 </Typography>
               )}
             </Box>
@@ -569,12 +571,12 @@ export default function SuggestedPromptsSettings() {
               level="title-lg"
               sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
             >
-              {editingCategory ? "Edit Category" : "Add Category"}
+              {editingCategory ? t("suggestedPrompts.editCategory") : t("suggestedPrompts.addCategory")}
             </Typography>
             <form onSubmit={handleCategorySubmit}>
               <Stack spacing={2}>
                 <FormControl required>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Name</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.name")}</FormLabel>
                   <Input
                     value={categoryForm.name}
                     onChange={(e) => {
@@ -590,7 +592,7 @@ export default function SuggestedPromptsSettings() {
                   />
                 </FormControl>
                 <FormControl required>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Slug</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.slug")}</FormLabel>
                   <Input
                     value={categoryForm.slug}
                     onChange={(e) => setCategoryForm((prev) => ({ ...prev, slug: e.target.value }))}
@@ -599,7 +601,7 @@ export default function SuggestedPromptsSettings() {
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Order</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.order")}</FormLabel>
                   <Input
                     type="number"
                     value={categoryForm.order}
@@ -608,8 +610,8 @@ export default function SuggestedPromptsSettings() {
                   />
                 </FormControl>
                 <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-                  <Button variant="outlined" color="neutral" onClick={() => setCategoryModalOpen(false)} sx={{ borderColor: "var(--border-color)" }}>Cancel</Button>
-                  <Button type="submit" variant="solid" color="primary" loading={savingCategory}>{editingCategory ? "Save" : "Add Category"}</Button>
+                  <Button variant="outlined" color="neutral" onClick={() => setCategoryModalOpen(false)} sx={{ borderColor: "var(--border-color)" }}>{t("suggestedPrompts.cancel")}</Button>
+                  <Button type="submit" variant="solid" color="primary" loading={savingCategory}>{editingCategory ? t("suggestedPrompts.save") : t("suggestedPrompts.addCategory")}</Button>
                 </Stack>
               </Stack>
             </form>
@@ -630,39 +632,39 @@ export default function SuggestedPromptsSettings() {
           >
             <ModalClose />
             <Typography level="title-lg" sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}>
-              {editingPrompt ? "Edit Prompt" : "Add Prompt"}
+              {editingPrompt ? t("suggestedPrompts.editPrompt") : t("suggestedPrompts.addPrompt")}
             </Typography>
             <form onSubmit={handlePromptSubmit}>
               <Stack spacing={2}>
                 <FormControl required>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Title</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.promptTitle")}</FormLabel>
                   <Input value={promptForm.title} onChange={(e) => setPromptForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="e.g. Self-populating CRM" sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }} />
                 </FormControl>
                 <FormControl required>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Prompt</FormLabel>
-                  <Textarea value={promptForm.prompt} onChange={(e) => setPromptForm((prev) => ({ ...prev, prompt: e.target.value }))} placeholder="The prompt text..." minRows={4} sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }} />
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.prompt")}</FormLabel>
+                  <Textarea value={promptForm.prompt} onChange={(e) => setPromptForm((prev) => ({ ...prev, prompt: e.target.value }))} placeholder={t("suggestedPrompts.promptPlaceholder")} minRows={4} sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }} />
                 </FormControl>
                 <FormControl required>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Category</FormLabel>
-                  <Select value={promptForm.category} onChange={(_, val) => setPromptForm((prev) => ({ ...prev, category: val || "" }))} placeholder="Select category" sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.category")}</FormLabel>
+                  <Select value={promptForm.category} onChange={(_, val) => setPromptForm((prev) => ({ ...prev, category: val || "" }))} placeholder={t("suggestedPrompts.selectCategory")} sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
                     {categories.map((c) => (<Option key={c._id} value={c._id}>{c.name}</Option>))}
                   </Select>
                 </FormControl>
                 <FormControl>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Icon</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.icon")}</FormLabel>
                   <Select value={promptForm.icon} onChange={(_, val) => setPromptForm((prev) => ({ ...prev, icon: val || "SmartToyOutlined" }))} sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}>
                     {ICON_OPTIONS.map((name) => (<Option key={name} value={name}>{name.replace("Outlined", "")}</Option>))}
                   </Select>
                 </FormControl>
                 <FormControl>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Icon Color</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.iconColor")}</FormLabel>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <input type="color" value={promptForm.iconColor || "#6b7280"} onChange={(e) => setPromptForm((prev) => ({ ...prev, iconColor: e.target.value }))} style={{ width: 40, height: 32, border: "none", cursor: "pointer", background: "transparent" }} />
                     <Input value={promptForm.iconColor || "#6b7280"} onChange={(e) => setPromptForm((prev) => ({ ...prev, iconColor: e.target.value }))} placeholder="#6b7280" sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)", flex: 1 }} />
                   </Stack>
                 </FormControl>
                 <FormControl>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Image</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.image")}</FormLabel>
                   <Stack spacing={1}>
                     {promptImagePreview && (
                       <Box sx={{ position: "relative", borderRadius: "sm", overflow: "hidden", border: "1px solid var(--border-color)" }}>
@@ -670,17 +672,17 @@ export default function SuggestedPromptsSettings() {
                         <IconButton size="sm" variant="solid" color="danger" onClick={handleRemoveImage} sx={{ position: "absolute", top: 4, right: 4, minWidth: 28, minHeight: 28 }}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
                       </Box>
                     )}
-                    <Button variant="outlined" color="neutral" startDecorator={<ImageIcon />} onClick={() => fileInputRef.current?.click()} sx={{ borderColor: "var(--border-color)" }}>{promptImagePreview ? "Change Image" : "Upload Image"}</Button>
+                    <Button variant="outlined" color="neutral" startDecorator={<ImageIcon />} onClick={() => fileInputRef.current?.click()} sx={{ borderColor: "var(--border-color)" }}>{promptImagePreview ? t("suggestedPrompts.changeImage") : t("suggestedPrompts.uploadImage")}</Button>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} style={{ display: "none" }} />
                   </Stack>
                 </FormControl>
                 <FormControl>
-                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Order</FormLabel>
+                  <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>{t("suggestedPrompts.order")}</FormLabel>
                   <Input type="number" value={promptForm.order} onChange={(e) => setPromptForm((prev) => ({ ...prev, order: parseInt(e.target.value) || 0 }))} sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }} />
                 </FormControl>
                 <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ pt: 1 }}>
-                  <Button variant="outlined" color="neutral" onClick={() => setPromptModalOpen(false)} sx={{ borderColor: "var(--border-color)" }}>Cancel</Button>
-                  <Button type="submit" variant="solid" color="primary" loading={savingPrompt}>{editingPrompt ? "Save" : "Add Prompt"}</Button>
+                  <Button variant="outlined" color="neutral" onClick={() => setPromptModalOpen(false)} sx={{ borderColor: "var(--border-color)" }}>{t("suggestedPrompts.cancel")}</Button>
+                  <Button type="submit" variant="solid" color="primary" loading={savingPrompt}>{editingPrompt ? t("suggestedPrompts.save") : t("suggestedPrompts.addPrompt")}</Button>
                 </Stack>
               </Stack>
             </form>
@@ -705,7 +707,7 @@ export default function SuggestedPromptsSettings() {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography level="h3" sx={{ mb: 3 }}>
-            Suggested Prompts
+            {t("suggestedPrompts.title")}
           </Typography>
 
         </Box>
@@ -715,7 +717,7 @@ export default function SuggestedPromptsSettings() {
           <FormControl sx={{ flex: 1 }}>
             <Input
               size="sm"
-              placeholder="Search categories and prompts..."
+              placeholder={t("suggestedPrompts.searchCategoriesAndPrompts")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
@@ -730,106 +732,82 @@ export default function SuggestedPromptsSettings() {
             color="primary"
             onClick={openCreateCategory}
           >
-            Add Category
+            {t("suggestedPrompts.addCategory")}
           </Button>
         </Stack>
 
-        {categories.length === 0 ? (
-          <Card
-            variant="plain"
-            sx={{
-              bgcolor: "var(--bg-primary)",
-            }}
-          >
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography
-                level="body-lg"
-                sx={{ color: "var(--text-secondary)", mb: 1 }}
-              >
-                No categories yet
+        <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
+          {categories.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
+                {t("suggestedPrompts.noCategories")}
               </Typography>
-              <Typography
-                level="body-sm"
-                sx={{ color: "var(--text-tertiary)", mb: 3 }}
-              >
-                Create a category to organize your suggested prompts.
-              </Typography>
-              <Button
-                variant="soft"
-                color="primary"
-                startDecorator={<AddIcon />}
-                onClick={openCreateCategory}
-              >
-                Add Category
-              </Button>
             </Box>
-          </Card>
-        ) : (
-          <Stack spacing={2}>
-            {filteredCategories.map((cat) => {
-              const categoryPrompts = prompts.filter(
-                (p) => (p.category?._id || p.category) === cat._id,
-              );
-              return (
-                <Card
-                  key={cat._id}
-                  variant="plain"
-                  sx={{
-                    bgcolor: "var(--bg-primary)",
-                    overflow: "hidden",
-                    p: 0,
-                    gap: 0,
-                    cursor: "pointer",
-                    "&:hover": { bgcolor: "transparent" },
-                    transition: "background-color 0.15s",
-                  }}
-                  onClick={() => { setSelectedCategory(cat._id); setSubSearch(""); }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        level="title-sm"
-                        sx={{ fontWeight: 700, color: "var(--text-primary)" }}
-                      >
-                        {cat.name}
-                      </Typography>
-                      <Chip size="sm" variant="soft" color="neutral">
-                        {cat.slug}
-                      </Chip>
-                      <Chip size="sm" variant="soft" color="primary">
-                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? "s" : ""}
-                      </Chip>
-                    </Stack>
-                    <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-                      <IconButton
-                        size="sm"
-                        variant="plain"
-                        color="neutral"
-                        onClick={() => openEditCategory(cat)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="sm"
-                        variant="plain"
-                        color="danger"
-                        onClick={() => handleDeleteCategory(cat._id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Stack>
-                  </Box>
-                </Card>
-              );
-            })}
-          </Stack>
-        )}
+          ) : (
+            <Table
+              sx={{
+                '& thead th': {
+                  bgcolor: 'var(--bg-secondary)',
+                  color: 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  borderBottom: '1px solid var(--border-color)',
+                },
+                '& tbody tr': {
+                  cursor: 'pointer',
+                  borderBottom: '1px solid var(--border-color)',
+                  '&:last-child': { borderBottom: 'none' },
+                },
+                '& tbody td': { color: 'var(--text-primary)' },
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>{t("suggestedPrompts.name")}</th>
+                  <th>{t("suggestedPrompts.slug")}</th>
+                  <th>{t("suggestedPrompts.prompts")}</th>
+                  <th style={{ width: 100 }}>{t("suggestedPrompts.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCategories.map((cat) => {
+                  const categoryPrompts = prompts.filter(
+                    (p) => (p.category?._id || p.category) === cat._id,
+                  );
+                  return (
+                    <tr key={cat._id} onClick={() => { setSelectedCategory(cat._id); setSubSearch(""); }}>
+                      <td>
+                        <Typography level="body-sm" sx={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                          {cat.name}
+                        </Typography>
+                      </td>
+                      <td>
+                        <Chip size="sm" variant="soft" color="neutral">
+                          {cat.slug}
+                        </Chip>
+                      </td>
+                      <td>
+                        <Chip size="sm" variant="soft" color="primary">
+                          {categoryPrompts.length === 1 ? t("suggestedPrompts.promptCount", { count: categoryPrompts.length }) : t("suggestedPrompts.promptCount_plural", { count: categoryPrompts.length })}
+                        </Chip>
+                      </td>
+                      <td>
+                        <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
+                          <IconButton size="sm" variant="plain" color="neutral" onClick={() => openEditCategory(cat)}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton size="sm" variant="plain" color="danger" onClick={() => handleDeleteCategory(cat._id)}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Stack>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          )}
+        </Box>
       </Box>
 
       {/* ─── Category Modal ──────────────────────────────────────────────── */}
@@ -849,13 +827,13 @@ export default function SuggestedPromptsSettings() {
             level="title-lg"
             sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
           >
-            {editingCategory ? "Edit Category" : "Add Category"}
+            {editingCategory ? t("suggestedPrompts.editCategory") : t("suggestedPrompts.addCategory")}
           </Typography>
           <form onSubmit={handleCategorySubmit}>
             <Stack spacing={2}>
               <FormControl required>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Name
+                  {t("suggestedPrompts.name")}
                 </FormLabel>
                 <Input
                   value={categoryForm.name}
@@ -873,7 +851,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl required>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Slug
+                  {t("suggestedPrompts.slug")}
                 </FormLabel>
                 <Input
                   value={categoryForm.slug}
@@ -886,7 +864,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Order
+                  {t("suggestedPrompts.order")}
                 </FormLabel>
                 <Input
                   type="number"
@@ -907,7 +885,7 @@ export default function SuggestedPromptsSettings() {
                   onClick={() => setCategoryModalOpen(false)}
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Cancel
+                  {t("suggestedPrompts.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -915,7 +893,7 @@ export default function SuggestedPromptsSettings() {
                   color="primary"
                   loading={savingCategory}
                 >
-                  {editingCategory ? "Save" : "Add Category"}
+                  {editingCategory ? t("suggestedPrompts.save") : t("suggestedPrompts.addCategory")}
                 </Button>
               </Stack>
             </Stack>
@@ -940,13 +918,13 @@ export default function SuggestedPromptsSettings() {
             level="title-lg"
             sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
           >
-            {editingPrompt ? "Edit Prompt" : "Add Prompt"}
+            {editingPrompt ? t("suggestedPrompts.editPrompt") : t("suggestedPrompts.addPrompt")}
           </Typography>
           <form onSubmit={handlePromptSubmit}>
             <Stack spacing={2}>
               <FormControl required>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Title
+                  {t("suggestedPrompts.promptTitle")}
                 </FormLabel>
                 <Input
                   value={promptForm.title}
@@ -959,28 +937,28 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl required>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Prompt
+                  {t("suggestedPrompts.prompt")}
                 </FormLabel>
                 <Textarea
                   value={promptForm.prompt}
                   onChange={(e) =>
                     setPromptForm((prev) => ({ ...prev, prompt: e.target.value }))
                   }
-                  placeholder="The prompt text that will be sent when the user clicks this card..."
+                  placeholder={t("suggestedPrompts.promptPlaceholder")}
                   minRows={4}
                   sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
                 />
               </FormControl>
               <FormControl required>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Category
+                  {t("suggestedPrompts.category")}
                 </FormLabel>
                 <Select
                   value={promptForm.category}
                   onChange={(_, val) =>
                     setPromptForm((prev) => ({ ...prev, category: val || "" }))
                   }
-                  placeholder="Select category"
+                  placeholder={t("suggestedPrompts.selectCategory")}
                   sx={{ bgcolor: "var(--bg-secondary)", borderColor: "var(--border-color)" }}
                 >
                   {categories.map((cat) => (
@@ -992,7 +970,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Icon
+                  {t("suggestedPrompts.icon")}
                 </FormLabel>
                 <Select
                   value={promptForm.icon}
@@ -1010,7 +988,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Icon Color
+                  {t("suggestedPrompts.iconColor")}
                 </FormLabel>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <input
@@ -1033,7 +1011,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Image
+                  {t("suggestedPrompts.image")}
                 </FormLabel>
                 <Stack spacing={1}>
                   {promptImagePreview && (
@@ -1076,7 +1054,7 @@ export default function SuggestedPromptsSettings() {
                     onClick={() => fileInputRef.current?.click()}
                     sx={{ borderColor: "var(--border-color)" }}
                   >
-                    {promptImagePreview ? "Change Image" : "Upload Image"}
+                    {promptImagePreview ? t("suggestedPrompts.changeImage") : t("suggestedPrompts.uploadImage")}
                   </Button>
                   <input
                     ref={fileInputRef}
@@ -1089,7 +1067,7 @@ export default function SuggestedPromptsSettings() {
               </FormControl>
               <FormControl>
                 <FormLabel sx={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                  Order
+                  {t("suggestedPrompts.order")}
                 </FormLabel>
                 <Input
                   type="number"
@@ -1110,7 +1088,7 @@ export default function SuggestedPromptsSettings() {
                   onClick={() => setPromptModalOpen(false)}
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Cancel
+                  {t("suggestedPrompts.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -1118,7 +1096,7 @@ export default function SuggestedPromptsSettings() {
                   color="primary"
                   loading={savingPrompt}
                 >
-                  {editingPrompt ? "Save" : "Add Prompt"}
+                  {editingPrompt ? t("suggestedPrompts.save") : t("suggestedPrompts.addPrompt")}
                 </Button>
               </Stack>
             </Stack>

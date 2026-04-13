@@ -28,7 +28,7 @@ const subresourcesQuerySchema = z.object({
 // Get all resources
 router.get("/", async ({ status }) => {
   try {
-    const resources = await Resource.find().sort({ createdAt: -1 });
+    const resources = await Resource.find().sort({ createdAt: -1 }).select("-data");
     return resources;
   } catch (err) {
     return status(500, { error: err.message });
@@ -60,6 +60,9 @@ router.get("/subresources", async ({ query, status }) => {
       obj.resourceId = obj.resource._id;
       obj.resourceName = obj.resource.name;
       obj.resource = obj.resource._id;
+      if (obj.data) {
+        delete obj.data.branches;
+      }
       return obj;
     });
 
@@ -73,7 +76,7 @@ router.get("/:id", async ({ params, status }) => {
   }
 
   try {
-    const resource = await Resource.findById(params.id);
+    const resource = await Resource.findById(params.id).select("-data");
     if (!resource) {
       return status(404, { error: "Resource not found" });
     }
@@ -132,7 +135,13 @@ router.get("/:id/subresources", async ({ params, status }) => {
       imported: true,
     });
 
-    return subresources;
+    return subresources.map((sr) => {
+      const obj = sr.toObject();
+      if (obj.data) {
+        delete obj.data.branches;
+      }
+      return obj;
+    });
   } catch (err) {
     return status(500, { error: err.message });
   }
@@ -155,7 +164,11 @@ router.get("/:id/subresources/:subId", async ({ params, status }) => {
       return status(404, { error: "Subresource not found" });
     }
 
-    return subresource;
+    const obj = subresource.toObject();
+    if (obj.data) {
+      delete obj.data.branches;
+    }
+    return obj;
   } catch (err) {
     return status(500, { error: err.message });
   }

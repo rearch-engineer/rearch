@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
@@ -85,6 +86,7 @@ function DetailRow({ label, children }) {
 }
 
 function ResourceDetailsPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const { id } = useParams();
   const [resource, setResource] = useState(null);
@@ -99,7 +101,7 @@ function ResourceDetailsPage() {
   const loadResource = async (resourceId) => {
     try {
       setLoading(true);
-      const resources = await api.getResources();
+      const resources = await api.getAdminResources();
       const foundResource = resources.find((r) => r._id === resourceId);
       if (foundResource) {
         setResource(foundResource);
@@ -120,24 +122,24 @@ function ResourceDetailsPage() {
     if (resource.provider === "bitbucket") {
       return (
         <>
-          <DetailRow label="Workspace">
+          <DetailRow label={t("resourceDetails.workspace")}>
             <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
               {resource.data.workspace}
             </Typography>
           </DetailRow>
-          <DetailRow label="Email">
+          <DetailRow label={t("resourceDetails.email")}>
             <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
               {resource.data.email}
             </Typography>
           </DetailRow>
-          <DetailRow label="Clone Username">
+          <DetailRow label={t("resourceDetails.cloneUsername")}>
             <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
-              {resource.data.cloneUsername || "Not set"}
+              {resource.data.cloneUsername || t("resourceDetails.notSet")}
             </Typography>
           </DetailRow>
-          <DetailRow label="API Token">
+          <DetailRow label={t("resourceDetails.apiToken")}>
             <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
-              {resource.data.apiToken ? "••••••••••••" : "Not set"}
+              {resource.data.apiToken ? "••••••••••••" : t("resourceDetails.notSet")}
             </Typography>
           </DetailRow>
         </>
@@ -157,7 +159,7 @@ function ResourceDetailsPage() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading resource...
+          {t("resourceDetails.loadingResource")}
         </Typography>
       </Box>
     );
@@ -175,7 +177,7 @@ function ResourceDetailsPage() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Resource not found
+          {t("resourceDetails.resourceNotFound")}
         </Typography>
       </Box>
     );
@@ -210,7 +212,7 @@ function ResourceDetailsPage() {
             startDecorator={<ArrowBack />}
             onClick={() => navigate("/administration/resources")}
           >
-            Resources
+            {t("resourceDetails.resources")}
           </Button>
           <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
             /
@@ -323,7 +325,7 @@ function ResourceDetailsPage() {
                   }
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Repositories
+                  {t("resourceDetails.repositories")}
                 </Button>
               )}
               <Button
@@ -334,7 +336,7 @@ function ResourceDetailsPage() {
                   navigate(`/administration/resources/${id}/edit`)
                 }
               >
-                Edit
+                {t("resourceDetails.edit")}
               </Button>
             </Stack>
           </Box>
@@ -354,7 +356,7 @@ function ResourceDetailsPage() {
               level="title-md"
               sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
             >
-              Connection Details
+              {t("resourceDetails.connectionDetails")}
             </Typography>
             {renderDataDetails()}
           </CardContent>
@@ -373,14 +375,14 @@ function ResourceDetailsPage() {
               level="title-md"
               sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
             >
-              Metadata
+              {t("resourceDetails.metadata")}
             </Typography>
-            <DetailRow label="Created">
+            <DetailRow label={t("resourceDetails.created")}>
               <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
                 {new Date(resource.createdAt).toLocaleString()}
               </Typography>
             </DetailRow>
-            <DetailRow label="Last Updated">
+            <DetailRow label={t("resourceDetails.lastUpdated")}>
               <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
                 {new Date(resource.updatedAt).toLocaleString()}
               </Typography>

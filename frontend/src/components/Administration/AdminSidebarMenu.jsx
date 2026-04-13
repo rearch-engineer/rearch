@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import Badge from "@mui/joy/Badge";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -16,40 +17,41 @@ import WorkIcon from "@mui/icons-material/Work";
 import { useJobs } from "../../contexts/JobsContext";
 
 const AdminSidebarMenu = () => {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const location = useLocation();
   const { activeCount } = useJobs();
 
   const menuGroups = [
     {
-      label: "ReArch",
+      label: t("sidebar.groupReArch"),
       items: [
-        { label: "General", path: "/administration/general", icon: <SettingsOutlined /> },
-        { label: "Users", path: "/administration/users", icon: <PeopleIcon /> },
-        { label: "Usage", path: "/administration/usage", icon: <BarChartIcon /> },
-        { label: "Jobs", path: "/administration/jobs", icon: <WorkIcon />, badge: activeCount },
+        { label: t("sidebar.general"), path: "/administration/general", icon: <SettingsOutlined /> },
+        { label: t("sidebar.users"), path: "/administration/users", icon: <PeopleIcon /> },
+        { label: t("sidebar.usage"), path: "/administration/usage", icon: <BarChartIcon /> },
+        { label: t("sidebar.jobs"), path: "/administration/jobs", icon: <WorkIcon />, badge: activeCount },
       ],
     },
     {
-      label: "Generative AI",
+      label: t("sidebar.groupGenerativeAI"),
       items: [
-        { label: "Providers", path: "/administration/llm-providers", icon: <SmartToyIcon /> },
-        { label: "Skills", path: "/administration/skills", icon: <ArticleIcon /> },
-        { label: "MCP Servers", path: "/administration/mcp-servers", icon: <HubIcon fontSize="small" /> },
-        { label: "Suggested Prompts", path: "/administration/suggested-prompts", icon: <LightbulbIcon /> },
+        { label: t("sidebar.providers"), path: "/administration/llm-providers", icon: <SmartToyIcon /> },
+        { label: t("sidebar.skills"), path: "/administration/skills", icon: <ArticleIcon /> },
+        { label: t("sidebar.mcpServers"), path: "/administration/mcp-servers", icon: <HubIcon fontSize="small" /> },
+        { label: t("sidebar.suggestedPrompts"), path: "/administration/suggested-prompts", icon: <LightbulbIcon /> },
       ],
     },
     {
-      label: "Repositories",
+      label: t("sidebar.groupRepositories"),
       items: [
-        { label: "Resources", path: "/administration/resources", icon: <StorageIcon /> },
+        { label: t("sidebar.resources"), path: "/administration/resources", icon: <StorageIcon /> },
       ],
     },
     {
-      label: "Containers",
+      label: t("sidebar.groupContainers"),
       items: [
-        { label: "Rebuild", path: "/administration/docker-rebuild", icon: <BuildIcon /> },
-        { label: "Clean up", path: "/administration/container-cleanup", icon: <CleaningServicesIcon /> },
+        { label: t("sidebar.rebuild"), path: "/administration/docker-rebuild", icon: <BuildIcon /> },
+        { label: t("sidebar.cleanup"), path: "/administration/container-cleanup", icon: <CleaningServicesIcon /> },
       ],
     },
   ];
@@ -64,7 +66,7 @@ const AdminSidebarMenu = () => {
         onClick={() => navigate("/")}
       >
         <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-        <span>Back</span>
+        <span>{t("sidebar.back")}</span>
       </div>
       {menuGroups.map((group) => (
         <div key={group.label} className="admin-menu-group">

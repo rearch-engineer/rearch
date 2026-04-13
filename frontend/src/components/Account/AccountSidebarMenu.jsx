@@ -6,16 +6,18 @@ import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 
 const AccountSidebarMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const { t } = useTranslation("Account");
 
   const menuItems = [
-    { label: "Preferences", path: "/account/preferences", icon: <SettingsOutlined /> },
-    { label: "Security", path: "/account/security", icon: <LockIcon /> },
+    { label: t("preferences"), path: "/account/preferences", icon: <SettingsOutlined /> },
+    { label: t("security"), path: "/account/security", icon: <LockIcon /> },
   ];
 
   const handleLogout = () => {
@@ -30,10 +32,10 @@ const AccountSidebarMenu = () => {
         onClick={() => navigate("/")}
       >
         <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-        <span>Back</span>
+        <span>{t("back")}</span>
       </div>
       <Box className="main-menu-section-title" sx={{ color: "#5E5E5E" }}>
-        <Typography level="body-sm" sx={{ color: "inherit" }}>Account</Typography>
+        <Typography level="body-sm" sx={{ color: "inherit" }}>{t("account")}</Typography>
       </Box>
       {menuItems.map((item) => (
         <div
@@ -53,7 +55,7 @@ const AccountSidebarMenu = () => {
         <div className="conversation-info">
           <div className="conversation-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <LogoutIcon />
-            Logout
+            {t("logout")}
           </div>
         </div>
       </div>

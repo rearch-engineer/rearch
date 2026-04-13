@@ -1,0 +1,8 @@
+{
+  "couldNotStartConversation": "Could not start conversation",
+  "noRepoSpecified": "No repository name specified in the URL. Expected /start#<repository-name>",
+  "repoNotFound": "Repository \"{{name}}\" was not found or is not enabled for ReArch.",
+  "failedToCreate": "Failed to create conversation: {{message}}",
+  "goToNewConversation": "Go to New Conversation",
+  "creatingConversation": "Creating conversation..."
+}

@@ -1,0 +1,9 @@
+{
+  "missingAuthCode": "Missing authorization code or state. Please try logging in again.",
+  "missingStateToken": "Missing state token. Please try logging in again.",
+  "authFailed": "Authentication failed.",
+  "accountPendingApproval": "Account Pending Approval",
+  "accountPendingMessage": "Your account has been created but is pending admin approval. Please contact an administrator to activate your account.",
+  "backToLogin": "Back to Login",
+  "completingSignIn": "Completing sign-in..."
+}

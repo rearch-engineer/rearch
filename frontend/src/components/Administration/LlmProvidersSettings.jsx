@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -31,6 +32,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { useConfirm } from "../../contexts/ConfirmContext";
 
 export default function LlmProvidersSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const confirm = useConfirm();
   const [providers, setProviders] = useState([]);
@@ -56,7 +58,7 @@ export default function LlmProvidersSettings() {
       const data = await api.getLlmProviders();
       setProviders(data || []);
     } catch (err) {
-      toast.error("Failed to load LLM providers: " + err.message);
+      toast.error(t("llmProviders.failedToLoadProviders", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -141,9 +143,9 @@ export default function LlmProvidersSettings() {
   };
 
   const handleAddCustomModel = () => {
-    const modelId = window.prompt("Enter model ID (e.g. gpt-4o-mini):");
+    const modelId = window.prompt(t("llmProviders.enterModelId"));
     if (!modelId || !modelId.trim()) return;
-    const name = window.prompt("Enter display name:", modelId);
+    const name = window.prompt(t("llmProviders.enterDisplayName"), modelId);
     if (!name) return;
     setFormModels((prev) => [
       ...prev,
@@ -157,15 +159,15 @@ export default function LlmProvidersSettings() {
 
   const handleSave = async () => {
     if (!formProviderId || !formName) {
-      toast.error("Provider ID and name are required");
+      toast.error(t("llmProviders.providerIdAndNameRequired"));
       return;
     }
     if (formModels.length === 0) {
-      toast.error("At least one model is required");
+      toast.error(t("llmProviders.atLeastOneModelRequired"));
       return;
     }
     if (!editingProvider && !formApiKey) {
-      toast.error("API key is required for new providers");
+      toast.error(t("llmProviders.apiKeyRequiredForNew"));
       return;
     }
 
@@ -182,7 +184,7 @@ export default function LlmProvidersSettings() {
           updateData.apiKey = formApiKey;
         }
         await api.updateLlmProvider(editingProvider._id, updateData);
-        toast.success("Provider updated");
+        toast.success(t("llmProviders.providerUpdated"));
       } else {
         await api.createLlmProvider({
           providerId: formProviderId,
@@ -192,15 +194,12 @@ export default function LlmProvidersSettings() {
           baseUrl: formBaseUrl || null,
           models: formModels,
         });
-        toast.success("Provider created");
+        toast.success(t("llmProviders.providerCreated"));
       }
       setModalOpen(false);
       loadProviders();
     } catch (err) {
-      toast.error(
-        "Failed to save provider: " +
-          (err.response?.data?.error || err.message),
-      );
+      toast.error(t("llmProviders.failedToSaveProvider", { message: err.response?.data?.error || err.message }));
     } finally {
       setSaving(false);
     }
@@ -209,22 +208,19 @@ export default function LlmProvidersSettings() {
   const handleDelete = async (provider) => {
     if (
       !(await confirm({
-        title: "Delete Provider",
-        message: `Are you sure you want to delete the "${provider.name}" provider? This will affect all future conversations.`,
-        confirmText: "Delete",
+        title: t("llmProviders.deleteProvider"),
+        message: t("llmProviders.deleteProviderConfirm", { name: provider.name }),
+        confirmText: t("llmProviders.delete"),
         confirmColor: "danger",
       }))
     )
       return;
     try {
       await api.deleteLlmProvider(provider._id);
-      toast.success("Provider deleted");
+      toast.success(t("llmProviders.providerDeleted"));
       loadProviders();
     } catch (err) {
-      toast.error(
-        "Failed to delete provider: " +
-          (err.response?.data?.error || err.message),
-      );
+      toast.error(t("llmProviders.failedToDeleteProvider", { message: err.response?.data?.error || err.message }));
     }
   };
 
@@ -235,7 +231,7 @@ export default function LlmProvidersSettings() {
       });
       loadProviders();
     } catch (err) {
-      toast.error("Failed to update provider: " + err.message);
+      toast.error(t("llmProviders.failedToUpdateProvider", { message: err.message }));
     }
   };
 
@@ -254,7 +250,7 @@ export default function LlmProvidersSettings() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading...
+          {t("llmProviders.loading")}
         </Typography>
       </Box>
     );
@@ -274,7 +270,7 @@ export default function LlmProvidersSettings() {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography level="h3" sx={{ mb: 3 }}>
-            LLM Providers
+            {t("llmProviders.title")}
           </Typography>
         </Box>
 
@@ -287,7 +283,7 @@ export default function LlmProvidersSettings() {
         >
           <Input
             size="sm"
-            placeholder="Search providers..."
+            placeholder={t("llmProviders.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             startDecorator={
@@ -310,7 +306,7 @@ export default function LlmProvidersSettings() {
               "&:hover": { bgcolor: "#e5e5e5" },
             }}
           >
-            Connect
+            {t("llmProviders.connect")}
           </Button>
         </Stack>
 
@@ -322,7 +318,7 @@ export default function LlmProvidersSettings() {
                 level="body-sm"
                 sx={{ color: "var(--text-tertiary)" }}
               >
-                To get started, click on Connect above.
+                {t("llmProviders.emptyState")}
               </Typography>
             </Box>
           ) : (
@@ -344,11 +340,11 @@ export default function LlmProvidersSettings() {
             >
               <thead>
                 <tr>
-                  <th>Provider</th>
-                  <th>API Key</th>
-                  <th>Models</th>
-                  <th>Status</th>
-                  <th style={{ width: 120 }}>Actions</th>
+                  <th>{t("llmProviders.provider")}</th>
+                  <th>{t("llmProviders.apiKey")}</th>
+                  <th>{t("llmProviders.models")}</th>
+                  <th>{t("llmProviders.status")}</th>
+                  <th style={{ width: 120 }}>{t("llmProviders.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,7 +416,7 @@ export default function LlmProvidersSettings() {
                               </>
                             ) : (
                               <Chip size="sm" variant="soft" color="warning">
-                                No key
+                                {t("llmProviders.noKey")}
                               </Chip>
                             )}
                           </Stack>
@@ -444,7 +440,7 @@ export default function LlmProvidersSettings() {
                             ))}
                             {enabledModels.length > 3 && (
                               <Chip size="sm" variant="soft" color="neutral">
-                                +{enabledModels.length - 3} more
+                                {t("llmProviders.moreModels", { count: enabledModels.length - 3 })}
                               </Chip>
                             )}
                           </Stack>
@@ -457,7 +453,7 @@ export default function LlmProvidersSettings() {
                             onClick={() => handleToggleEnabled(provider)}
                             sx={{ cursor: "pointer" }}
                           >
-                            {provider.enabled ? "Active" : "Disabled"}
+                            {provider.enabled ? t("llmProviders.active") : t("llmProviders.disabled")}
                           </Chip>
                         </td>
                         <td>
@@ -501,7 +497,7 @@ export default function LlmProvidersSettings() {
         >
           <ModalClose />
           <Typography level="h4" sx={{ mb: 2 }}>
-            {editingProvider ? "Edit Provider" : "Add LLM Provider"}
+            {editingProvider ? t("llmProviders.editProvider") : t("llmProviders.addLlmProvider")}
           </Typography>
 
           <Stack spacing={2.5}>
@@ -509,9 +505,9 @@ export default function LlmProvidersSettings() {
             {!editingProvider ? (
               <>
                 <FormControl>
-                  <FormLabel>Provider</FormLabel>
+                  <FormLabel>{t("llmProviders.provider")}</FormLabel>
                   <Select
-                    placeholder="Select a provider..."
+                    placeholder={t("llmProviders.selectProvider")}
                     value={
                       isCustomProvider ? "__custom" : formProviderId || null
                     }
@@ -523,22 +519,22 @@ export default function LlmProvidersSettings() {
                       </Option>
                     ))}
                     <Option value="__custom">
-                      Custom OpenAI compatible provider
+                      {t("llmProviders.customOpenAI")}
                     </Option>
                   </Select>
                 </FormControl>
                 {isCustomProvider && (
                   <>
                     <FormControl>
-                      <FormLabel>Provider ID</FormLabel>
+                      <FormLabel>{t("llmProviders.providerIdLabel")}</FormLabel>
                       <Input
-                        placeholder="Lowercase identifier, e.g. my-llm"
+                        placeholder={t("llmProviders.providerIdPlaceholder")}
                         value={formProviderId}
                         onChange={(e) => setFormProviderId(e.target.value)}
                       />
                     </FormControl>
                     <FormControl>
-                      <FormLabel>Base URL</FormLabel>
+                      <FormLabel>{t("llmProviders.baseUrl")}</FormLabel>
                       <Input
                         placeholder="https://api.example.com/v1"
                         value={formBaseUrl}
@@ -548,7 +544,7 @@ export default function LlmProvidersSettings() {
                         level="body-xs"
                         sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
                       >
-                        The OpenAI-compatible API endpoint URL
+                        {t("llmProviders.baseUrlHelp")}
                       </Typography>
                     </FormControl>
                   </>
@@ -557,12 +553,12 @@ export default function LlmProvidersSettings() {
             ) : (
               <>
                 <FormControl>
-                  <FormLabel>Provider ID</FormLabel>
+                  <FormLabel>{t("llmProviders.providerIdLabel")}</FormLabel>
                   <Input value={formProviderId} disabled />
                 </FormControl>
                 {(isCustomProvider || formBaseUrl) && (
                   <FormControl>
-                    <FormLabel>Base URL</FormLabel>
+                    <FormLabel>{t("llmProviders.baseUrl")}</FormLabel>
                     <Input
                       placeholder="https://api.example.com/v1"
                       value={formBaseUrl}
@@ -572,7 +568,7 @@ export default function LlmProvidersSettings() {
                       level="body-xs"
                       sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
                     >
-                      The OpenAI-compatible API endpoint URL
+                      {t("llmProviders.baseUrlHelp")}
                     </Typography>
                   </FormControl>
                 )}
@@ -581,9 +577,9 @@ export default function LlmProvidersSettings() {
 
             {/* Display name */}
             <FormControl>
-              <FormLabel>Display Name</FormLabel>
+              <FormLabel>{t("llmProviders.displayName")}</FormLabel>
               <Input
-                placeholder="e.g. Anthropic, OpenAI"
+                placeholder={t("llmProviders.displayNamePlaceholder")}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
@@ -594,15 +590,15 @@ export default function LlmProvidersSettings() {
               <FormLabel>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <KeyIcon sx={{ fontSize: 16 }} />
-                  <span>API Key</span>
+                  <span>{t("llmProviders.apiKeyLabel")}</span>
                 </Stack>
               </FormLabel>
               <Input
                 type="password"
                 placeholder={
                   editingProvider
-                    ? "Leave empty to keep current key"
-                    : "Enter API key"
+                    ? t("llmProviders.leaveEmptyToKeepCurrent")
+                    : t("llmProviders.enterApiKey")
                 }
                 value={formApiKey}
                 onChange={(e) => setFormApiKey(e.target.value)}
@@ -612,7 +608,7 @@ export default function LlmProvidersSettings() {
                   level="body-xs"
                   sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
                 >
-                  Current key: {editingProvider.apiKey}
+                  {t("llmProviders.currentKey", { key: editingProvider.apiKey })}
                 </Typography>
               )}
             </FormControl>
@@ -620,12 +616,12 @@ export default function LlmProvidersSettings() {
             {/* Enabled toggle */}
             <FormControl orientation="horizontal">
               <Box sx={{ flex: 1 }}>
-                <FormLabel>Enabled</FormLabel>
+                <FormLabel>{t("llmProviders.enabled")}</FormLabel>
                 <Typography
                   level="body-xs"
                   sx={{ color: "var(--text-tertiary)" }}
                 >
-                  Disabled providers will not be available in new conversations
+                  {t("llmProviders.disabledProvidersHelp")}
                 </Typography>
               </Box>
               <Switch
@@ -644,14 +640,14 @@ export default function LlmProvidersSettings() {
                 alignItems="center"
                 sx={{ mb: 1.5 }}
               >
-                <FormLabel sx={{ mb: 0 }}>Models</FormLabel>
+                <FormLabel sx={{ mb: 0 }}>{t("llmProviders.modelsLabel")}</FormLabel>
                 <Button
                   size="sm"
                   variant="plain"
                   color="neutral"
                   onClick={handleAddCustomModel}
                 >
-                  + Custom model
+                  {t("llmProviders.customModel")}
                 </Button>
               </Stack>
               {formModels.length === 0 ? (
@@ -664,8 +660,8 @@ export default function LlmProvidersSettings() {
                   }}
                 >
                   {formProviderId
-                    ? "No models configured. Select a provider or add custom models."
-                    : "Select a provider to see available models."}
+                    ? t("llmProviders.noModelsConfigured")
+                    : t("llmProviders.selectProviderToSeeModels")}
                 </Typography>
               ) : (
                 <Stack spacing={1}>
@@ -738,7 +734,7 @@ export default function LlmProvidersSettings() {
                 color="neutral"
                 onClick={() => setModalOpen(false)}
               >
-                Cancel
+                {t("llmProviders.cancel")}
               </Button>
               <Button
                 variant="solid"
@@ -746,7 +742,7 @@ export default function LlmProvidersSettings() {
                 onClick={handleSave}
                 loading={saving}
               >
-                {editingProvider ? "Save Changes" : "Add Provider"}
+                {editingProvider ? t("llmProviders.saveChanges") : t("llmProviders.addProvider")}
               </Button>
             </Stack>
           </Stack>

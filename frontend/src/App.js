@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import i18n from "./i18n";
 import {
   BrowserRouter,
   Routes,
@@ -18,7 +19,6 @@ import LoginPage from "./pages/LoginPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import StartPage from "./pages/StartPage";
 import { ResourcesProvider } from "./contexts/ResourcesContext";
-import { ToolsProvider } from "./contexts/ToolsContext";
 import { SkillsProvider } from "./contexts/SkillsContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
@@ -46,7 +46,7 @@ function RequireAuth({ children }) {
           height: "100vh",
         }}
       >
-        Loading...
+        {i18n.t('loading', { ns: 'App' })}
       </Box>
     );
   }
@@ -82,7 +82,7 @@ function RedirectIfAuth({ children }) {
           height: "100vh",
         }}
       >
-        Loading...
+        {i18n.t('loading', { ns: 'App' })}
       </Box>
     );
   }
@@ -97,6 +97,22 @@ function RedirectIfAuth({ children }) {
   }
 
   return children;
+}
+
+/**
+ * Applies the user's saved language preference on load.
+ */
+function LanguageApplier() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const savedLang = user?.profile?.preferences?.language;
+    if (savedLang) {
+      i18n.changeLanguage(savedLang);
+    }
+  }, [user]);
+
+  return null;
 }
 
 /**
@@ -144,9 +160,9 @@ function AuthenticatedApp() {
     <SocketProvider>
       <JobsProvider>
         <ResourcesProvider>
-          <ToolsProvider>
             <SkillsProvider>
               <ConversationsProvider>
+                <LanguageApplier />
                 <ThemeApplier />
                 <StartRedirectHandler />
                 <CommandPalette />
@@ -182,7 +198,6 @@ function AuthenticatedApp() {
                 </Box>
               </ConversationsProvider>
             </SkillsProvider>
-          </ToolsProvider>
         </ResourcesProvider>
       </JobsProvider>
     </SocketProvider>

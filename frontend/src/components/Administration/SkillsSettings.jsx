@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -30,6 +31,7 @@ import { useConfirm } from "../../contexts/ConfirmContext";
 const EMPTY_FORM = { title: "", description: "", skillsRepository: "", isDefault: false };
 
 export default function SkillsSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -52,7 +54,7 @@ export default function SkillsSettings() {
       const data = await api.getSkills();
       setSkills(data);
     } catch (err) {
-      toast.error("Failed to load skills: " + err.message);
+      toast.error(t("skills.failedToLoadSkills", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -85,19 +87,19 @@ export default function SkillsSettings() {
       handleClose();
       loadSkills();
     } catch (err) {
-      toast.error("Failed to create skill: " + err.message);
+      toast.error(t("skills.failedToCreateSkill", { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (await confirm({ title: "Delete Skill", message: "Are you sure you want to delete this skill?", confirmText: "Delete", confirmColor: "danger" })) {
+    if (await confirm({ title: t("skills.deleteSkill"), message: t("skills.deleteSkillConfirm"), confirmText: t("skills.delete"), confirmColor: "danger" })) {
       try {
         await api.deleteSkill(id);
         loadSkills();
       } catch (err) {
-        toast.error("Failed to delete skill: " + err.message);
+        toast.error(t("skills.failedToDeleteSkill", { message: err.message }));
       }
     }
   };
@@ -114,7 +116,7 @@ export default function SkillsSettings() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading...
+          {t("skills.loading")}
         </Typography>
       </Box>
     );
@@ -134,7 +136,7 @@ export default function SkillsSettings() {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography level="h3" sx={{ mb: 3 }}>
-            Skills
+            {t("skills.title")}
           </Typography>
         </Box>
 
@@ -142,7 +144,7 @@ export default function SkillsSettings() {
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
           <Input
             size="sm"
-            placeholder="Search skills..."
+            placeholder={t("skills.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
@@ -158,7 +160,7 @@ export default function SkillsSettings() {
             onClick={openCreate}
             sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
           >
-            Add Skill
+            {t("skills.addSkill")}
           </Button>
         </Stack>
 
@@ -170,7 +172,7 @@ export default function SkillsSettings() {
                 level="body-sm"
                 sx={{ color: "var(--text-tertiary)" }}
               >
-                To get started, click on Add Skill above.
+                {t("skills.getStartedHint")}
               </Typography>
             </Box>
           ) : (
@@ -192,11 +194,11 @@ export default function SkillsSettings() {
             >
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Description</th>
-                  <th>Skills Repository</th>
-                  <th>Default</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th>{t("skills.tableTitle")}</th>
+                  <th>{t("skills.tableDescription")}</th>
+                  <th>{t("skills.tableSkillsRepository")}</th>
+                  <th>{t("skills.tableDefault")}</th>
+                  <th style={{ width: 100 }}>{t("skills.tableActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,7 +241,7 @@ export default function SkillsSettings() {
                       <td>
                         {skill.isDefault ? (
                           <Chip size="sm" variant="soft" color="success">
-                            Default
+                            {t("skills.default")}
                           </Chip>
                         ) : (
                           <Typography
@@ -298,7 +300,7 @@ export default function SkillsSettings() {
             level="title-lg"
             sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
           >
-            Add Skill
+            {t("skills.addSkill")}
           </Typography>
 
           <form onSubmit={handleSubmit}>
@@ -311,14 +313,14 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Title
+                  {t("skills.skillTitle")}
                 </FormLabel>
                 <Input
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="Enter skill title"
+                  placeholder={t("skills.titlePlaceholder")}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
                     borderColor: "var(--border-color)",
@@ -334,14 +336,14 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Description
+                  {t("skills.description")}
                 </FormLabel>
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Enter skill description"
+                  placeholder={t("skills.descriptionPlaceholder")}
                   minRows={4}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
@@ -358,7 +360,7 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Skills Repository
+                  {t("skills.skillsRepository")}
                 </FormLabel>
                 <Select
                   value={formData.skillsRepository}
@@ -368,7 +370,7 @@ export default function SkillsSettings() {
                       skillsRepository: newValue || "",
                     })
                   }
-                  placeholder="Select a repository"
+                  placeholder={t("skills.selectRepository")}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
                     borderColor: "var(--border-color)",
@@ -388,10 +390,10 @@ export default function SkillsSettings() {
               >
                 <Box>
                   <FormLabel sx={{ mb: 0, color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                    Default Skill
+                    {t("skills.defaultSkill")}
                   </FormLabel>
                   <Typography level="body-xs" sx={{ color: "var(--text-tertiary)" }}>
-                    Default skills are cloned into every new conversation
+                    {t("skills.defaultSkillDescription")}
                   </Typography>
                 </Box>
                 <Switch
@@ -415,7 +417,7 @@ export default function SkillsSettings() {
                   onClick={handleClose}
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Cancel
+                  {t("skills.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -424,7 +426,7 @@ export default function SkillsSettings() {
                   loading={saving}
                   startDecorator={<AddIcon />}
                 >
-                  Add Skill
+                  {t("skills.addSkill")}
                 </Button>
               </Stack>
             </Stack>

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Box, Card, Typography, Chip, Stack, Button } from "@mui/joy";
 import { ArrowBack } from "@mui/icons-material";
@@ -53,6 +54,7 @@ const resourceTypes = [
 ];
 
 function ResourceTypeSelection() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
 
   const handleTypeSelect = (slug) => {
@@ -77,7 +79,7 @@ function ResourceTypeSelection() {
           startDecorator={<ArrowBack />}
           onClick={() => navigate("/administration/resources")}
         >
-          Resources
+          {t("resourceTypeSelection.backToResources")}
         </Button>
       </Box>
 
@@ -92,7 +94,7 @@ function ResourceTypeSelection() {
             fontSize: { xs: "1.5rem", md: "1.75rem" },
           }}
         >
-          Add a Resource
+          {t("resourceTypeSelection.addAResource")}
         </Typography>
         <Typography
           level="body-lg"
@@ -101,7 +103,7 @@ function ResourceTypeSelection() {
             fontSize: "1rem",
           }}
         >
-          Connect your favorite tools to enhance your ReArch engineering skills.
+          {t("resourceTypeSelection.addAResourceDescription")}
         </Typography>
       </Box>
 
@@ -115,7 +117,7 @@ function ResourceTypeSelection() {
             fontWeight: 700,
           }}
         >
-          Featured Integrations
+          {t("resourceTypeSelection.featuredIntegrations")}
         </Typography>
 
         <Stack

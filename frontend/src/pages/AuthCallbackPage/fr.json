@@ -1,0 +1,9 @@
+{
+  "missingAuthCode": "Code d'autorisation ou état manquant. Veuillez réessayer de vous connecter.",
+  "missingStateToken": "Jeton d'état manquant. Veuillez réessayer de vous connecter.",
+  "authFailed": "Échec de l'authentification.",
+  "accountPendingApproval": "Compte en attente d'approbation",
+  "accountPendingMessage": "Votre compte a été créé mais est en attente d'approbation par un administrateur. Veuillez contacter un administrateur pour activer votre compte.",
+  "backToLogin": "Retour à la connexion",
+  "completingSignIn": "Finalisation de la connexion..."
+}

@@ -1,0 +1,8 @@
+{
+  "couldNotStartConversation": "Impossible de démarrer la conversation",
+  "noRepoSpecified": "Aucun nom de dépôt spécifié dans l'URL. Attendu : /start#<nom-du-dépôt>",
+  "repoNotFound": "Le dépôt \"{{name}}\" est introuvable ou n'est pas activé pour ReArch.",
+  "failedToCreate": "Échec de la création de la conversation : {{message}}",
+  "goToNewConversation": "Aller à une nouvelle conversation",
+  "creatingConversation": "Création de la conversation..."
+}

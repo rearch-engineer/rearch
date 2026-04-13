@@ -1,0 +1,9 @@
+{
+  "missingAuthCode": "Autorisatiecode of status ontbreekt. Probeer opnieuw in te loggen.",
+  "missingStateToken": "Statustoken ontbreekt. Probeer opnieuw in te loggen.",
+  "authFailed": "Authenticatie mislukt.",
+  "accountPendingApproval": "Account wacht op goedkeuring",
+  "accountPendingMessage": "Uw account is aangemaakt maar wacht op goedkeuring door een beheerder. Neem contact op met een beheerder om uw account te activeren.",
+  "backToLogin": "Terug naar inloggen",
+  "completingSignIn": "Aanmelding voltooien..."
+}

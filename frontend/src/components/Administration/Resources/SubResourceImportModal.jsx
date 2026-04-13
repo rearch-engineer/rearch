@@ -1,16 +1,18 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, ModalDialog, ModalClose, Typography } from '@mui/joy';
 import BitbucketImportForm from './SubResources/Bitbucket/BitbucketImportForm';
 
 function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
+  const { t } = useTranslation("Administration");
   if (!resource) return null;
 
   const getTitle = () => {
     switch (resource.provider) {
       case 'bitbucket':
-        return 'Import Repository';
+        return t('subResourceImport.importRepository');
       default:
-        return 'Import Sub-resource';
+        return t('subResourceImport.importSubresource');
     }
   };
 
@@ -21,7 +23,7 @@ function SubResourceImportModal({ open, onClose, resource, onImportSuccess }) {
       default:
         return (
           <Typography level="body-sm" color="neutral">
-            Import not supported for this resource type
+            {t('subResourceImport.notSupported')}
           </Typography>
         );
     }

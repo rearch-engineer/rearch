@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Sheet } from '@mui/joy';
+import { useTranslation } from 'react-i18next';
 
 import MarkdownRenderer from '../MarkdownRenderer';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function HelpContent() {
   const toast = useToast();
+  const { t } = useTranslation('Account');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -16,7 +18,7 @@ export default function HelpContent() {
       try {
         const response = await fetch('/help.md');
         if (!response.ok) {
-          throw new Error('Failed to load help content.');
+          throw new Error(t('helpLoadFailed'));
         }
         const text = await response.text();
         setContent(text);
@@ -46,13 +48,13 @@ export default function HelpContent() {
             level="h2"
             sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
           >
-            Help
+            {t('help')}
           </Typography>
         </Box>
 
         {loading && (
           <Typography level="body-sm" sx={{ color: 'text.tertiary' }}>
-            Loading help content...
+            {t('loadingHelp')}
           </Typography>
         )}
 

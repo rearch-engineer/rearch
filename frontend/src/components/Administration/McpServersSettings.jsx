@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from "react-i18next";
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, Stack, IconButton, Table, Chip, Input,
@@ -14,6 +15,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function McpServersSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -34,7 +36,7 @@ export default function McpServersSettings() {
       const data = await api.getMcpServers();
       setServers(data || []);
     } catch (err) {
-      toast.error('Failed to load MCP servers: ' + err.message);
+      toast.error(t("mcpServers.failedToLoadServers", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -53,23 +55,23 @@ export default function McpServersSettings() {
     try {
       setReloading(true);
       await api.reloadMcpProxy();
-      toast.success('MCP proxy reloaded');
+      toast.success(t("mcpServers.proxyReloaded"));
       loadProxyStatus();
     } catch (err) {
-      toast.error('Failed to reload proxy: ' + err.message);
+      toast.error(t("mcpServers.failedToReloadProxy", { message: err.message }));
     } finally {
       setReloading(false);
     }
   };
 
   const handleDelete = async (name) => {
-    if (await confirm({ title: "Delete Server", message: `Are you sure you want to delete the server "${name}"?`, confirmText: "Delete", confirmColor: "danger" })) {
+    if (await confirm({ title: t("mcpServers.deleteServer"), message: t("mcpServers.deleteServerConfirm", { name }), confirmText: t("mcpServers.delete"), confirmColor: "danger" })) {
       try {
         await api.deleteMcpServer(name);
         loadServers();
-        toast.success('Server deleted');
+        toast.success(t("mcpServers.serverDeleted"));
       } catch (err) {
-        toast.error('Failed to delete server: ' + (err.response?.data?.error || err.message));
+        toast.error(t("mcpServers.failedToDeleteServer", { message: err.response?.data?.error || err.message }));
       }
     }
   };
@@ -77,7 +79,7 @@ export default function McpServersSettings() {
   if (loading) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg-primary)' }}>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>Loading...</Typography>
+        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>{t("mcpServers.loading")}</Typography>
       </Box>
     );
   }
@@ -96,7 +98,7 @@ export default function McpServersSettings() {
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Typography level="h3" sx={{ mb: 3 }}>
-            MCP Servers
+            {t("mcpServers.title")}
           </Typography>
         </Box>
 
@@ -106,7 +108,7 @@ export default function McpServersSettings() {
             <Stack direction="row" alignItems="center" spacing={1.5}>
               <CircleIcon sx={{ fontSize: 12, color: '#dc2626' }} />
               <Typography level="body-sm" sx={{ color: '#dc2626', fontWeight: 600 }}>
-                MCP Proxy Unavailable
+                {t("mcpServers.proxyUnavailable")}
               </Typography>
             </Stack>
           </Box>
@@ -116,7 +118,7 @@ export default function McpServersSettings() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
           <Input
             size="sm"
-            placeholder="Search servers..."
+            placeholder={t("mcpServers.searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             startDecorator={<SearchIcon sx={{ color: 'var(--text-secondary)' }} />}
@@ -136,7 +138,7 @@ export default function McpServersSettings() {
               loading={reloading}
               sx={{ borderColor: 'var(--border-color)' }}
             >
-              Reload Proxy
+              {t("mcpServers.reloadProxy")}
             </Button>
             <Button
               size="sm"
@@ -144,7 +146,7 @@ export default function McpServersSettings() {
               onClick={() => navigate('/administration/mcp-servers/new')}
               sx={{ bgcolor: '#fff', color: '#000', '&:hover': { bgcolor: '#e5e5e5' } }}
             >
-              Add Server
+              {t("mcpServers.addServer")}
             </Button>
           </Stack>
         </Stack>
@@ -154,7 +156,7 @@ export default function McpServersSettings() {
           {servers.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography level="body-sm" sx={{ color: 'var(--text-tertiary)' }}>
-                To get started, click on Add Server above.
+                {t("mcpServers.emptyState")}
               </Typography>
             </Box>
           ) : (
@@ -176,11 +178,11 @@ export default function McpServersSettings() {
             >
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>URL / Command</th>
-                  <th>Status</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th>{t("mcpServers.tableName")}</th>
+                  <th>{t("mcpServers.tableType")}</th>
+                  <th>{t("mcpServers.tableUrlCommand")}</th>
+                  <th>{t("mcpServers.tableStatus")}</th>
+                  <th style={{ width: 100 }}>{t("mcpServers.tableActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,7 +207,7 @@ export default function McpServersSettings() {
                     </td>
                     <td>
                       <Chip size="sm" variant="soft" color={server.enabled !== false ? 'success' : 'neutral'}>
-                        {server.enabled !== false ? 'Active' : 'Disabled'}
+                        {server.enabled !== false ? t("mcpServers.active") : t("mcpServers.disabled")}
                       </Chip>
                     </td>
                     <td>

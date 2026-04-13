@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from "react-i18next";
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, Card, CardContent, Stack, Sheet,
@@ -50,6 +51,7 @@ function GalleryIcon({ name, ...props }) {
 }
 
 export default function McpServersGalleryPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const toast = useToast();
   const [gallery, setGallery] = useState([]);
@@ -85,7 +87,7 @@ export default function McpServersGalleryPage() {
   if (loading) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg-primary)' }}>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>Loading...</Typography>
+        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>{t("mcpGallery.loading")}</Typography>
       </Box>
     );
   }
@@ -113,14 +115,14 @@ export default function McpServersGalleryPage() {
                 onClick={() => navigate('/administration/mcp-servers')}
                 sx={{ mr: 1 }}
               >
-                Back
+                {t("mcpGallery.back")}
               </Button>
             </Stack>
             <Typography
               level="h2"
               sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
             >
-              Add MCP Server
+              {t("mcpGallery.addMcpServer")}
             </Typography>
 
           </Box>
@@ -131,7 +133,7 @@ export default function McpServersGalleryPage() {
             onClick={() => navigate('/administration/mcp-servers/new/manual')}
             sx={{ flexShrink: 0, mt: 0.5 }}
           >
-            Configure Manually
+            {t("mcpGallery.configureManually")}
           </Button>
         </Stack>
 
@@ -214,10 +216,10 @@ export default function McpServersGalleryPage() {
         {gallery.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 8 }}>
             <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', mb: 1 }}>
-              No gallery items available
+              {t("mcpGallery.noGalleryItems")}
             </Typography>
             <Typography level="body-sm" sx={{ color: 'var(--text-tertiary)', mb: 3 }}>
-              You can still configure a server manually.
+              {t("mcpGallery.configureManuallyDescription")}
             </Typography>
             <Button
               variant="soft"
@@ -225,7 +227,7 @@ export default function McpServersGalleryPage() {
               startDecorator={<SettingsIcon />}
               onClick={() => navigate('/administration/mcp-servers/new/manual')}
             >
-              Configure Manually
+              {t("mcpGallery.configureManually")}
             </Button>
           </Box>
         )}

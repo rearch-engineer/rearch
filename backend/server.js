@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
-import toolsRoutes from "./routes/tools.js";
 import authRoutes from "./routes/auth.js";
 import Queue from "./queue";
 import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
@@ -128,7 +127,6 @@ const app = new Elysia()
   .use(apiRoutes)
   .use(fileRoutes)
   .use(resourceRoutes)
-  .use(toolsRoutes)
   .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────

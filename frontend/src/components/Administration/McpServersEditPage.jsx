@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, FormControl, FormLabel,
@@ -10,6 +11,7 @@ import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function McpServersEditPage() {
+  const { t } = useTranslation("Administration");
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -36,7 +38,7 @@ export default function McpServersEditPage() {
       const servers = await api.getMcpServers();
       const server = (servers || []).find((s) => s.name === id);
       if (!server) {
-        toast.error('Server not found');
+        toast.error(t("mcpEdit.serverNotFound"));
         navigate('/administration/mcp-servers');
         return;
       }
@@ -52,7 +54,7 @@ export default function McpServersEditPage() {
         enabled: server.enabled !== false,
       });
     } catch (err) {
-      toast.error('Failed to load server: ' + err.message);
+      toast.error(t("mcpEdit.failedToLoadServer", { message: err.message }));
       navigate('/administration/mcp-servers');
     } finally {
       setLoading(false);
@@ -65,13 +67,13 @@ export default function McpServersEditPage() {
     let headers = undefined;
     if (formData.headers.trim()) {
       try { headers = JSON.parse(formData.headers); }
-      catch { toast.error('Headers must be valid JSON'); return; }
+      catch { toast.error(t("mcpEdit.headersMustBeValidJson")); return; }
     }
 
     let environment = undefined;
     if (formData.environment.trim()) {
       try { environment = JSON.parse(formData.environment); }
-      catch { toast.error('Environment variables must be valid JSON'); return; }
+      catch { toast.error(t("mcpEdit.environmentMustBeValidJson")); return; }
     }
 
     const payload = {
@@ -90,10 +92,10 @@ export default function McpServersEditPage() {
     try {
       setSaving(true);
       await api.updateMcpServer(id, payload);
-      toast.success('Server updated');
+      toast.success(t("mcpEdit.serverUpdated"));
       navigate('/administration/mcp-servers');
     } catch (err) {
-      toast.error('Failed to save server: ' + (err.response?.data?.error || err.message));
+      toast.error(t("mcpEdit.failedToSaveServer", { message: err.response?.data?.error || err.message }));
     } finally {
       setSaving(false);
     }
@@ -102,7 +104,7 @@ export default function McpServersEditPage() {
   if (loading) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg-primary)' }}>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>Loading...</Typography>
+        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>{t("mcpEdit.loading")}</Typography>
       </Box>
     );
   }
@@ -127,14 +129,14 @@ export default function McpServersEditPage() {
             startDecorator={<ArrowBackIcon />}
             onClick={() => navigate('/administration/mcp-servers')}
           >
-            Back
+            {t("mcpEdit.back")}
           </Button>
         </Stack>
         <Typography
           level="h2"
           sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
         >
-          Edit Server
+          {t("mcpEdit.editServer")}
         </Typography>
 
 
@@ -143,7 +145,7 @@ export default function McpServersEditPage() {
           <Stack spacing={2}>
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Name
+                {t("mcpEdit.name")}
               </FormLabel>
               <Input
                 value={formData.name}
@@ -154,22 +156,22 @@ export default function McpServersEditPage() {
 
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Type
+                {t("mcpEdit.type")}
               </FormLabel>
               <Select
                 value={formData.type}
                 onChange={(_, val) => setFormData({ ...formData, type: val })}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               >
-                <Option value="remote">Remote</Option>
-                <Option value="local">Local</Option>
+                <Option value="remote">{t("mcpEdit.remote")}</Option>
+                <Option value="local">{t("mcpEdit.local")}</Option>
               </Select>
             </FormControl>
 
             {formData.type === 'remote' && (
               <FormControl required>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  URL
+                  {t("mcpEdit.url")}
                 </FormLabel>
                 <Input
                   value={formData.url}
@@ -183,7 +185,7 @@ export default function McpServersEditPage() {
             {formData.type === 'local' && (
               <FormControl required>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Command
+                  {t("mcpEdit.command")}
                 </FormLabel>
                 <Textarea
                   value={formData.command}
@@ -198,7 +200,7 @@ export default function McpServersEditPage() {
             {formData.type === 'remote' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Headers (JSON)
+                  {t("mcpEdit.headersJson")}
                 </FormLabel>
                 <Textarea
                   value={formData.headers}
@@ -213,7 +215,7 @@ export default function McpServersEditPage() {
             {formData.type === 'local' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Environment Variables (JSON)
+                  {t("mcpEdit.environmentJson")}
                 </FormLabel>
                 <Textarea
                   value={formData.environment}
@@ -232,7 +234,7 @@ export default function McpServersEditPage() {
                   onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
                 />
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem', m: 0 }}>
-                  Enabled
+                  {t("mcpEdit.enabled")}
                 </FormLabel>
               </Stack>
             </FormControl>
@@ -244,10 +246,10 @@ export default function McpServersEditPage() {
                 onClick={() => navigate('/administration/mcp-servers')}
                 sx={{ borderColor: 'var(--border-color)' }}
               >
-                Cancel
+                {t("mcpEdit.cancel")}
               </Button>
               <Button type="submit" variant="solid" color="primary" loading={saving} startDecorator={<EditIcon />}>
-                Save Changes
+                {t("mcpEdit.saveChanges")}
               </Button>
             </Stack>
           </Stack>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Box,
@@ -13,10 +14,10 @@ import { Search, Add, ArrowBack } from "@mui/icons-material";
 import { api } from "../../../api/client";
 import SubResourceImportModal from "./SubResourceImportModal";
 
-function getTypeLabel(type) {
+function getTypeLabel(type, t) {
   switch (type) {
     case "bitbucket-repository":
-      return "Repository";
+      return t("subResourcesList.repositories");
     default:
       return type;
   }
@@ -31,12 +32,12 @@ function getTypeChipColor(type) {
   }
 }
 
-function getProviderLabel(provider) {
+function getProviderLabel(provider, t) {
   switch (provider) {
     case "bitbucket":
-      return "Repositories";
+      return t("subResourcesList.repositories");
     default:
-      return "Sub-resources";
+      return t("subResourcesList.subResources");
   }
 }
 
@@ -48,6 +49,7 @@ function getSubResourceSubtitle(subResource) {
 }
 
 function SubResourceCard({ subResource, onClick }) {
+  const { t } = useTranslation("Administration");
   const subtitle = getSubResourceSubtitle(subResource);
   const typeColor = getTypeChipColor(subResource.type);
 
@@ -112,7 +114,7 @@ function SubResourceCard({ subResource, onClick }) {
                 height: "22px",
               }}
             >
-              {getTypeLabel(subResource.type)}
+              {getTypeLabel(subResource.type, t)}
             </Chip>
 
             {subtitle && (
@@ -145,6 +147,7 @@ function SubResourceCard({ subResource, onClick }) {
 }
 
 function SubResourcesListPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const { id } = useParams();
   const [resource, setResource] = useState(null);
@@ -163,8 +166,8 @@ function SubResourcesListPage() {
     try {
       setLoading(true);
       const [res, subs] = await Promise.all([
-        api.getResource(resourceId),
-        api.getSubResources(resourceId),
+        api.getAdminResource(resourceId),
+        api.getAdminSubResources(resourceId),
       ]);
       setResource(res);
       setSubResources(subs);
@@ -184,7 +187,7 @@ function SubResourcesListPage() {
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const listLabel = resource ? getProviderLabel(resource.provider) : "Sub-resources";
+  const listLabel = resource ? getProviderLabel(resource.provider, t) : t("subResourcesList.subResources");
 
   return (
     <Box
@@ -205,7 +208,7 @@ function SubResourcesListPage() {
           onClick={() => navigate(`/administration/resources/${id}`)}
           sx={{ mb: 2 }}
         >
-          Back to {resource?.name || "Resource"}
+          {t("subResourcesList.backTo", { name: resource?.name || "Resource" })}
         </Button>
 
         <Stack
@@ -236,7 +239,7 @@ function SubResourcesListPage() {
             onClick={() => setImportModalOpen(true)}
             sx={{ flexShrink: 0, mt: 0.5 }}
           >
-            Import
+            {t("subResourcesList.import")}
           </Button>
         </Stack>
       </Box>
@@ -262,7 +265,7 @@ function SubResourcesListPage() {
         {loading ? (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-              Loading...
+              {t("subResourcesList.loading")}
             </Typography>
           </Box>
         ) : filteredSubResources.length === 0 ? (
@@ -274,13 +277,13 @@ function SubResourcesListPage() {
                     level="body-lg"
                     sx={{ color: "var(--text-secondary)", mb: 1 }}
                   >
-                    No results for "{searchQuery}"
+                    {t("subResourcesList.noResults", { query: searchQuery })}
                   </Typography>
                   <Typography
                     level="body-sm"
                     sx={{ color: "var(--text-tertiary)" }}
                   >
-                    Try a different search term
+                    {t("subResourcesList.tryDifferentSearch")}
                   </Typography>
                 </>
               ) : (
@@ -289,13 +292,13 @@ function SubResourcesListPage() {
                     level="body-lg"
                     sx={{ color: "var(--text-secondary)", mb: 1 }}
                   >
-                    No {listLabel.toLowerCase()} yet
+                    {t("subResourcesList.noItemsYet", { items: listLabel.toLowerCase() })}
                   </Typography>
                   <Typography
                     level="body-sm"
                     sx={{ color: "var(--text-tertiary)", mb: 3 }}
                   >
-                    Import your first one to get started
+                    {t("subResourcesList.importFirstOne")}
                   </Typography>
                   <Button
                     variant="soft"
@@ -303,7 +306,7 @@ function SubResourcesListPage() {
                     startDecorator={<Add />}
                     onClick={() => setImportModalOpen(true)}
                   >
-                    Import
+                    {t("subResourcesList.import")}
                   </Button>
                 </>
               )}
