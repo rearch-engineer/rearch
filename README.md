@@ -8,11 +8,8 @@ ReArch provides a familiar user interface where users can have AI-assisted conve
 
 **Key capabilities:**
 
-- Per-conversation Docker containers running OpenCode AI sessions
-- Real-time streaming chat via Socket.IO
-- Bitbucket repository integration (clone, browse, create pull requests)
-- Role-based access control (admin / user)
-- File upload and management via GridFS (MongoDB)
+- Per-conversation Docker containers running OpenCode sessions
+- Use with Bitbucket & Github repositories.
 - Background job processing with BullMQ and Redis
 - Flexible authentication: local email/password, OpenID Connect, or Keycloak
 
