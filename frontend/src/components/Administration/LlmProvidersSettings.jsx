@@ -28,9 +28,11 @@ import SearchIcon from "@mui/icons-material/Search";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 export default function LlmProvidersSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [providers, setProviders] = useState([]);
   const [registry, setRegistry] = useState({});
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export default function LlmProvidersSettings() {
         modelId: m.modelId,
         name: m.name,
         enabled: m.enabled,
-      }))
+      })),
     );
     setModalOpen(true);
   };
@@ -125,7 +127,7 @@ export default function LlmProvidersSettings() {
           modelId: m.id,
           name: m.name,
           enabled: true,
-        }))
+        })),
       );
     }
   };
@@ -133,8 +135,8 @@ export default function LlmProvidersSettings() {
   const handleModelToggle = (modelId) => {
     setFormModels((prev) =>
       prev.map((m) =>
-        m.modelId === modelId ? { ...m, enabled: !m.enabled } : m
-      )
+        m.modelId === modelId ? { ...m, enabled: !m.enabled } : m,
+      ),
     );
   };
 
@@ -197,7 +199,7 @@ export default function LlmProvidersSettings() {
     } catch (err) {
       toast.error(
         "Failed to save provider: " +
-          (err.response?.data?.error || err.message)
+          (err.response?.data?.error || err.message),
       );
     } finally {
       setSaving(false);
@@ -206,9 +208,12 @@ export default function LlmProvidersSettings() {
 
   const handleDelete = async (provider) => {
     if (
-      !window.confirm(
-        `Are you sure you want to delete the "${provider.name}" provider? This will affect all future conversations.`
-      )
+      !(await confirm({
+        title: "Delete Provider",
+        message: `Are you sure you want to delete the "${provider.name}" provider? This will affect all future conversations.`,
+        confirmText: "Delete",
+        confirmColor: "danger",
+      }))
     )
       return;
     try {
@@ -218,7 +223,7 @@ export default function LlmProvidersSettings() {
     } catch (err) {
       toast.error(
         "Failed to delete provider: " +
-          (err.response?.data?.error || err.message)
+          (err.response?.data?.error || err.message),
       );
     }
   };
@@ -268,27 +273,26 @@ export default function LlmProvidersSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
+          <Typography level="h3" sx={{ mb: 3 }}>
             LLM Providers
           </Typography>
         </Box>
 
         {/* Search & actions */}
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems="center"
+          sx={{ mb: 3 }}
+        >
           <Input
             size="sm"
             placeholder="Search providers..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+            startDecorator={
+              <SearchIcon sx={{ color: "var(--text-secondary)" }} />
+            }
             sx={{
               flex: 1,
               bgcolor: "var(--bg-secondary)",
@@ -299,7 +303,12 @@ export default function LlmProvidersSettings() {
             size="sm"
             variant="solid"
             onClick={openAddModal}
-            sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
+            sx={{
+              flexShrink: 0,
+              bgcolor: "#fff",
+              color: "#000",
+              "&:hover": { bgcolor: "#e5e5e5" },
+            }}
           >
             Connect
           </Button>
@@ -308,27 +317,13 @@ export default function LlmProvidersSettings() {
         {/* Providers table */}
         <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
           {providers.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography
-                level="body-lg"
-                sx={{ color: "var(--text-secondary)", mb: 1 }}
-              >
-                No LLM providers configured
-              </Typography>
+            <Box sx={{ textAlign: "center", py: 4 }}>
               <Typography
                 level="body-sm"
-                sx={{ color: "var(--text-tertiary)", mb: 3 }}
+                sx={{ color: "var(--text-tertiary)" }}
               >
-                Add at least one provider to enable AI conversations.
+                To get started, click on Connect above.
               </Typography>
-              <Button
-                variant="soft"
-                color="primary"
-                startDecorator={<AddIcon />}
-                onClick={openAddModal}
-              >
-                Add Provider
-              </Button>
             </Box>
           ) : (
             <Table
@@ -357,124 +352,137 @@ export default function LlmProvidersSettings() {
                 </tr>
               </thead>
               <tbody>
-                {providers.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())).map((provider) => {
-                  const enabledModels = (provider.models || []).filter(
-                    (m) => m.enabled
-                  );
-                  return (
-                    <tr key={provider._id}>
-                      <td>
-                        <Typography
-                          level="body-sm"
-                          sx={{
-                            fontWeight: 600,
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          {provider.name}
-                        </Typography>
-                        <Typography
-                          level="body-xs"
-                          sx={{
-                            fontFamily: "monospace",
-                            color: "var(--text-tertiary)",
-                          }}
-                        >
-                          {provider.providerId}
-                        </Typography>
-                        {provider.baseUrl && (
+                {providers
+                  .filter((p) =>
+                    p.name.toLowerCase().includes(search.toLowerCase()),
+                  )
+                  .map((provider) => {
+                    const enabledModels = (provider.models || []).filter(
+                      (m) => m.enabled,
+                    );
+                    return (
+                      <tr key={provider._id}>
+                        <td>
+                          <Typography
+                            level="body-sm"
+                            sx={{
+                              fontWeight: 600,
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            {provider.name}
+                          </Typography>
                           <Typography
                             level="body-xs"
                             sx={{
                               fontFamily: "monospace",
                               color: "var(--text-tertiary)",
-                              fontSize: "0.7rem",
                             }}
                           >
-                            {provider.baseUrl}
+                            {provider.providerId}
                           </Typography>
-                        )}
-                      </td>
-                      <td>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          {provider.hasApiKey ? (
-                            <>
-                              <VisibilityOffIcon
-                                sx={{
-                                  fontSize: 14,
-                                  color: "var(--text-tertiary)",
-                                }}
-                              />
-                              <Typography
-                                level="body-xs"
-                                sx={{
-                                  fontFamily: "monospace",
-                                  color: "var(--text-secondary)",
-                                }}
-                              >
-                                {provider.apiKey}
-                              </Typography>
-                            </>
-                          ) : (
-                            <Chip size="sm" variant="soft" color="warning">
-                              No key
-                            </Chip>
-                          )}
-                        </Stack>
-                      </td>
-                      <td>
-                        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                          {enabledModels.slice(0, 3).map((m) => (
-                            <Chip
-                              key={m.modelId}
-                              size="sm"
-                              variant="soft"
-                              color="primary"
+                          {provider.baseUrl && (
+                            <Typography
+                              level="body-xs"
+                              sx={{
+                                fontFamily: "monospace",
+                                color: "var(--text-tertiary)",
+                                fontSize: "0.7rem",
+                              }}
                             >
-                              {m.name}
-                            </Chip>
-                          ))}
-                          {enabledModels.length > 3 && (
-                            <Chip size="sm" variant="soft" color="neutral">
-                              +{enabledModels.length - 3} more
-                            </Chip>
+                              {provider.baseUrl}
+                            </Typography>
                           )}
-                        </Stack>
-                      </td>
-                      <td>
-                        <Chip
-                          size="sm"
-                          variant="soft"
-                          color={provider.enabled ? "success" : "neutral"}
-                          onClick={() => handleToggleEnabled(provider)}
-                          sx={{ cursor: "pointer" }}
-                        >
-                          {provider.enabled ? "Active" : "Disabled"}
-                        </Chip>
-                      </td>
-                      <td>
-                        <Stack direction="row" spacing={0.5}>
-                          <IconButton
-                            size="sm"
-                            variant="plain"
-                            color="neutral"
-                            onClick={() => openEditModal(provider)}
+                        </td>
+                        <td>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
                           >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            size="sm"
-                            variant="plain"
-                            color="danger"
-                            onClick={() => handleDelete(provider)}
+                            {provider.hasApiKey ? (
+                              <>
+                                <VisibilityOffIcon
+                                  sx={{
+                                    fontSize: 14,
+                                    color: "var(--text-tertiary)",
+                                  }}
+                                />
+                                <Typography
+                                  level="body-xs"
+                                  sx={{
+                                    fontFamily: "monospace",
+                                    color: "var(--text-secondary)",
+                                  }}
+                                >
+                                  {provider.apiKey}
+                                </Typography>
+                              </>
+                            ) : (
+                              <Chip size="sm" variant="soft" color="warning">
+                                No key
+                              </Chip>
+                            )}
+                          </Stack>
+                        </td>
+                        <td>
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            flexWrap="wrap"
+                            useFlexGap
                           >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Stack>
-                      </td>
-                    </tr>
-                  );
-                })}
+                            {enabledModels.slice(0, 3).map((m) => (
+                              <Chip
+                                key={m.modelId}
+                                size="sm"
+                                variant="soft"
+                                color="primary"
+                              >
+                                {m.name}
+                              </Chip>
+                            ))}
+                            {enabledModels.length > 3 && (
+                              <Chip size="sm" variant="soft" color="neutral">
+                                +{enabledModels.length - 3} more
+                              </Chip>
+                            )}
+                          </Stack>
+                        </td>
+                        <td>
+                          <Chip
+                            size="sm"
+                            variant="soft"
+                            color={provider.enabled ? "success" : "neutral"}
+                            onClick={() => handleToggleEnabled(provider)}
+                            sx={{ cursor: "pointer" }}
+                          >
+                            {provider.enabled ? "Active" : "Disabled"}
+                          </Chip>
+                        </td>
+                        <td>
+                          <Stack direction="row" spacing={0.5}>
+                            <IconButton
+                              size="sm"
+                              variant="plain"
+                              color="neutral"
+                              onClick={() => openEditModal(provider)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              size="sm"
+                              variant="plain"
+                              color="danger"
+                              onClick={() => handleDelete(provider)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Stack>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </Table>
           )}
@@ -504,7 +512,9 @@ export default function LlmProvidersSettings() {
                   <FormLabel>Provider</FormLabel>
                   <Select
                     placeholder="Select a provider..."
-                    value={isCustomProvider ? "__custom" : formProviderId || null}
+                    value={
+                      isCustomProvider ? "__custom" : formProviderId || null
+                    }
                     onChange={(_, v) => handleProviderSelect(v)}
                   >
                     {availableRegistryProviders.map(([id, info]) => (
@@ -512,7 +522,9 @@ export default function LlmProvidersSettings() {
                         {info.name}
                       </Option>
                     ))}
-                    <Option value="__custom">Custom OpenAI compatible provider</Option>
+                    <Option value="__custom">
+                      Custom OpenAI compatible provider
+                    </Option>
                   </Select>
                 </FormControl>
                 {isCustomProvider && (
@@ -532,7 +544,10 @@ export default function LlmProvidersSettings() {
                         value={formBaseUrl}
                         onChange={(e) => setFormBaseUrl(e.target.value)}
                       />
-                      <Typography level="body-xs" sx={{ mt: 0.5, color: "var(--text-tertiary)" }}>
+                      <Typography
+                        level="body-xs"
+                        sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
+                      >
                         The OpenAI-compatible API endpoint URL
                       </Typography>
                     </FormControl>
@@ -553,7 +568,10 @@ export default function LlmProvidersSettings() {
                       value={formBaseUrl}
                       onChange={(e) => setFormBaseUrl(e.target.value)}
                     />
-                    <Typography level="body-xs" sx={{ mt: 0.5, color: "var(--text-tertiary)" }}>
+                    <Typography
+                      level="body-xs"
+                      sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
+                    >
                       The OpenAI-compatible API endpoint URL
                     </Typography>
                   </FormControl>
@@ -603,7 +621,10 @@ export default function LlmProvidersSettings() {
             <FormControl orientation="horizontal">
               <Box sx={{ flex: 1 }}>
                 <FormLabel>Enabled</FormLabel>
-                <Typography level="body-xs" sx={{ color: "var(--text-tertiary)" }}>
+                <Typography
+                  level="body-xs"
+                  sx={{ color: "var(--text-tertiary)" }}
+                >
                   Disabled providers will not be available in new conversations
                 </Typography>
               </Box>
@@ -636,7 +657,11 @@ export default function LlmProvidersSettings() {
               {formModels.length === 0 ? (
                 <Typography
                   level="body-sm"
-                  sx={{ color: "var(--text-tertiary)", py: 2, textAlign: "center" }}
+                  sx={{
+                    color: "var(--text-tertiary)",
+                    py: 2,
+                    textAlign: "center",
+                  }}
                 >
                   {formProviderId
                     ? "No models configured. Select a provider or add custom models."
@@ -661,7 +686,11 @@ export default function LlmProvidersSettings() {
                         alignItems="center"
                         justifyContent="space-between"
                       >
-                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={1.5}
+                        >
                           <Checkbox
                             checked={model.enabled}
                             onChange={() => handleModelToggle(model.modelId)}

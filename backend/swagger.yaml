@@ -639,9 +639,6 @@ components:
           type: string
           example: code-review
           description: Lowercase alphanumeric with hyphens
-        description:
-          type: string
-          default: ""
         order:
           type: integer
           default: 0
@@ -4497,10 +4494,6 @@ paths:
                   minLength: 1
                   maxLength: 100
                   pattern: "^[a-z0-9-]+$"
-                description:
-                  type: string
-                  maxLength: 500
-                  default: ""
                 order:
                   type: integer
                   default: 0
@@ -4553,9 +4546,6 @@ paths:
                   minLength: 1
                   maxLength: 100
                   pattern: "^[a-z0-9-]+$"
-                description:
-                  type: string
-                  maxLength: 500
                 order:
                   type: integer
       responses:

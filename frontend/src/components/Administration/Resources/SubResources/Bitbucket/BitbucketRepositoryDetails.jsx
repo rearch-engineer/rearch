@@ -44,6 +44,7 @@ import Input from "@mui/joy/Input";
 import CircularProgress from "@mui/joy/CircularProgress";
 import { api } from "../../../../../api/client";
 import { useToast } from "../../../../../contexts/ToastContext";
+import { useConfirm } from "../../../../../contexts/ConfirmContext";
 
 function BitbucketRepositoryDetails({
   subResource,
@@ -54,6 +55,7 @@ function BitbucketRepositoryDetails({
 }) {
   const { data, rearch } = subResource;
   const toast = useToast();
+  const confirm = useConfirm();
   const [syncing, setSyncing] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [isEditingRearch, setIsEditingRearch] = useState(false);
@@ -435,9 +437,12 @@ function BitbucketRepositoryDetails({
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    const confirmed = window.confirm(
-      "Delete this subresource? This action cannot be undone.",
-    );
+    const confirmed = await confirm({
+      title: "Delete Subresource",
+      message: "Delete this subresource? This action cannot be undone.",
+      confirmText: "Delete",
+      confirmColor: "danger",
+    });
     if (!confirmed) return;
     await onDelete();
   };

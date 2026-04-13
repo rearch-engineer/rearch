@@ -211,7 +211,7 @@ const MainMenu = () => {
       {/* ── Nav items ── */}
       <div className="main-menu-nav">
         <div
-          className={`main-menu-nav-item${location.pathname === "/" ? " active" : ""}`}
+          className={`main-menu-nav-item${location.pathname === "/" || location.pathname === "/conversations/new" ? " active" : ""}`}
           onClick={() => navigate("/")}
           title="Home"
         >
@@ -441,7 +441,7 @@ const MainMenu = () => {
         </div>
         {isAdmin() && (
           <div
-            className={`main-menu-nav-item${location.pathname.startsWith("/administration") ? " active" : ""}`}
+            className="main-menu-nav-item"
             onClick={() => navigate("/administration")}
             title="Administration"
           >
@@ -450,7 +450,7 @@ const MainMenu = () => {
           </div>
         )}
         <div
-          className={`main-menu-nav-item${location.pathname === "/account" ? " active" : ""}`}
+            className="main-menu-nav-item"
           onClick={() => navigate("/account")}
           title="Account"
         >

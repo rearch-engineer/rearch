@@ -77,14 +77,25 @@ const AdminSidebarMenu = () => {
             >
               <div className="conversation-info">
                 <div className="conversation-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {item.badge > 0 ? (
-                    <Badge badgeContent={item.badge} size="sm" color="primary">
-                      {item.icon}
-                    </Badge>
-                  ) : (
-                    item.icon
-                  )}
+                  {item.icon}
                   {item.label}
+                  {item.badge > 0 && (
+                    <span style={{
+                      marginLeft: 4,
+                      minWidth: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      backgroundColor: "var(--joy-palette-primary-500, #1976d2)",
+                      color: "#fff",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

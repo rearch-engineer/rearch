@@ -11,14 +11,12 @@ const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Name is required.').max(100),
   slug: z.string().min(1, 'Slug is required.').max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens.'),
-  description: z.string().max(500).optional().default(''),
   order: z.number().int().optional().default(0),
 });
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens.').optional(),
-  description: z.string().max(500).optional(),
   order: z.number().int().optional(),
 });
 
@@ -101,15 +99,24 @@ const router = new Elysia({ prefix: '/suggested-prompts' })
     }
 
     try {
-      const promptCount = await SuggestedPrompt.countDocuments({ category: params.id });
-      if (promptCount > 0) {
-        return status(400, { error: `Cannot delete category: ${promptCount} prompt(s) still use it. Move or delete them first.` });
-      }
-
       const deleted = await SuggestedPromptCategory.findByIdAndDelete(params.id);
       if (!deleted) {
         return status(404, { error: 'Category not found.' });
       }
+
+      // Cascade-delete all prompts in this category (and their images)
+      const categoryPrompts = await SuggestedPrompt.find({ category: params.id });
+      for (const prompt of categoryPrompts) {
+        if (prompt.imageFileId) {
+          try {
+            await deleteFile(prompt.imageFileId, 'attachments');
+          } catch (e) {
+            // Ignore if file doesn't exist
+          }
+        }
+        await SuggestedPrompt.findByIdAndDelete(prompt._id);
+      }
+
       set.status = 204;
       return '';
     } catch (err) {

@@ -11,9 +11,11 @@ import CircleIcon from '@mui/icons-material/Circle';
 import SearchIcon from '@mui/icons-material/Search';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export default function McpServersSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export default function McpServersSettings() {
   };
 
   const handleDelete = async (name) => {
-    if (window.confirm(`Are you sure you want to delete the server "${name}"?`)) {
+    if (await confirm({ title: "Delete Server", message: `Are you sure you want to delete the server "${name}"?`, confirmText: "Delete", confirmColor: "danger" })) {
       try {
         await api.deleteMcpServer(name);
         loadServers();
@@ -93,10 +95,7 @@ export default function McpServersSettings() {
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
-          >
+          <Typography level="h3" sx={{ mb: 3 }}>
             MCP Servers
           </Typography>
         </Box>
@@ -153,21 +152,10 @@ export default function McpServersSettings() {
         {/* Servers table */}
         <Box sx={{ bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
           {servers.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', mb: 1 }}>
-                No MCP servers configured
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography level="body-sm" sx={{ color: 'var(--text-tertiary)' }}>
+                To get started, click on Add Server above.
               </Typography>
-              <Typography level="body-sm" sx={{ color: 'var(--text-tertiary)', mb: 3 }}>
-                Add a server to start connecting MCP tools to your conversations.
-              </Typography>
-              <Button
-                variant="soft"
-                color="primary"
-                startDecorator={<AddIcon />}
-                onClick={() => navigate('/administration/mcp-servers/new')}
-              >
-                Add Server
-              </Button>
             </Box>
           ) : (
             <Table

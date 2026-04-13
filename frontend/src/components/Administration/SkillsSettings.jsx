@@ -25,11 +25,13 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const EMPTY_FORM = { title: "", description: "", skillsRepository: "", isDefault: false };
 
 export default function SkillsSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function SkillsSettings() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this skill?")) {
+    if (await confirm({ title: "Delete Skill", message: "Are you sure you want to delete this skill?", confirmText: "Delete", confirmColor: "danger" })) {
       try {
         await api.deleteSkill(id);
         loadSkills();
@@ -131,15 +133,7 @@ export default function SkillsSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
+          <Typography level="h3" sx={{ mb: 3 }}>
             Skills
           </Typography>
         </Box>
@@ -171,27 +165,13 @@ export default function SkillsSettings() {
         {/* Table */}
         <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
           {skills.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography
-                level="body-lg"
-                sx={{ color: "var(--text-secondary)", mb: 1 }}
-              >
-                No skills configured
-              </Typography>
+            <Box sx={{ textAlign: "center", py: 4 }}>
               <Typography
                 level="body-sm"
-                sx={{ color: "var(--text-tertiary)", mb: 3 }}
+                sx={{ color: "var(--text-tertiary)" }}
               >
-                Add a skill to define AI capabilities for SDLC processes.
+                To get started, click on Add Skill above.
               </Typography>
-              <Button
-                variant="soft"
-                color="primary"
-                startDecorator={<AddIcon />}
-                onClick={openCreate}
-              >
-                Add Skill
-              </Button>
             </Box>
           ) : (
             <Table

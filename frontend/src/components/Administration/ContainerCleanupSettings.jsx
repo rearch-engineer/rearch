@@ -26,6 +26,7 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const UNIT_OPTIONS = [
   { value: "minutes", label: "Minutes", toMinutes: (v) => v,           fromMinutes: (m) => m,             min: 1,  max: 1440  },
@@ -111,6 +112,7 @@ function DurationInput({ label, description, amount, unit, saving, onChange }) {
 
 export default function ContainerCleanupSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -217,9 +219,12 @@ export default function ContainerCleanupSettings() {
   };
 
   const handleTriggerCleanup = async () => {
-    const confirmed = window.confirm(
-      "This will immediately stop idle running containers and remove stale stopped containers. Continue?"
-    );
+    const confirmed = await confirm({
+      title: "Trigger Cleanup",
+      message: "This will immediately stop idle running containers and remove stale stopped containers. Continue?",
+      confirmText: "Continue",
+      confirmColor: "warning",
+    });
     if (!confirmed) return;
 
     try {
@@ -279,22 +284,29 @@ export default function ContainerCleanupSettings() {
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
       <Typography level="h3" sx={{ mb: 3 }}>Container Cleanup</Typography>
 
-      {/* Info Alert */}
-      <Alert variant="soft" color="primary" startDecorator={<InfoOutlinedIcon />} sx={{ mb: 3 }}>
-        <Box>
-          <Typography level="title-sm">Automatic idle container cleanup</Typography>
-          <Typography level="body-sm">
-            When enabled, the system periodically checks for idle containers and
-            applies two thresholds: first containers are <b>stopped</b> (freeing
-            compute but keeping the container on disk), then after a longer period
-            they are <b>removed</b> entirely. Conversation data is always preserved.
-          </Typography>
-        </Box>
-      </Alert>
-
       {/* Enable toggle + thresholds */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
+            <CleaningServicesIcon sx={{ color: "var(--text-secondary)" }} />
+            <Typography level="title-md">Scheduled Cleanup</Typography>
+          </Stack>
+
+          <Typography
+            level="body-sm"
+            sx={{ color: "var(--text-secondary)", mb: 2 }}
+          >
+            When enabled, the system periodically checks for idle containers and
+            applies two thresholds: first containers are stopped (freeing
+            compute but keeping the container on disk), then after a longer period
+            they are removed entirely. Conversation data is always preserved.
+          </Typography>
+
           <Stack spacing={2.5}>
             {/* Master toggle */}
             <FormControl
@@ -303,9 +315,6 @@ export default function ContainerCleanupSettings() {
             >
               <Box>
                 <FormLabel sx={{ mb: 0 }}>Enable idle container cleanup</FormLabel>
-                <Typography level="body-xs" sx={{ color: "var(--text-secondary)" }}>
-                  Periodically stop and remove idle containers automatically
-                </Typography>
               </Box>
               <Switch
                 checked={enabled}

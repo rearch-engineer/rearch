@@ -267,15 +267,7 @@ function ResourceListPage() {
     >
       {/* Header */}
       <Box sx={{ maxWidth: 960, mx: "auto", mb: 4 }}>
-        <Typography
-          level="h2"
-          sx={{
-            mb: 1,
-            color: "var(--text-primary)",
-            fontWeight: 700,
-            fontSize: { xs: "1.5rem", md: "1.75rem" },
-          }}
-        >
+        <Typography level="h3" sx={{ mb: 3 }}>
           Resources
         </Typography>
       </Box>

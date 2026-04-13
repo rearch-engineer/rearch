@@ -93,3 +93,20 @@ code {
   height: 100vh;
   display: flex;
 }
+
+/* Primary button overrides */
+.MuiButton-colorPrimary {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+.MuiButton-colorPrimary:hover {
+  background-color: #222222 !important;
+}
+
+[data-joy-color-scheme="dark"] .MuiButton-colorPrimary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+[data-joy-color-scheme="dark"] .MuiButton-colorPrimary:hover {
+  background-color: #dddddd !important;
+}

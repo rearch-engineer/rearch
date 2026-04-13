@@ -128,15 +128,7 @@ export default function GeneralSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
+          <Typography level="h3" sx={{ mb: 3 }}>
             General
           </Typography>
 
@@ -144,55 +136,38 @@ export default function GeneralSettings() {
 
         {/* Signup Restrictions card — only shown in LOCAL auth mode */}
         {authMode === "LOCAL" && (
-          <Card
-            variant="outlined"
-            sx={{
-              borderColor: "var(--border-color)",
-              bgcolor: "var(--bg-primary)",
-            }}
-          >
+          <Card variant="outlined" sx={{ mb: 3 }}>
             <CardContent>
               <Typography
                 level="title-md"
-                sx={{ mb: 0.5, fontWeight: 700, color: "var(--text-primary)" }}
+                sx={{ mb: 0.5 }}
               >
                 Signup Restrictions
               </Typography>
               <Typography
                 level="body-sm"
-                sx={{ mb: 3, color: "var(--text-secondary)" }}
+                sx={{ color: "var(--text-secondary)", mb: 2 }}
               >
                 Control who can create new accounts when using local
                 authentication.
               </Typography>
 
-              <Stack spacing={3}>
+              <Stack spacing={2}>
                 {/* Toggle: Restrict new signups */}
                 <FormControl
                   orientation="horizontal"
                   sx={{
                     justifyContent: "space-between",
                     alignItems: "center",
-                    p: 2,
-                    borderRadius: "8px",
-                    border: "1px solid var(--border-color)",
-                    bgcolor: "var(--bg-secondary)",
                   }}
                 >
                   <Box>
-                    <FormLabel
-                      sx={{
-                        color: "var(--text-primary)",
-                        fontWeight: 600,
-                        fontSize: "0.9rem",
-                        mb: 0.25,
-                      }}
-                    >
+                    <FormLabel sx={{ mb: 0 }}>
                       Restrict new signups
                     </FormLabel>
                     <Typography
                       level="body-xs"
-                      sx={{ color: "var(--text-tertiary)" }}
+                      sx={{ color: "var(--text-secondary)" }}
                     >
                       When enabled, no new users can register.
                     </Typography>

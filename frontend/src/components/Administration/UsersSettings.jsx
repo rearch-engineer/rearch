@@ -4,6 +4,7 @@ import {
   Button,
   Typography,
   FormControl,
+  FormLabel,
   Input,
   Select,
   Option,
@@ -24,6 +25,7 @@ import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import SearchIcon from "@mui/icons-material/Search";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const STATUS_CONFIG = {
   active: {
@@ -47,6 +49,7 @@ const AVAILABLE_ROLES = ["user", "admin"];
 
 export default function UsersSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -139,9 +142,12 @@ export default function UsersSettings() {
 
   const handleDelete = async (user) => {
     if (
-      window.confirm(
-        `Are you sure you want to delete user "${user.account.email}"? This cannot be undone.`,
-      )
+      await confirm({
+        title: "Delete User",
+        message: `Are you sure you want to delete user "${user.account.email}"? This cannot be undone.`,
+        confirmText: "Delete",
+        confirmColor: "danger",
+      })
     ) {
       try {
         await api.deleteUser(user._id);
@@ -188,15 +194,7 @@ export default function UsersSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
+          <Typography level="h3" sx={{ mb: 3 }}>
             Users
           </Typography>
         </Box>

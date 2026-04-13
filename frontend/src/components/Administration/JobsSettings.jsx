@@ -543,12 +543,6 @@ export default function JobsSettings() {
           }}
         >
           <Typography
-            level="title-md"
-            sx={{ color: "var(--text-primary)", fontWeight: 600 }}
-          >
-            All Jobs
-          </Typography>
-          <Typography
             level="body-xs"
             sx={{ color: "var(--text-tertiary)", mt: 0.5 }}
           >

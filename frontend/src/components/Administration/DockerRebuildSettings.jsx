@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Chip,
   Input,
+  Divider,
 } from "@mui/joy";
 import BuildIcon from "@mui/icons-material/Build";
 import ScheduleIcon from "@mui/icons-material/Schedule";
@@ -23,6 +24,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const UNIT_OPTIONS = [
   { value: "minutes", label: "Minutes", toHours: (v) => v / 60, fromHours: (h) => Math.round(h * 60), min: 1, max: 43200 },
@@ -43,6 +45,7 @@ function hoursToDisplay(totalHours) {
 
 export default function DockerRebuildSettings() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -151,9 +154,12 @@ export default function DockerRebuildSettings() {
   };
 
   const handleTriggerRebuildAll = async () => {
-    const confirmed = window.confirm(
-      "This will rebuild all Docker images for every subresource with ReArch enabled. Continue?"
-    );
+    const confirmed = await confirm({
+      title: "Rebuild All Images",
+      message: "This will rebuild all Docker images for every subresource with ReArch enabled. Continue?",
+      confirmText: "Continue",
+      confirmColor: "warning",
+    });
     if (!confirmed) return;
 
     try {
@@ -245,28 +251,19 @@ export default function DockerRebuildSettings() {
             level="body-sm"
             sx={{ color: "var(--text-secondary)", mb: 2 }}
           >
-            Automatically rebuild all Docker images for subresources with ReArch
-            enabled at a regular interval. This ensures images stay up-to-date
-            with the latest code changes.
+            Automatically rebuild all Docker images for subresources with
+            ReArch enabled at a regular interval. This ensures images stay
+            up-to-date with the latest code changes.
           </Typography>
 
-          <Stack spacing={2}>
+          <Stack spacing={2.5}>
+            {/* Master toggle */}
             <FormControl
               orientation="horizontal"
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
+              sx={{ justifyContent: "space-between", alignItems: "center" }}
             >
               <Box>
                 <FormLabel sx={{ mb: 0 }}>Enable scheduled rebuilds</FormLabel>
-                <Typography
-                  level="body-xs"
-                  sx={{ color: "var(--text-secondary)" }}
-                >
-                  When enabled, all ReArch Docker images will be rebuilt on the
-                  selected interval
-                </Typography>
               </Box>
               <Switch
                 checked={enabled}
@@ -277,58 +274,64 @@ export default function DockerRebuildSettings() {
             </FormControl>
 
             {enabled && (
-              <FormControl>
-                <FormLabel>Rebuild every</FormLabel>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Input
-                    size="sm"
-                    type="number"
-                    value={intervalAmount}
-                    onChange={handleAmountChange}
-                    onKeyDown={handleAmountKeyDown}
-                    onBlur={handleAmountCommit}
-                    disabled={saving}
-                    slotProps={{
-                      input: {
-                        min: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.min ?? 1,
-                        max: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.max ?? 720,
-                      },
-                    }}
-                    sx={{ width: 100, fontFamily: "monospace" }}
-                  />
-                  <Select
-                    size="sm"
-                    value={intervalUnit}
-                    onChange={handleUnitChange}
-                    disabled={saving}
-                    sx={{ minWidth: 120 }}
-                  >
-                    {UNIT_OPTIONS.map((u) => (
-                      <Option key={u.value} value={u.value}>
-                        {u.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Stack>
-              </FormControl>
-            )}
+              <>
+                <Divider />
 
-            <Box>
-              <Typography
-                level="body-sm"
-                fontWeight="bold"
-                sx={{ color: "var(--text-secondary)", mb: 0.5 }}
-              >
-                Last triggered
-              </Typography>
-              <Chip
-                size="sm"
-                variant="soft"
-                color={lastTriggeredAt ? "primary" : "neutral"}
-              >
-                {formatDate(lastTriggeredAt)}
-              </Chip>
-            </Box>
+                <FormControl>
+                  <FormLabel>Rebuild every</FormLabel>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Input
+                      size="sm"
+                      type="number"
+                      value={intervalAmount}
+                      onChange={handleAmountChange}
+                      onKeyDown={handleAmountKeyDown}
+                      onBlur={handleAmountCommit}
+                      disabled={saving}
+                      slotProps={{
+                        input: {
+                          min: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.min ?? 1,
+                          max: UNIT_OPTIONS.find((u) => u.value === intervalUnit)?.max ?? 720,
+                        },
+                      }}
+                      sx={{ width: 100, fontFamily: "monospace" }}
+                    />
+                    <Select
+                      size="sm"
+                      value={intervalUnit}
+                      onChange={handleUnitChange}
+                      disabled={saving}
+                      sx={{ minWidth: 120 }}
+                    >
+                      {UNIT_OPTIONS.map((u) => (
+                        <Option key={u.value} value={u.value}>
+                          {u.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Stack>
+                </FormControl>
+
+                <Divider />
+
+                <Box>
+                  <Typography
+                    level="body-sm"
+                    fontWeight="bold"
+                    sx={{ color: "var(--text-secondary)", mb: 0.5 }}
+                  >
+                    Last triggered
+                  </Typography>
+                  <Chip
+                    size="sm"
+                    variant="soft"
+                    color={lastTriggeredAt ? "primary" : "neutral"}
+                  >
+                    {formatDate(lastTriggeredAt)}
+                  </Chip>
+                </Box>
+              </>
+            )}
           </Stack>
         </CardContent>
       </Card>

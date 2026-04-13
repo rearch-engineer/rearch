@@ -206,7 +206,14 @@ export default function UsageSettings() {
   return (
     <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'auto' }}>
       <Box sx={{ maxWidth: 960, mx: 'auto' }}>
-      {/* Header + Controls */}
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography level="h3" sx={{ mb: 3 }}>
+          Usage
+        </Typography>
+      </Box>
+
+      {/* Controls */}
       <Box
         sx={{
           display: "flex",
@@ -217,9 +224,7 @@ export default function UsageSettings() {
           mb: 3,
         }}
       >
-        <Typography level="h4">Usage</Typography>
-
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", width: "100%" }}>
           {/* Quick date range buttons */}
           <ButtonGroup size="sm" variant="outlined">
             {RANGE_OPTIONS.map((opt) => (

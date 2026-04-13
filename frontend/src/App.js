@@ -25,6 +25,7 @@ import { SocketProvider } from "./contexts/SocketContext";
 import { ConversationsProvider } from "./contexts/ConversationsContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ConfirmProvider } from "./contexts/ConfirmContext";
 import "./App.css";
 
 /**
@@ -192,6 +193,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
+        <ConfirmProvider>
         <AuthProvider>
           <BrowserRouter>
             <Routes>
@@ -218,6 +220,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </ErrorBoundary>
   );
