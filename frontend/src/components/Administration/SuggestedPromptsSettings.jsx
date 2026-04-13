@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { sanitizeUrl } from "../../utils/sanitize";
+import { sanitizeImageUrl } from "../../utils/sanitize";
 import { useTranslation } from "react-i18next";
 import {
   Box,
@@ -1035,7 +1035,7 @@ export default function SuggestedPromptsSettings() {
                     >
                       <AspectRatio ratio="16/9">
                         <img
-                          src={sanitizeUrl(promptImagePreview)}
+                          src={sanitizeImageUrl(promptImagePreview)}
                           alt="Preview"
                           style={{ objectFit: "cover" }}
                         />
