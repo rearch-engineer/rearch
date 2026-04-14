@@ -32,6 +32,8 @@ import {
   listCollaborators as listGithubCollaborators,
 } from "../utils/github/github.js";
 import { authPlugin } from "../middleware/auth.js";
+import { broadcast } from "../ws.js";
+import { addJobToQueue } from "../queue/config.js";
 
 const docker = new Docker();
 
@@ -375,6 +377,27 @@ const router = new Elysia({ prefix: "/api" })
       if (!conversation) {
         set.status = 404;
         return { error: "Conversation not found" };
+      }
+
+      // Auto-restart stopped/errored containers when user opens the conversation
+      const envStatus = conversation.environment?.status;
+      if (envStatus === "stopped" || envStatus === "error") {
+        conversation.environment = {
+          ...conversation.environment,
+          status: "starting",
+          statusChangedAt: new Date(),
+          errorMessage: null,
+        };
+        await conversation.save();
+        broadcast("conversation.environment.status", {
+          conversationId: params.id,
+          status: "starting",
+        });
+        await addJobToQueue("conversations", "restart-conversation", {
+          conversationId: params.id,
+          repositoryId: conversation.repository.toString(),
+          subResourceId: conversation.subResource.toString(),
+        });
       }
 
       let messages = [];
