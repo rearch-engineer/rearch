@@ -3,14 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "ReArch development server TUI dashboard",
+  "description": "ReArch development environment CLI",
   "scripts": {
-    "dev": "bun run src/index.ts"
-  },
-  "dependencies": {
-    "chalk": "^5.4.1",
-    "cli-table3": "^0.6.5",
-    "log-update": "^6.1.0"
+    "dev": "bun run src/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

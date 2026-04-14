@@ -1,610 +1,769 @@
-// ──────────────────────────────────────────────────────────────
-// services.ts — Service process management, log buffering,
-//               health monitoring for the ReArch dev TUI
-// ──────────────────────────────────────────────────────────────
+// services.ts — Service process management for the ReArch CLI
 
 import { spawn, type Subprocess } from "bun";
-import { existsSync, copyFileSync } from "node:fs";
+import { existsSync, copyFileSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, appendFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { isPortResponding } from "./ports.js";
-import type {
-  CombinedLogEntry,
-  DockerContainer,
-  ServiceDefinition,
-  ServiceState,
-  ServiceStatus,
-} from "./types.js";
 
-const MAX_LOG_LINES = 300;
-const HEALTH_CHECK_INTERVAL = 2000;
+// ── Types ────────────────────────────────────────────────────
+
+export type ServiceType = "docker" | "local";
+
+export interface ServiceDefinition {
+  name: string;
+  key: string; // lowercase key for CLI (e.g. "mcp-proxy")
+  type: ServiceType;
+  port: number;
+  runtime: string;
+  cmd?: string;
+  cwd?: string;
+  composeName?: string;
+}
 
 // ── Service definitions ──────────────────────────────────────
 
 export const SERVICE_DEFINITIONS: ServiceDefinition[] = [
   {
     name: "Redis",
+    key: "redis",
     type: "docker",
     port: 6379,
     runtime: "Docker",
     composeName: "redis",
-    color: "#F44336",
   },
   {
     name: "MongoDB",
+    key: "mongodb",
     type: "docker",
     port: 27017,
     runtime: "Docker",
     composeName: "mongodb",
-    color: "#4CAF50",
   },
   {
     name: "MCP Proxy",
+    key: "mcp-proxy",
     type: "local",
     port: 3100,
     runtime: "Bun",
     cmd: "bun",
     cwd: "mcp-proxy",
-    color: "#2196F3",
   },
   {
     name: "Backend",
+    key: "backend",
     type: "local",
     port: 5000,
     runtime: "Bun",
     cmd: "bun",
     cwd: "backend",
-    color: "#FF9800",
   },
   {
     name: "Frontend",
+    key: "frontend",
     type: "local",
     port: 4200,
     runtime: "Vite",
     cmd: "bun",
     cwd: "frontend",
-    color: "#9C27B0",
   },
 ];
 
-// ── Service Manager ──────────────────────────────────────────
+// ── Paths ────────────────────────────────────────────────────
 
-export class ServiceManager {
-  private rootDir: string;
-  private composeFile: string;
-  private states: ServiceState[];
-  private processes: Map<string, Subprocess> = new Map();
-  private healthTimer: ReturnType<typeof setInterval> | null = null;
-  private logReaders: Map<string, AbortController> = new Map();
-  private combinedLogs: CombinedLogEntry[] = [];
+export function getPaths(rootDir: string) {
+  return {
+    composeFile: join(rootDir, "docker-compose-dev.yml"),
+    pidFile: join(rootDir, ".rearch-pids"),
+    logsDir: join(rootDir, ".rearch-logs"),
+  };
+}
 
-  constructor(rootDir: string) {
-    this.rootDir = rootDir;
-    this.composeFile = join(rootDir, "docker-compose-dev.yml");
-    this.states = SERVICE_DEFINITIONS.map((def) => ({
-      definition: def,
-      status: "pending" as ServiceStatus,
-      pid: null,
-      startedAt: null,
-      exitCode: null,
-      logs: [],
-    }));
+function ensureLogsDir(rootDir: string): void {
+  const { logsDir } = getPaths(rootDir);
+  if (!existsSync(logsDir)) {
+    mkdirSync(logsDir, { recursive: true });
   }
+}
 
-  getStates(): ServiceState[] {
-    return this.states;
+// ── PID file management ──────────────────────────────────────
+
+export function readPids(rootDir: string): Record<string, number> {
+  const { pidFile } = getPaths(rootDir);
+  try {
+    return JSON.parse(readFileSync(pidFile, "utf-8"));
+  } catch {
+    return {};
   }
+}
 
-  private getState(name: string): ServiceState {
-    return this.states.find((s) => s.definition.name === name)!;
+export function writePids(rootDir: string, pids: Record<string, number>): void {
+  const { pidFile } = getPaths(rootDir);
+  writeFileSync(pidFile, JSON.stringify(pids, null, 2));
+}
+
+export function removePidFile(rootDir: string): void {
+  const { pidFile } = getPaths(rootDir);
+  try { unlinkSync(pidFile); } catch { /* noop */ }
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
+}
 
-  private appendLog(name: string, line: string): void {
-    const state = this.getState(name);
-    state.logs.push(line);
-    if (state.logs.length > MAX_LOG_LINES) {
-      state.logs = state.logs.slice(-MAX_LOG_LINES);
+// ── Log file helpers ─────────────────────────────────────────
+
+export function logFilePath(rootDir: string, key: string): string {
+  return join(getPaths(rootDir).logsDir, `${key}.log`);
+}
+
+function pipeToLogFile(stream: ReadableStream<Uint8Array> | null, filePath: string): void {
+  if (!stream) return;
+  const reader = stream.getReader();
+  const read = async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        appendFileSync(filePath, value);
+      }
+    } catch {
+      // stream closed
     }
-    // Also push to combined chronological buffer
-    this.combinedLogs.push({
-      service: name,
-      color: state.definition.color,
-      line,
+  };
+  read();
+}
+
+// ── Dependency installation ──────────────────────────────────
+
+async function ensureDependencies(rootDir: string): Promise<void> {
+  const locals = SERVICE_DEFINITIONS.filter(s => s.type === "local");
+  const tasks = locals
+    .filter(s => !existsSync(join(resolve(rootDir, s.cwd!), "node_modules")))
+    .map(async (s) => {
+      const cwd = resolve(rootDir, s.cwd!);
+      console.log(`  Installing dependencies for ${s.name}...`);
+      const proc = spawn({ cmd: ["bun", "install"], stdout: "pipe", stderr: "pipe", cwd });
+      const code = await proc.exited;
+      if (code !== 0) {
+        console.log(`  Failed to install dependencies for ${s.name} (exit ${code})`);
+      }
     });
-    if (this.combinedLogs.length > MAX_LOG_LINES * 2) {
-      this.combinedLogs = this.combinedLogs.slice(-MAX_LOG_LINES);
+  if (tasks.length > 0) await Promise.all(tasks);
+}
+
+function ensureBackendEnv(rootDir: string): void {
+  const envFile = join(resolve(rootDir, "backend"), ".env");
+  const envExample = join(resolve(rootDir, "backend"), ".env.example");
+  if (!existsSync(envFile) && existsSync(envExample)) {
+    copyFileSync(envExample, envFile);
+    console.log("  Copied backend/.env.example -> backend/.env");
+  }
+}
+
+// ── Start ────────────────────────────────────────────────────
+
+export async function startServices(rootDir: string): Promise<void> {
+  const { composeFile } = getPaths(rootDir);
+  ensureLogsDir(rootDir);
+
+  // Check if already running
+  const existingPids = readPids(rootDir);
+  const aliveServices = Object.entries(existingPids).filter(([, pid]) => isProcessAlive(pid));
+  if (aliveServices.length > 0) {
+    console.log("  Services already running:");
+    for (const [key, pid] of aliveServices) {
+      console.log(`    ${key} (PID ${pid})`);
     }
+    console.log("\n  Run 'rearch stop' first, or 'rearch restart'.");
+    process.exit(1);
   }
 
-  getCombinedLogs(): CombinedLogEntry[] {
-    return this.combinedLogs;
+  // 1. Start docker infrastructure
+  console.log("  Starting Docker infrastructure...");
+  const dockerProc = spawn({
+    cmd: ["docker", "compose", "-f", composeFile, "up", "--build", "-d"],
+    stdout: "pipe",
+    stderr: "pipe",
+    cwd: rootDir,
+  });
+  const dockerExit = await dockerProc.exited;
+  if (dockerExit !== 0) {
+    const err = await new Response(dockerProc.stderr).text();
+    console.log(`  Docker compose failed (exit ${dockerExit})`);
+    if (err.trim()) console.log(`  ${err.trim()}`);
+    process.exit(1);
+  }
+  console.log("  Docker infrastructure started (Redis, MongoDB)");
+
+  // 2. Install deps + env setup
+  ensureBackendEnv(rootDir);
+  await ensureDependencies(rootDir);
+
+  // 3. Start local services
+  const pids: Record<string, number> = {};
+  const locals = SERVICE_DEFINITIONS.filter(s => s.type === "local");
+
+  for (const svc of locals) {
+    const cwd = resolve(rootDir, svc.cwd!);
+    const logFile = logFilePath(rootDir, svc.key);
+
+    // Truncate log file
+    writeFileSync(logFile, "");
+
+    const proc = spawn({
+      cmd: [svc.cmd!, "run", "dev"],
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd,
+      detached: true,
+      env: { ...process.env, FORCE_COLOR: "0" },
+    });
+
+    pids[svc.key] = proc.pid; // PID == PGID for the group leader
+    pipeToLogFile(proc.stdout, logFile);
+    pipeToLogFile(proc.stderr, logFile);
+
+    console.log(`  Started ${svc.name} (PGID ${proc.pid})`);
   }
 
-  async refreshDockerContainers(): Promise<DockerContainer[]> {
-    try {
-      const proc = spawn({
-        cmd: [
-          "docker",
-          "ps",
-          "-a",
-          "--filter",
-          "name=rearch_session_",
-          "--format",
-          "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.CreatedAt}}",
-        ],
-        stdout: "pipe",
-        stderr: "pipe",
-      });
+  writePids(rootDir, pids);
 
-      const output = await new Response(proc.stdout).text();
-      await proc.exited;
+  // 4. Wait for services to be ready
+  console.log("\n  Waiting for services to be ready...");
+  const allServices = SERVICE_DEFINITIONS;
+  const ready = new Set<string>();
+  const timeout = Date.now() + 60_000;
 
-      return output
-        .trim()
-        .split("\n")
-        .filter(Boolean)
-        .map((row) => {
-          const [id, name, image, status, ports, created] = row.split("\t");
-          return {
-            id: id || "",
-            name: name || "",
-            image: image || "",
-            status: status || "",
-            ports: ports || "",
-            created: created || "",
-          };
-        });
-    } catch {
-      return [];
-    }
-  }
-
-  // ── Docker services ──────────────────────────────────────
-
-  async startDockerServices(): Promise<void> {
-    const dockerServices = this.states.filter(
-      (s) => s.definition.type === "docker"
-    );
-    for (const svc of dockerServices) {
-      svc.status = "starting";
-      this.appendLog(svc.definition.name, "Starting Docker container...");
-    }
-
-    try {
-      const proc = spawn({
-        cmd: [
-          "docker",
-          "compose",
-          "-f",
-          this.composeFile,
-          "up",
-          "--build",
-          "-d",
-        ],
-        stdout: "pipe",
-        stderr: "pipe",
-        cwd: this.rootDir,
-      });
-
-      // Capture docker compose output
-      this.readStream(proc.stdout, (line) => {
-        for (const svc of dockerServices) {
-          this.appendLog(svc.definition.name, line);
-        }
-      });
-      this.readStream(proc.stderr, (line) => {
-        for (const svc of dockerServices) {
-          this.appendLog(svc.definition.name, line);
-        }
-      });
-
-      const exitCode = await proc.exited;
-
-      if (exitCode === 0) {
-        for (const svc of dockerServices) {
-          svc.status = "running";
-          svc.startedAt = Date.now();
-          this.appendLog(svc.definition.name, "Container started.");
-        }
-        // Start tailing docker logs
-        this.tailDockerLogs();
-      } else {
-        for (const svc of dockerServices) {
-          svc.status = "error";
-          svc.exitCode = exitCode;
-          this.appendLog(
-            svc.definition.name,
-            `Docker compose failed with exit code ${exitCode}`
-          );
-        }
-      }
-    } catch (err) {
-      for (const svc of dockerServices) {
-        svc.status = "error";
-        this.appendLog(
-          svc.definition.name,
-          `Failed to start: ${err instanceof Error ? err.message : String(err)}`
-        );
+  while (ready.size < allServices.length && Date.now() < timeout) {
+    for (const svc of allServices) {
+      if (ready.has(svc.key)) continue;
+      if (await isPortResponding(svc.port)) {
+        ready.add(svc.key);
+        console.log(`  [ok] ${svc.name} ready on :${svc.port}`);
       }
     }
-  }
-
-  private tailDockerLogs(): void {
-    const dockerServices = this.states.filter(
-      (s) => s.definition.type === "docker"
-    );
-
-    for (const svc of dockerServices) {
-      const composeName = svc.definition.composeName;
-      if (!composeName) continue;
-
-      const controller = new AbortController();
-      this.logReaders.set(svc.definition.name, controller);
-
-      try {
-        const proc = spawn({
-          cmd: [
-            "docker",
-            "compose",
-            "-f",
-            this.composeFile,
-            "logs",
-            "--follow",
-            "--tail",
-            "20",
-            "--no-log-prefix",
-            composeName,
-          ],
-          stdout: "pipe",
-          stderr: "pipe",
-          cwd: this.rootDir,
-        });
-
-        this.readStream(proc.stdout, (line) => {
-          this.appendLog(svc.definition.name, line);
-        });
-        this.readStream(proc.stderr, (line) => {
-          this.appendLog(svc.definition.name, line);
-        });
-
-        // Store process so we can kill it on shutdown
-        this.processes.set(`docker-logs-${composeName}`, proc);
-      } catch {
-        // Non-critical — logs just won't tail
-      }
+    if (ready.size < allServices.length) {
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
 
-  // ── Dependency installation ──────────────────────────────
-
-  private async ensureDependencies(): Promise<void> {
-    const localServices = this.states.filter(
-      (s) => s.definition.type === "local"
-    );
-
-    const installTasks = localServices
-      .filter((svc) => {
-        const cwd = resolve(this.rootDir, svc.definition.cwd!);
-        const nodeModulesPath = join(cwd, "node_modules");
-        return !existsSync(nodeModulesPath);
-      })
-      .map((svc) => this.installDependencies(svc));
-
-    if (installTasks.length > 0) {
-      await Promise.all(installTasks);
+  const notReady = allServices.filter(s => !ready.has(s.key));
+  if (notReady.length > 0) {
+    console.log("");
+    for (const svc of notReady) {
+      console.log(`  [!!] ${svc.name} not responding on :${svc.port}`);
     }
   }
 
-  private async installDependencies(svc: ServiceState): Promise<void> {
-    const def = svc.definition;
-    const cwd = resolve(this.rootDir, def.cwd!);
+  console.log("\n  All services started. Use 'rearch logs' to tail output.");
+}
 
-    this.appendLog(
-      def.name,
-      "node_modules not found. Installing dependencies..."
-    );
+// ── Stop ─────────────────────────────────────────────────────
 
-    try {
-      const proc = spawn({
-        cmd: ["bun", "install"],
-        stdout: "pipe",
-        stderr: "pipe",
-        cwd,
-      });
+export async function stopServices(rootDir: string): Promise<void> {
+  const { composeFile } = getPaths(rootDir);
 
-      this.readStream(proc.stdout, (line) => {
-        this.appendLog(def.name, line);
-      });
-      this.readStream(proc.stderr, (line) => {
-        this.appendLog(def.name, line);
-      });
-
-      const exitCode = await proc.exited;
-
-      if (exitCode === 0) {
-        this.appendLog(def.name, "Dependencies installed successfully.");
-      } else {
-        svc.status = "error";
-        this.appendLog(
-          def.name,
-          `bun install failed with exit code ${exitCode}`
-        );
-      }
-    } catch (err) {
-      svc.status = "error";
-      this.appendLog(
-        def.name,
-        `Failed to install dependencies: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-  }
-
-  // ── Environment file setup ───────────────────────────────
-
-  private ensureBackendEnv(): void {
-    const backendDir = resolve(this.rootDir, "backend");
-    const envFile = join(backendDir, ".env");
-    const envExample = join(backendDir, ".env.example");
-
-    if (!existsSync(envFile) && existsSync(envExample)) {
-      copyFileSync(envExample, envFile);
-      const backendState = this.getState("Backend");
-      this.appendLog(
-        backendState.definition.name,
-        "Copied .env.example → .env (no .env file found)"
-      );
-    }
-  }
-
-  // ── Local services ───────────────────────────────────────
-
-  async startLocalServices(): Promise<void> {
-    this.ensureBackendEnv();
-    await this.ensureDependencies();
-
-    const localServices = this.states.filter(
-      (s) => s.definition.type === "local"
-    );
-
-    for (const svc of localServices) {
-      if (svc.status !== "error") {
-        this.startLocalService(svc);
-      }
-    }
-  }
-
-  private startLocalService(svc: ServiceState): void {
-    const def = svc.definition;
-    const cwd = resolve(this.rootDir, def.cwd!);
-
-    svc.status = "starting";
-    svc.exitCode = null;
-    this.appendLog(def.name, `Starting ${def.runtime} service...`);
-
-    try {
-      const proc = spawn({
-        cmd: [def.cmd!, "run", "dev"],
-        stdout: "pipe",
-        stderr: "pipe",
-        cwd,
-        env: { ...process.env, FORCE_COLOR: "1" },
-      });
-
-      svc.pid = proc.pid;
-      svc.startedAt = Date.now();
-      this.processes.set(def.name, proc);
-
-      this.appendLog(def.name, `Process started (PID ${proc.pid})`);
-
-      // Read stdout
-      this.readStream(proc.stdout, (line) => {
-        this.appendLog(def.name, line);
-      });
-
-      // Read stderr
-      this.readStream(proc.stderr, (line) => {
-        this.appendLog(def.name, line);
-      });
-
-      // Monitor exit
-      proc.exited.then((code: number) => {
-        svc.exitCode = code;
-        if (svc.status !== "stopped") {
-          svc.status = code === 0 ? "stopped" : "error";
-          this.appendLog(
-            def.name,
-            `Process exited with code ${code}`
-          );
-        }
-        svc.pid = null;
-        this.processes.delete(def.name);
-      });
-    } catch (err) {
-      svc.status = "error";
-      this.appendLog(
-        def.name,
-        `Failed to start: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
-  }
-
-  // ── Health checking ──────────────────────────────────────
-
-  startHealthChecks(): void {
-    this.healthTimer = setInterval(async () => {
-      for (const svc of this.states) {
-        if (svc.status === "starting" || svc.status === "running") {
-          const responding = await isPortResponding(svc.definition.port);
-          if (responding && svc.status === "starting") {
-            svc.status = "running";
-            this.appendLog(
-              svc.definition.name,
-              `Service is ready on port ${svc.definition.port}`
-            );
-          } else if (!responding && svc.status === "running") {
-            // Only mark as error if the process is also gone (for local services)
-            if (
-              svc.definition.type === "local" &&
-              !this.processes.has(svc.definition.name)
-            ) {
-              svc.status = "error";
-              this.appendLog(
-                svc.definition.name,
-                `Port ${svc.definition.port} stopped responding`
-              );
-            }
-          }
-        }
-      }
-    }, HEALTH_CHECK_INTERVAL);
-  }
-
-  stopHealthChecks(): void {
-    if (this.healthTimer) {
-      clearInterval(this.healthTimer);
-      this.healthTimer = null;
-    }
-  }
-
-  // ── Restart all ──────────────────────────────────────────
-
-  async restartAll(): Promise<void> {
-    // Stop local services
-    await this.stopLocalServices();
-
-    // Restart docker
-    try {
-      const proc = spawn({
-        cmd: [
-          "docker",
-          "compose",
-          "-f",
-          this.composeFile,
-          "restart",
-        ],
-        stdout: "pipe",
-        stderr: "pipe",
-        cwd: this.rootDir,
-      });
-      await proc.exited;
-    } catch {
-      // Best-effort restart
-    }
-
-    // Reset docker service states
-    for (const svc of this.states.filter(
-      (s) => s.definition.type === "docker"
-    )) {
-      svc.status = "starting";
-      svc.startedAt = Date.now();
-      this.appendLog(svc.definition.name, "Restarting container...");
-    }
-
-    // Start local services again
-    await this.startLocalServices();
-  }
-
-  // ── Shutdown ─────────────────────────────────────────────
-
-  async stopLocalServices(): Promise<void> {
-    const localServices = this.states.filter(
-      (s) => s.definition.type === "local"
-    );
-
-    for (const svc of localServices) {
-      const proc = this.processes.get(svc.definition.name);
-      if (proc) {
-        svc.status = "stopped";
-        this.appendLog(svc.definition.name, "Stopping...");
+  // 1. Kill local services
+  const pids = readPids(rootDir);
+  const pidEntries = Object.entries(pids);
+  if (pidEntries.length > 0) {
+    for (const [key, pid] of pidEntries) {
+      if (isProcessAlive(pid)) {
         try {
-          proc.kill();
+          process.kill(-pid, "SIGTERM"); // kill entire process group
+          console.log(`  Stopped ${key} (PGID ${pid})`);
         } catch {
-          // Process may already be dead
+          console.log(`  Could not stop ${key} (PID ${pid})`);
         }
       }
     }
+    removePidFile(rootDir);
+  } else {
+    console.log("  No local services running.");
+  }
 
-    // Kill docker log tailers
-    for (const [key, proc] of this.processes.entries()) {
-      if (key.startsWith("docker-logs-")) {
-        try {
-          proc.kill();
-        } catch {
-          // Best-effort
-        }
-      }
+  // 2. Stop docker compose
+  console.log("  Stopping Docker infrastructure...");
+  const proc = spawn({
+    cmd: ["docker", "compose", "-f", composeFile, "down"],
+    stdout: "pipe",
+    stderr: "pipe",
+    cwd: rootDir,
+  });
+  await proc.exited;
+  console.log("  Docker infrastructure stopped.");
+
+  // 3. Stop session containers
+  await stopSessionContainers();
+}
+
+async function stopSessionContainers(): Promise<void> {
+  try {
+    const listProc = spawn({
+      cmd: ["docker", "ps", "-q", "--filter", "name=rearch_session_"],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const output = await new Response(listProc.stdout).text();
+    await listProc.exited;
+
+    const ids = output.trim().split("\n").filter(Boolean);
+    if (ids.length === 0) return;
+
+    console.log(`  Stopping ${ids.length} session container(s)...`);
+    const stopProc = spawn({ cmd: ["docker", "stop", ...ids], stdout: "pipe", stderr: "pipe" });
+    await stopProc.exited;
+    const rmProc = spawn({ cmd: ["docker", "rm", "-f", ...ids], stdout: "pipe", stderr: "pipe" });
+    await rmProc.exited;
+    console.log("  Session containers stopped.");
+  } catch {
+    // best effort
+  }
+}
+
+// ── Restart ──────────────────────────────────────────────────
+
+export async function restartService(rootDir: string, serviceKey?: string): Promise<void> {
+  if (!serviceKey) {
+    // Full restart
+    await stopServices(rootDir);
+    await startServices(rootDir);
+    return;
+  }
+
+  const svc = SERVICE_DEFINITIONS.find(s => s.key === serviceKey);
+  if (!svc) {
+    console.log(`  Unknown service: ${serviceKey}`);
+    console.log(`  Available: ${SERVICE_DEFINITIONS.map(s => s.key).join(", ")}`);
+    process.exit(1);
+  }
+
+  if (svc.type === "docker") {
+    const { composeFile } = getPaths(rootDir);
+    console.log(`  Restarting ${svc.name}...`);
+    const proc = spawn({
+      cmd: ["docker", "compose", "-f", composeFile, "restart", svc.composeName!],
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: rootDir,
+    });
+    await proc.exited;
+    console.log(`  ${svc.name} restarted.`);
+    return;
+  }
+
+  // Local service restart
+  const pids = readPids(rootDir);
+  const pid = pids[svc.key];
+  if (pid && isProcessAlive(pid)) {
+    process.kill(-pid, "SIGTERM"); // kill entire process group
+    await new Promise(r => setTimeout(r, 500));
+    console.log(`  Stopped ${svc.name} (PGID ${pid})`);
+  }
+
+  ensureLogsDir(rootDir);
+  const cwd = resolve(rootDir, svc.cwd!);
+  const logFile = logFilePath(rootDir, svc.key);
+  writeFileSync(logFile, "");
+
+  const proc = spawn({
+    cmd: [svc.cmd!, "run", "dev"],
+    stdout: "pipe",
+    stderr: "pipe",
+    cwd,
+    detached: true,
+    env: { ...process.env, FORCE_COLOR: "0" },
+  });
+
+  pids[svc.key] = proc.pid;
+  writePids(rootDir, pids);
+  pipeToLogFile(proc.stdout, logFile);
+  pipeToLogFile(proc.stderr, logFile);
+
+  console.log(`  Started ${svc.name} (PID ${proc.pid})`);
+
+  // Wait for it
+  const timeout = Date.now() + 30_000;
+  while (Date.now() < timeout) {
+    if (await isPortResponding(svc.port)) {
+      console.log(`  [ok] ${svc.name} ready on :${svc.port}`);
+      return;
     }
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  console.log(`  [!!] ${svc.name} not responding on :${svc.port}`);
+}
 
-    // Wait briefly for processes to exit
-    await new Promise((r) => setTimeout(r, 500));
+// ── Status ───────────────────────────────────────────────────
+
+interface PsRow {
+  id: string;
+  name: string;
+  type: string;
+  command: string;
+  created: string;
+  status: string;
+  ports: string;
+}
+
+async function getDockerContainerInfo(composeName: string, composeFile: string, rootDir: string): Promise<{ id: string; status: string; created: string } | null> {
+  try {
+    const proc = spawn({
+      cmd: [
+        "docker", "compose", "-f", composeFile, "ps", "--format",
+        "{{.ID}}\t{{.Status}}\t{{.CreatedAt}}",
+        composeName,
+      ],
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: rootDir,
+    });
+    const output = await new Response(proc.stdout).text();
+    await proc.exited;
+    const line = output.trim().split("\n").filter(Boolean)[0];
+    if (!line) return null;
+    const [id, status, created] = line.split("\t");
+    return { id: id?.slice(0, 12) || "", status: status || "", created: created || "" };
+  } catch {
+    return null;
+  }
+}
+
+function formatCreated(created: string): string {
+  if (!created) return "";
+  try {
+    // Docker outputs "2026-04-14 20:32:35 +0200 CEST" — strip trailing tz name
+    const cleaned = created.replace(/\s+[A-Z]{2,5}$/, "");
+    const date = new Date(cleaned);
+    if (isNaN(date.getTime())) return created;
+    const diff = Date.now() - date.getTime();
+    const secs = Math.floor(diff / 1000);
+    if (secs < 60) return `${secs} seconds ago`;
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins} minutes ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hours ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} days ago`;
+  } catch {
+    return created;
+  }
+}
+
+async function formatPidCreated(pid: number): Promise<string> {
+  try {
+    const proc = spawn({
+      cmd: ["ps", "-o", "lstart=", "-p", String(pid)],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const output = (await new Response(proc.stdout).text()).trim();
+    await proc.exited;
+    if (!output) return "";
+    return formatCreated(output);
+  } catch {
+    return "";
+  }
+}
+
+export async function showStatus(rootDir: string): Promise<void> {
+  const pids = readPids(rootDir);
+  const { composeFile, pidFile } = getPaths(rootDir);
+
+  // Get PID file mtime for "created" of local services
+  let pidFileCreated = "";
+  try {
+    const stat = Bun.file(pidFile);
+    // not reliable, skip
+  } catch { /* noop */ }
+
+  const rows: PsRow[] = [];
+
+  // Docker services
+  for (const svc of SERVICE_DEFINITIONS.filter(s => s.type === "docker")) {
+    const info = await getDockerContainerInfo(svc.composeName!, composeFile, rootDir);
+    const responding = await isPortResponding(svc.port);
+
+    rows.push({
+      id: info?.id || "",
+      name: svc.name,
+      type: "docker",
+      command: `docker compose (${svc.composeName})`,
+      created: info ? formatCreated(info.created) : "",
+      status: info?.status || (responding ? "Up" : "Stopped"),
+      ports: `0.0.0.0:${svc.port}`,
+    });
   }
 
-  async shutdown(): Promise<void> {
-    this.stopHealthChecks();
+  // Local services
+  for (const svc of SERVICE_DEFINITIONS.filter(s => s.type === "local")) {
+    const pid = pids[svc.key];
+    const alive = pid ? isProcessAlive(pid) : false;
+    const responding = await isPortResponding(svc.port);
 
-    // Stop local services
-    await this.stopLocalServices();
+    const created = pid && alive ? await formatPidCreated(pid) : "";
 
-    // Stop docker containers
-    await this.shutdownDocker();
+    rows.push({
+      id: pid && alive ? String(pid) : "",
+      name: svc.name,
+      type: "local",
+      command: `bun run dev (${svc.cwd})`,
+      created,
+      status: responding ? "Up" : alive ? "Starting" : "Stopped",
+      ports: responding || alive ? `0.0.0.0:${svc.port}` : "",
+    });
   }
 
-  async shutdownDocker(): Promise<void> {
-    try {
-      const proc = spawn({
-        cmd: [
-          "docker",
-          "compose",
-          "-f",
-          this.composeFile,
-          "down",
-        ],
-        stdout: "pipe",
-        stderr: "pipe",
-        cwd: this.rootDir,
+  // Session containers
+  let sessionRows: PsRow[] = [];
+  try {
+    const listProc = spawn({
+      cmd: [
+        "docker", "ps", "-a",
+        "--filter", "name=rearch_session_",
+        "--format", "{{.ID}}\t{{.Names}}\t{{.Command}}\t{{.CreatedAt}}\t{{.Status}}\t{{.Ports}}",
+      ],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const output = await new Response(listProc.stdout).text();
+    await listProc.exited;
+
+    for (const line of output.trim().split("\n").filter(Boolean)) {
+      const [id, name, command, created, status, ports] = line.split("\t");
+      sessionRows.push({
+        id: (id || "").slice(0, 12),
+        name: (name || "").replace("rearch_session_", "session:"),
+        type: "session",
+        command: command || "",
+        created: formatCreated(created || ""),
+        status: status || "",
+        ports: ports || "",
       });
-      await proc.exited;
-    } catch {
-      // Best-effort shutdown
+    }
+  } catch {
+    // no docker
+  }
+
+  const allRows = [...rows, ...sessionRows];
+
+  // Calculate column widths
+  const cols = {
+    id:      Math.max(12, ...allRows.map(r => r.id.length)),
+    name:    Math.max(7,  ...allRows.map(r => r.name.length)),
+    command: Math.max(7,  ...allRows.map(r => r.command.length)),
+    created: Math.max(7,  ...allRows.map(r => r.created.length)),
+    status:  Math.max(6,  ...allRows.map(r => r.status.length)),
+    ports:   Math.max(5,  ...allRows.map(r => r.ports.length)),
+  };
+
+  const header = [
+    "ID".padEnd(cols.id + 3),
+    "NAME".padEnd(cols.name + 3),
+    "COMMAND".padEnd(cols.command + 3),
+    "CREATED".padEnd(cols.created + 3),
+    "STATUS".padEnd(cols.status + 3),
+    "PORTS",
+  ].join("");
+
+  console.log(header);
+
+  for (const row of allRows) {
+    const line = [
+      row.id.padEnd(cols.id + 3),
+      row.name.padEnd(cols.name + 3),
+      row.command.padEnd(cols.command + 3),
+      row.created.padEnd(cols.created + 3),
+      row.status.padEnd(cols.status + 3),
+      row.ports,
+    ].join("");
+    console.log(line);
+  }
+}
+
+// ── Logs ─────────────────────────────────────────────────────
+
+export async function tailLogs(rootDir: string, filter?: string): Promise<void> {
+  const { composeFile } = getPaths(rootDir);
+  const processes: Subprocess[] = [];
+
+  const cleanup = () => {
+    for (const p of processes) {
+      try { p.kill(); } catch { /* noop */ }
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+
+  // Determine what to tail
+  const wantSessions = !filter || filter === "sessions";
+  const wantDocker = SERVICE_DEFINITIONS.filter(s => s.type === "docker" && (!filter || filter === s.key));
+  const wantLocal = SERVICE_DEFINITIONS.filter(s => s.type === "local" && (!filter || filter === s.key));
+
+  // Validate filter
+  if (filter && filter !== "sessions") {
+    const valid = SERVICE_DEFINITIONS.find(s => s.key === filter);
+    if (!valid) {
+      console.log(`  Unknown service: ${filter}`);
+      console.log(`  Available: ${SERVICE_DEFINITIONS.map(s => s.key).join(", ")}, sessions`);
+      process.exit(1);
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────
+  // Tail docker service logs
+  for (const svc of wantDocker) {
+    const proc = spawn({
+      cmd: ["docker", "compose", "-f", composeFile, "logs", "--follow", "--tail", "50", "--no-log-prefix", svc.composeName!],
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: rootDir,
+    });
+    processes.push(proc);
+    prefixStream(proc.stdout, svc.key);
+    prefixStream(proc.stderr, svc.key);
+  }
 
-  private readStream(
-    stream: ReadableStream<Uint8Array> | null,
-    onLine: (line: string) => void
-  ): void {
-    if (!stream) return;
+  // Tail local service log files
+  for (const svc of wantLocal) {
+    const logFile = logFilePath(rootDir, svc.key);
+    if (!existsSync(logFile)) {
+      writeFileSync(logFile, "");
+    }
+    const proc = spawn({
+      cmd: ["tail", "-n", "50", "-f", logFile],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    processes.push(proc);
+    prefixStream(proc.stdout, svc.key);
+  }
 
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
+  // Tail session container logs
+  if (wantSessions && !filter) {
+    // Periodically check for new session containers and tail them
+    const tailedSessions = new Set<string>();
+    const pollSessions = async () => {
+      while (true) {
+        try {
+          const listProc = spawn({
+            cmd: ["docker", "ps", "-q", "--filter", "name=rearch_session_"],
+            stdout: "pipe",
+            stderr: "pipe",
+          });
+          const output = await new Response(listProc.stdout).text();
+          await listProc.exited;
 
-    const read = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          for (const id of output.trim().split("\n").filter(Boolean)) {
+            if (tailedSessions.has(id)) continue;
+            tailedSessions.add(id);
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+            // Get container name
+            const nameProc = spawn({
+              cmd: ["docker", "inspect", "--format", "{{.Name}}", id],
+              stdout: "pipe",
+              stderr: "pipe",
+            });
+            const name = (await new Response(nameProc.stdout).text()).trim().replace(/^\//, "");
+            await nameProc.exited;
 
-          for (const line of lines) {
-            const trimmed = line.trimEnd();
-            if (trimmed) onLine(trimmed);
+            const logProc = spawn({
+              cmd: ["docker", "logs", "--follow", "--tail", "20", id],
+              stdout: "pipe",
+              stderr: "pipe",
+            });
+            processes.push(logProc);
+            const label = name.replace("rearch_session_", "session:");
+            prefixStream(logProc.stdout, label);
+            prefixStream(logProc.stderr, label);
           }
+        } catch {
+          // best effort
         }
-
-        // Flush remaining buffer
-        if (buffer.trim()) {
-          onLine(buffer.trimEnd());
-        }
-      } catch {
-        // Stream closed — expected during shutdown
+        await new Promise(r => setTimeout(r, 5000));
       }
     };
-
-    read();
+    pollSessions();
   }
+
+  if (filter === "sessions") {
+    // Only tail sessions
+    const tailedSessions = new Set<string>();
+    const pollSessions = async () => {
+      while (true) {
+        try {
+          const listProc = spawn({
+            cmd: ["docker", "ps", "-q", "--filter", "name=rearch_session_"],
+            stdout: "pipe",
+            stderr: "pipe",
+          });
+          const output = await new Response(listProc.stdout).text();
+          await listProc.exited;
+
+          for (const id of output.trim().split("\n").filter(Boolean)) {
+            if (tailedSessions.has(id)) continue;
+            tailedSessions.add(id);
+
+            const nameProc = spawn({
+              cmd: ["docker", "inspect", "--format", "{{.Name}}", id],
+              stdout: "pipe",
+              stderr: "pipe",
+            });
+            const name = (await new Response(nameProc.stdout).text()).trim().replace(/^\//, "");
+            await nameProc.exited;
+
+            const logProc = spawn({
+              cmd: ["docker", "logs", "--follow", "--tail", "20", id],
+              stdout: "pipe",
+              stderr: "pipe",
+            });
+            processes.push(logProc);
+            const label = name.replace("rearch_session_", "session:");
+            prefixStream(logProc.stdout, label);
+            prefixStream(logProc.stderr, label);
+          }
+        } catch {
+          // best effort
+        }
+        await new Promise(r => setTimeout(r, 5000));
+      }
+    };
+    pollSessions();
+  }
+
+  // Keep alive
+  await new Promise(() => {});
+}
+
+function prefixStream(stream: ReadableStream<Uint8Array> | null, prefix: string): void {
+  if (!stream) return;
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const read = async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trimEnd();
+          if (trimmed) console.log(`[${prefix}] ${trimmed}`);
+        }
+      }
+      if (buffer.trim()) console.log(`[${prefix}] ${buffer.trimEnd()}`);
+    } catch {
+      // stream closed
+    }
+  };
+  read();
 }
