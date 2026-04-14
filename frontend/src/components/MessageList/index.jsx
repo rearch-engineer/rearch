@@ -1,9 +1,9 @@
 import { useTranslation } from "react-i18next";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
-import CircularProgress from "@mui/joy/CircularProgress";
 import Sheet from "@mui/joy/Sheet";
 import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
+import ChatSkeleton from "../ChatSkeleton";
 import ToolCallDisplay from "../tools/ToolCallDisplay";
 import QuestionDisplay from "../tools/QuestionDisplay";
 import PermissionDisplay from "../tools/PermissionDisplay";
@@ -423,17 +423,7 @@ const MessageList = ({
           Chrome allows scrolling when content overflows the top. */}
       <div style={{ flex: 1 }} />
       {isLoadingMessages && messages.length === 0 && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            py: 4,
-            width: "100%",
-          }}
-        >
-          <CircularProgress size="sm" />
-        </Box>
+        <ChatSkeleton />
       )}
       {messages.map((message, index) => {
         const role = getRole(message);

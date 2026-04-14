@@ -4,7 +4,6 @@ import { api } from "../../api/client";
 import { useSocket } from "../../contexts/SocketContext";
 import Typography from "@mui/joy/Typography";
 import LinearProgress from "@mui/joy/LinearProgress";
-import CircularProgress from "@mui/joy/CircularProgress";
 import Divider from "@mui/joy/Divider";
 import Chip from "@mui/joy/Chip";
 import Skeleton from "@mui/joy/Skeleton";
@@ -369,16 +368,27 @@ const SessionSidebar = ({ conversationId }) => {
           onMouseDown={() => setIsResizing(true)}
         />
         <div className="session-sidebar">
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              py: 3,
-            }}
-          >
-            <CircularProgress size="sm" />
-          </Box>
+          <div className="session-sidebar-skeleton">
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={18} height={18} />
+              <Skeleton variant="text" width="60%" />
+            </div>
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <Skeleton variant="text" width="80%" />
+            </div>
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <div className="session-sidebar-section-content">
+                <Skeleton variant="rectangular" width="100%" height={6} sx={{ borderRadius: '3px' }} />
+                <Skeleton variant="text" width="40%" />
+              </div>
+            </div>
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <Skeleton variant="text" width="50%" />
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 import MessageList from "../MessageList";
 import MessageInput from "../MessageInput";
 import WelcomeScreen from "../WelcomeScreen";
+import ChatSkeleton from "../ChatSkeleton";
 import { api } from "../../api/client";
 import Button from "@mui/joy/Button";
 import CircularProgress from "@mui/joy/CircularProgress";
-import Skeleton from "@mui/joy/Skeleton";
 import Typography from "@mui/joy/Typography";
 import Input from "@mui/joy/Input";
 import { useToast } from "../../contexts/ToastContext";
@@ -768,36 +768,7 @@ const ChatInterface = ({
   if (conversationId && conversationId !== "new" && !isContainerReady) {
     return (
       <div className="chat-interface">
-        <div className="chat-skeleton">
-          <div className="chat-skeleton-messages">
-            {/* Simulated assistant message */}
-            <div className="chat-skeleton-row assistant">
-              <Skeleton variant="circular" width={32} height={32} />
-              <div className="chat-skeleton-bubble">
-                <Skeleton variant="text" width="80%" />
-                <Skeleton variant="text" width="60%" />
-              </div>
-            </div>
-            {/* Simulated user message */}
-            <div className="chat-skeleton-row user">
-              <div className="chat-skeleton-bubble">
-                <Skeleton variant="text" width="50%" />
-              </div>
-            </div>
-            {/* Simulated assistant message */}
-            <div className="chat-skeleton-row assistant">
-              <Skeleton variant="circular" width={32} height={32} />
-              <div className="chat-skeleton-bubble">
-                <Skeleton variant="text" width="90%" />
-                <Skeleton variant="text" width="70%" />
-                <Skeleton variant="text" width="40%" />
-              </div>
-            </div>
-          </div>
-          <div className="chat-skeleton-input">
-            <Skeleton variant="rectangular" width="100%" height={48} sx={{ borderRadius: '12px' }} />
-          </div>
-        </div>
+        <ChatSkeleton />
       </div>
     );
   }
