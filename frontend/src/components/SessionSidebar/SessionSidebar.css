@@ -328,3 +328,11 @@
 .session-collapsed-participant-item:hover {
   background-color: var(--bg-hover);
 }
+
+/* ── Skeleton loader (container starting) ── */
+
+.session-sidebar-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

@@ -7,6 +7,7 @@ import LinearProgress from "@mui/joy/LinearProgress";
 import CircularProgress from "@mui/joy/CircularProgress";
 import Divider from "@mui/joy/Divider";
 import Chip from "@mui/joy/Chip";
+import Skeleton from "@mui/joy/Skeleton";
 import Tooltip from "@mui/joy/Tooltip";
 import IconButton from "@mui/joy/IconButton";
 import Button from "@mui/joy/Button";
@@ -30,6 +31,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import InfoOutlined from "@mui/icons-material/InfoOutlined";
 import CommitPushModal from "../CommitPushModal";
 import UserAvatar from "../UserAvatar";
+import { useConversations } from "../../contexts/ConversationsContext";
 import "./SessionSidebar.css";
 
 /**
@@ -77,6 +79,13 @@ const SessionSidebar = ({ conversationId }) => {
   const participantsPopoverTimeout = useRef(null);
   const wrapperRef = useRef(null);
   const { socket } = useSocket();
+  const { conversations } = useConversations();
+
+  // Derive environment status from context (kept in sync via WebSocket)
+  const conversationEnvStatus = conversations.find(
+    (c) => c._id === conversationId,
+  )?.environment?.status;
+  const isContainerReady = conversationEnvStatus === "running";
 
   // Resize handling
   useEffect(() => {
@@ -250,6 +259,103 @@ const SessionSidebar = ({ conversationId }) => {
 
   const envStatus = containerStatus?.status || "unknown";
   const isRunning = envStatus === "running";
+
+  // Show skeleton while container is not running
+  if (!isContainerReady) {
+    if (collapsed) {
+      return (
+        <div className="session-sidebar-wrapper collapsed" ref={wrapperRef}>
+          <div className="session-sidebar-collapsed">
+            <div className="session-collapsed-topbar">
+              <div className="collapsed-topbar-toggle">
+                <InfoOutlined
+                  className="collapsed-topbar-brand"
+                  sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+                />
+                <div
+                  className="main-menu-icon-btn collapsed-topbar-expand"
+                  onClick={() => setCollapsed(false)}
+                  title={t('expandSidebar')}
+                >
+                  <ChevronLeftIcon sx={{ fontSize: 20 }} />
+                </div>
+              </div>
+            </div>
+            <div className="session-collapsed-nav">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="session-collapsed-icon-btn">
+                  <Skeleton variant="circular" width={20} height={20} />
+                </div>
+              ))}
+            </div>
+            <div className="session-collapsed-bottom">
+              <div className="session-collapsed-icon-btn">
+                <Skeleton variant="circular" width={20} height={20} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+        <div
+          className="session-sidebar-collapse-btn main-menu-icon-btn"
+          onClick={() => setCollapsed(true)}
+          title={t('collapseSidebar')}
+        >
+          <ChevronRightIcon sx={{ fontSize: 20 }} />
+        </div>
+        <div
+          className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`}
+          onMouseDown={() => setIsResizing(true)}
+        />
+        <div className="session-sidebar">
+          <div className="session-sidebar-skeleton">
+            {/* Session status */}
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={18} height={18} />
+              <Skeleton variant="text" width="60%" />
+            </div>
+            {/* Repository */}
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <Skeleton variant="text" width="80%" />
+            </div>
+            {/* Context */}
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <div className="session-sidebar-section-content">
+                <Skeleton variant="rectangular" width="100%" height={6} sx={{ borderRadius: '3px' }} />
+                <Skeleton variant="text" width="40%" />
+              </div>
+            </div>
+            {/* Cost */}
+            <div className="session-sidebar-section">
+              <Skeleton variant="circular" width={16} height={16} />
+              <Skeleton variant="text" width="50%" />
+            </div>
+          </div>
+          {/* Changed files + conclude button */}
+          <div className="session-sidebar-bottom">
+            <div className="session-sidebar-services">
+              <Skeleton variant="text" width="40%" sx={{ mb: 0.5 }} />
+              <div className="changed-files-list">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="changed-file-row">
+                    <Skeleton variant="text" width={30} />
+                    <Skeleton variant="text" width="70%" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Skeleton variant="rectangular" width="100%" height={34} sx={{ borderRadius: '8px' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !containerStatus) {
     return (
