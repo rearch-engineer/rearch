@@ -7,6 +7,7 @@ import config from "../config.js";
 import { clearClientCache } from "../utils/opencodeContainer.js";
 
 import { redisConfig, docker } from "./config.js";
+import { broadcast } from "../ws.js";
 import { emitJobEvent, jobLog } from "./events.js";
 import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
@@ -125,6 +126,7 @@ const conversationsWorker = new Worker(
         statusChangedAt: new Date(),
       };
       await conversation.save();
+      broadcast("conversation.environment.status", { conversationId, status: "starting" });
 
       await jobLog(
         job,
@@ -289,6 +291,7 @@ const conversationsWorker = new Worker(
         postgresPort: postgresHostPort,
       };
       await conversation.save();
+      broadcast("conversation.environment.status", { conversationId, status: "running" });
 
       await jobLog(
         job,
@@ -329,6 +332,7 @@ const conversationsWorker = new Worker(
             errorMessage: error.message,
           };
           await conversation.save();
+          broadcast("conversation.environment.status", { conversationId: job.data.conversationId, status: "error" });
         }
       } catch (updateError) {
         console.error("Failed to update conversation status:", updateError);
