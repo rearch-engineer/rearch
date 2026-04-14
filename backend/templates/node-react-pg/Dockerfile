@@ -37,6 +37,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     postgresql \
     postgresql-client \
+    vim \
+    nano \
+    wget \
+    jq \
+    htop \
+    zip \
+    unzip \
+    tar \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
