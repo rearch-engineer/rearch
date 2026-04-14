@@ -65,3 +65,9 @@ open/node_modules/@opencode-ai/sdk/dist/v2/gen/client/utils.gen.js
 
 # ========================
 pending/*
+
+# ========================
+# ReArch dev runtime
+# ========================
+.rearch-pids
+.rearch-logs/
