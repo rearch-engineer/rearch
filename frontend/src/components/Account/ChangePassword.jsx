@@ -11,6 +11,7 @@ import {
 } from '@mui/joy';
 
 import InfoIcon from '@mui/icons-material/Info';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
@@ -18,6 +19,7 @@ import { useToast } from '../../contexts/ToastContext';
 export default function ChangePassword() {
   const { authMode } = useAuth();
   const toast = useToast();
+  const { t } = useTranslation('Account');
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -41,7 +43,7 @@ export default function ChangePassword() {
               level="h2"
               sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
             >
-              Security
+              {t('security')}
             </Typography>
           </Box>
           <Alert
@@ -49,8 +51,7 @@ export default function ChangePassword() {
             color="neutral"
             startDecorator={<InfoIcon />}
           >
-            Your password is managed by your identity provider. Please use your
-            provider's settings to change your password.
+            {t('oauthPasswordMessage')}
           </Alert>
         </Box>
       </Box>
@@ -61,25 +62,25 @@ export default function ChangePassword() {
     e.preventDefault();
 
     if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters long.');
+      toast.error(t('passwordMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('New password and confirmation do not match.');
+      toast.error(t('passwordMismatch'));
       return;
     }
 
     setLoading(true);
     try {
       const result = await api.changePassword(currentPassword, newPassword);
-      toast.success(result.message || 'Password changed successfully.');
+      toast.success(result.message || t('passwordChangeSuccess'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
       toast.error(
-        err.response?.data?.error || 'Failed to change password. Please try again.'
+        err.response?.data?.error || t('passwordChangeFailed')
       );
     } finally {
       setLoading(false);
@@ -102,44 +103,44 @@ export default function ChangePassword() {
             level="h2"
             sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
           >
-            Security
+            {t('security')}
           </Typography>
         </Box>
 
         <Card variant="outlined" sx={{ width: '100%' }}>
           <Typography level="title-md" sx={{ mb: 2 }}>
-            Change Password
+            {t('changePassword')}
           </Typography>
 
           <form onSubmit={handleSubmit}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <FormControl required>
-                <FormLabel>Current Password</FormLabel>
+                <FormLabel>{t('currentPassword')}</FormLabel>
                 <Input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter your current password"
+                  placeholder={t('currentPasswordPlaceholder')}
                 />
               </FormControl>
 
               <FormControl required>
-                <FormLabel>New Password</FormLabel>
+                <FormLabel>{t('newPassword')}</FormLabel>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter your new password"
+                  placeholder={t('newPasswordPlaceholder')}
                 />
               </FormControl>
 
               <FormControl required>
-                <FormLabel>Confirm New Password</FormLabel>
+                <FormLabel>{t('confirmNewPassword')}</FormLabel>
                 <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your new password"
+                  placeholder={t('confirmNewPasswordPlaceholder')}
                 />
               </FormControl>
 
@@ -148,7 +149,7 @@ export default function ChangePassword() {
                 loading={loading}
                 sx={{ alignSelf: 'flex-start', mt: 1 }}
               >
-                Update Password
+                {t('updatePassword')}
               </Button>
             </Box>
           </form>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Button, Typography, FormControl, FormLabel,
@@ -20,6 +21,7 @@ const EMPTY_FORM = {
 };
 
 export default function McpServersManualPage() {
+  const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -41,20 +43,20 @@ export default function McpServersManualPage() {
     e.preventDefault();
 
     if (!/^[a-zA-Z0-9_-]+$/.test(formData.name)) {
-      toast.error('Name must only contain letters, numbers, hyphens, and underscores');
+      toast.error(t("mcpManual.nameValidationError"));
       return;
     }
 
     let headers = undefined;
     if (formData.headers.trim()) {
       try { headers = JSON.parse(formData.headers); }
-      catch { toast.error('Headers must be valid JSON'); return; }
+      catch { toast.error(t("mcpManual.headersMustBeValidJson")); return; }
     }
 
     let environment = undefined;
     if (formData.environment.trim()) {
       try { environment = JSON.parse(formData.environment); }
-      catch { toast.error('Environment variables must be valid JSON'); return; }
+      catch { toast.error(t("mcpManual.environmentMustBeValidJson")); return; }
     }
 
     const payload = {
@@ -74,10 +76,10 @@ export default function McpServersManualPage() {
     try {
       setSaving(true);
       await api.createMcpServer(payload);
-      toast.success('Server added');
+      toast.success(t("mcpManual.serverAdded"));
       navigate('/administration/mcp-servers');
     } catch (err) {
-      toast.error('Failed to save server: ' + (err.response?.data?.error || err.message));
+      toast.error(t("mcpManual.failedToSaveServer", { message: err.response?.data?.error || err.message }));
     } finally {
       setSaving(false);
     }
@@ -103,52 +105,50 @@ export default function McpServersManualPage() {
             startDecorator={<ArrowBackIcon />}
             onClick={() => navigate('/administration/mcp-servers/new')}
           >
-            Back
+            {t("mcpManual.back")}
           </Button>
         </Stack>
         <Typography
           level="h2"
           sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
         >
-          Add Server Manually
+          {t("mcpManual.addServerManually")}
         </Typography>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)', fontSize: '1rem', mb: 4 }}>
-          Configure a new MCP server by providing its connection details.
-        </Typography>
+
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
           <Stack spacing={2}>
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Name
+                {t("mcpManual.name")}
               </FormLabel>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. my-mcp-server"
+                placeholder={t("mcpManual.namePlaceholder")}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               />
             </FormControl>
 
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Type
+                {t("mcpManual.type")}
               </FormLabel>
               <Select
                 value={formData.type}
                 onChange={(_, val) => setFormData({ ...formData, type: val })}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               >
-                <Option value="remote">Remote</Option>
-                <Option value="local">Local</Option>
+                <Option value="remote">{t("mcpManual.remote")}</Option>
+                <Option value="local">{t("mcpManual.local")}</Option>
               </Select>
             </FormControl>
 
             {formData.type === 'remote' && (
               <FormControl required>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  URL
+                  {t("mcpManual.url")}
                 </FormLabel>
                 <Input
                   value={formData.url}
@@ -162,7 +162,7 @@ export default function McpServersManualPage() {
             {formData.type === 'local' && (
               <FormControl required>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Command
+                  {t("mcpManual.command")}
                 </FormLabel>
                 <Textarea
                   value={formData.command}
@@ -177,7 +177,7 @@ export default function McpServersManualPage() {
             {formData.type === 'remote' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Headers (JSON)
+                  {t("mcpManual.headersJson")}
                 </FormLabel>
                 <Textarea
                   value={formData.headers}
@@ -192,7 +192,7 @@ export default function McpServersManualPage() {
             {formData.type === 'local' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Environment Variables (JSON)
+                  {t("mcpManual.environmentJson")}
                 </FormLabel>
                 <Textarea
                   value={formData.environment}
@@ -211,7 +211,7 @@ export default function McpServersManualPage() {
                   onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
                 />
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem', m: 0 }}>
-                  Enabled
+                  {t("mcpManual.enabled")}
                 </FormLabel>
               </Stack>
             </FormControl>
@@ -223,10 +223,10 @@ export default function McpServersManualPage() {
                 onClick={() => navigate('/administration/mcp-servers')}
                 sx={{ borderColor: 'var(--border-color)' }}
               >
-                Cancel
+                {t("mcpManual.cancel")}
               </Button>
               <Button type="submit" variant="solid" color="primary" loading={saving} startDecorator={<AddIcon />}>
-                Add Server
+                {t("mcpManual.addServer")}
               </Button>
             </Stack>
           </Stack>

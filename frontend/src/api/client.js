@@ -558,8 +558,92 @@ export const api = {
     return response.data;
   },
 
+  // Admin Resources (includes full data field)
+  getAdminResources: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/resources`);
+    return response.data;
+  },
+
+  getAdminResource: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/resources/${id}`);
+    return response.data;
+  },
+
+  getAdminSubResources: async (resourceId) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
+    );
+    return response.data;
+  },
+
+  getAdminSubResource: async (resourceId, subResourceId) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
+    );
+    return response.data;
+  },
+
+  getAllAdminSubResources: async (type) => {
+    const params = type ? `?type=${encodeURIComponent(type)}` : "";
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/subresources${params}`,
+    );
+    return response.data;
+  },
+
+  getAdminSubResourceDockerfile: async (resourceId, subResourceId, ref) => {
+    const params = ref ? { ref } : {};
+    const response = await axios.get(
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/dockerfile`,
+      { params },
+    );
+    return response.data;
+  },
+
   createResource: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/resources`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/resources`, data);
+    return response.data;
+  },
+
+  createGithubResource: async (data, pemFile) => {
+    const formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("appId", data.data.appId);
+    formData.append("installationId", data.data.installationId);
+    if (pemFile) {
+      formData.append("privateKeyFile", pemFile);
+    }
+
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/resources/github`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data;
+  },
+
+  updateGithubResource: async (id, data, pemFile) => {
+    const formData = new FormData();
+    if (data.name) formData.append("name", data.name);
+    if (data.data.appId) formData.append("appId", data.data.appId);
+    if (data.data.installationId) formData.append("installationId", data.data.installationId);
+    if (pemFile) {
+      formData.append("privateKeyFile", pemFile);
+    }
+
+    const response = await axios.put(
+      `${API_BASE_URL}/admin/resources/github/${id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
     return response.data;
   },
 
@@ -569,7 +653,7 @@ export const api = {
     formData.append("file", file);
 
     const response = await axios.post(
-      `${API_BASE_URL}/resources/upload`,
+      `${API_BASE_URL}/admin/resources/upload`,
       formData,
       {
         headers: {
@@ -581,12 +665,12 @@ export const api = {
   },
 
   updateResource: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/resources/${id}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/resources/${id}`, data);
     return response.data;
   },
 
   deleteResource: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/resources/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/resources/${id}`);
     return response.data;
   },
 
@@ -620,7 +704,7 @@ export const api = {
 
   createSubResource: async (resourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
       data,
     );
     return response.data;
@@ -628,7 +712,7 @@ export const api = {
 
   updateSubResource: async (resourceId, subResourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
       data,
     );
     return response.data;
@@ -636,14 +720,14 @@ export const api = {
 
   deleteSubResource: async (resourceId, subResourceId) => {
     const response = await axios.delete(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
     );
     return response.data;
   },
 
   searchSubResources: async (resourceId, query) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/import/search`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/search`,
       { query },
     );
     return response.data;
@@ -651,7 +735,7 @@ export const api = {
 
   importSubResource: async (resourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/import/import`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/import`,
       data,
     );
     return response.data;
@@ -659,7 +743,7 @@ export const api = {
 
   executeSubResourceAction: async (resourceId, subResourceId, action, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}/action/${action}`,
+      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/action/${action}`,
       data,
     );
     return response.data;
@@ -674,57 +758,51 @@ export const api = {
     return response.data;
   },
 
-  // Tools
-  getTools: async () => {
-    const response = await axios.get(`${API_BASE_URL}/tools`);
-    return response.data;
-  },
-
-  // Skills
+  // Skills (admin)
   getSkills: async () => {
-    const response = await axios.get(`${API_BASE_URL}/skills`);
+    const response = await axios.get(`${API_BASE_URL}/admin/skills`);
     return response.data;
   },
 
   getSkill: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/skills/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/admin/skills/${id}`);
     return response.data;
   },
 
   createSkill: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/skills`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/skills`, data);
     return response.data;
   },
 
   updateSkill: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/skills/${id}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/skills/${id}`, data);
     return response.data;
   },
 
   deleteSkill: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/skills/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/skills/${id}`);
     return response.data;
   },
 
   // Jobs (admin)
   getJobs: async (params = {}) => {
-    const response = await axios.get(`${API_BASE_URL}/jobs`, { params });
+    const response = await axios.get(`${API_BASE_URL}/admin/jobs`, { params });
     return response.data;
   },
 
   getJob: async (queue, id) => {
-    const response = await axios.get(`${API_BASE_URL}/jobs/${queue}/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/admin/jobs/${queue}/${id}`);
     return response.data;
   },
 
   // Usage analytics (admin)
   getUsage: async (params = {}) => {
-    const response = await axios.get(`${API_BASE_URL}/usage`, { params });
+    const response = await axios.get(`${API_BASE_URL}/admin/usage`, { params });
     return response.data;
   },
 
   getUsageFilters: async () => {
-    const response = await axios.get(`${API_BASE_URL}/usage/filters`);
+    const response = await axios.get(`${API_BASE_URL}/admin/usage/filters`);
     return response.data;
   },
 
@@ -758,51 +836,51 @@ export const api = {
 
   // Users (admin)
   getUsers: async (params = {}) => {
-    const response = await axios.get(`${API_BASE_URL}/users`, { params });
+    const response = await axios.get(`${API_BASE_URL}/admin/users`, { params });
     return response.data;
   },
 
   getUser: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/users/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/admin/users/${id}`);
     return response.data;
   },
 
   updateUser: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/users/${id}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/users/${id}`, data);
     return response.data;
   },
 
   deleteUser: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/users/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/users/${id}`);
     return response.data;
   },
 
-  // Settings
+  // Settings (admin)
   getSettings: async () => {
-    const response = await axios.get(`${API_BASE_URL}/settings`);
+    const response = await axios.get(`${API_BASE_URL}/admin/settings`);
     return response.data;
   },
 
-  // Signup restriction settings
+  // Signup restriction settings (public endpoint stays at /api/settings)
   getSignupSettings: async () => {
     const response = await axios.get(`${API_BASE_URL}/settings/signup/public`);
     return response.data;
   },
 
   updateSignupSettings: async (data) => {
-    const response = await axios.put(`${API_BASE_URL}/settings/signup`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/settings/signup`, data);
     return response.data;
   },
 
   // Docker rebuild schedule settings (admin)
   getDockerRebuildSettings: async () => {
-    const response = await axios.get(`${API_BASE_URL}/settings/docker-rebuild`);
+    const response = await axios.get(`${API_BASE_URL}/admin/settings/docker-rebuild`);
     return response.data;
   },
 
   updateDockerRebuildSettings: async (data) => {
     const response = await axios.put(
-      `${API_BASE_URL}/settings/docker-rebuild`,
+      `${API_BASE_URL}/admin/settings/docker-rebuild`,
       data,
     );
     return response.data;
@@ -810,7 +888,7 @@ export const api = {
 
   triggerDockerRebuildAll: async () => {
     const response = await axios.post(
-      `${API_BASE_URL}/settings/docker-rebuild/trigger`,
+      `${API_BASE_URL}/admin/settings/docker-rebuild/trigger`,
     );
     return response.data;
   },
@@ -818,14 +896,14 @@ export const api = {
   // Container cleanup settings (admin)
   getContainerCleanupSettings: async () => {
     const response = await axios.get(
-      `${API_BASE_URL}/settings/container-cleanup`,
+      `${API_BASE_URL}/admin/settings/container-cleanup`,
     );
     return response.data;
   },
 
   updateContainerCleanupSettings: async (data) => {
     const response = await axios.put(
-      `${API_BASE_URL}/settings/container-cleanup`,
+      `${API_BASE_URL}/admin/settings/container-cleanup`,
       data,
     );
     return response.data;
@@ -833,41 +911,41 @@ export const api = {
 
   triggerContainerCleanup: async () => {
     const response = await axios.post(
-      `${API_BASE_URL}/settings/container-cleanup/trigger`,
+      `${API_BASE_URL}/admin/settings/container-cleanup/trigger`,
     );
     return response.data;
   },
 
-  // MCP Servers
+  // MCP Servers (admin)
   getMcpGallery: async () => {
-    const response = await axios.get(`${API_BASE_URL}/mcp/gallery`);
+    const response = await axios.get(`${API_BASE_URL}/admin/mcp/gallery`);
     return response.data;
   },
   getMcpServers: async () => {
-    const response = await axios.get(`${API_BASE_URL}/mcp/servers`);
+    const response = await axios.get(`${API_BASE_URL}/admin/mcp/servers`);
     return response.data;
   },
   createMcpServer: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/mcp/servers`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/mcp/servers`, data);
     return response.data;
   },
   updateMcpServer: async (name, data) => {
     const response = await axios.put(
-      `${API_BASE_URL}/mcp/servers/${name}`,
+      `${API_BASE_URL}/admin/mcp/servers/${name}`,
       data,
     );
     return response.data;
   },
   deleteMcpServer: async (name) => {
-    const response = await axios.delete(`${API_BASE_URL}/mcp/servers/${name}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/mcp/servers/${name}`);
     return response.data;
   },
   getMcpStatus: async () => {
-    const response = await axios.get(`${API_BASE_URL}/mcp/status`);
+    const response = await axios.get(`${API_BASE_URL}/admin/mcp/status`);
     return response.data;
   },
   reloadMcpProxy: async () => {
-    const response = await axios.post(`${API_BASE_URL}/mcp/reload`);
+    const response = await axios.post(`${API_BASE_URL}/admin/mcp/reload`);
     return response.data;
   },
 
@@ -878,17 +956,17 @@ export const api = {
   },
 
   createSuggestedPromptCategory: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/suggested-prompts/categories`, data);
+    const response = await axios.post(`${API_BASE_URL}/admin/suggested-prompts/categories`, data);
     return response.data;
   },
 
   updateSuggestedPromptCategory: async (id, data) => {
-    const response = await axios.put(`${API_BASE_URL}/suggested-prompts/categories/${id}`, data);
+    const response = await axios.put(`${API_BASE_URL}/admin/suggested-prompts/categories/${id}`, data);
     return response.data;
   },
 
   deleteSuggestedPromptCategory: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/suggested-prompts/categories/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/suggested-prompts/categories/${id}`);
     return response.data;
   },
 
@@ -904,21 +982,52 @@ export const api = {
   },
 
   createSuggestedPrompt: async (formData) => {
-    const response = await axios.post(`${API_BASE_URL}/suggested-prompts`, formData, {
+    const response = await axios.post(`${API_BASE_URL}/admin/suggested-prompts`, formData, {
       headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
     });
     return response.data;
   },
 
   updateSuggestedPrompt: async (id, formData) => {
-    const response = await axios.put(`${API_BASE_URL}/suggested-prompts/${id}`, formData, {
+    const response = await axios.put(`${API_BASE_URL}/admin/suggested-prompts/${id}`, formData, {
       headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
     });
     return response.data;
   },
 
   deleteSuggestedPrompt: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/suggested-prompts/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/admin/suggested-prompts/${id}`);
+    return response.data;
+  },
+
+  // LLM Providers (admin)
+  getLlmProviders: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/llm-providers`);
+    return response.data;
+  },
+
+  getLlmProvider: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/llm-providers/${id}`);
+    return response.data;
+  },
+
+  getLlmProviderRegistry: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/llm-providers/registry`);
+    return response.data;
+  },
+
+  createLlmProvider: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/llm-providers`, data);
+    return response.data;
+  },
+
+  updateLlmProvider: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/admin/llm-providers/${id}`, data);
+    return response.data;
+  },
+
+  deleteLlmProvider: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/admin/llm-providers/${id}`);
     return response.data;
   },
 };

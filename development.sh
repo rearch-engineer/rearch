@@ -2,13 +2,13 @@
 set -eu
 
 # ------------------------------------------------------------------
-# development.sh — ReArch Development Server
+# development.sh — ReArch CLI
 #
-# Launches the interactive TUI dashboard that manages:
-#   Docker (detached):  Redis, MongoDB
-#   Local (foreground): mcp-proxy, backend, frontend
-#
-# The TUI provides live status, switchable log views, and controls.
+# Usage: ./development.sh [command] [args]
+#        ./development.sh start
+#        ./development.sh logs
+#        ./development.sh stop
+#        ./development.sh help
 # ------------------------------------------------------------------
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -24,6 +24,6 @@ if [ ! -d "$DEVTOOLS_DIR/node_modules" ]; then
 fi
 
 # ------------------------------------------------------------------
-# Launch the TUI
+# Run CLI — pass all arguments through
 # ------------------------------------------------------------------
-exec bun run "$DEVTOOLS_DIR/src/index.ts"
+exec bun run "$DEVTOOLS_DIR/src/cli.ts" "$@"

@@ -1,0 +1,8 @@
+{
+  "couldNotStartConversation": "Kan gesprek niet starten",
+  "noRepoSpecified": "Geen repositorynaam opgegeven in de URL. Verwacht: /start#<repositorynaam>",
+  "repoNotFound": "Repository \"{{name}}\" is niet gevonden of is niet ingeschakeld voor ReArch.",
+  "failedToCreate": "Kan gesprek niet aanmaken: {{message}}",
+  "goToNewConversation": "Ga naar nieuw gesprek",
+  "creatingConversation": "Gesprek aanmaken..."
+}

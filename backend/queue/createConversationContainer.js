@@ -30,11 +30,12 @@ const docker = new Docker();
  * @param {string} params.conversationId - Unique conversation ID
  * @param {string} params.repoUrl - Repository clone URL (can be empty)
  * @param {string} params.repoBranch - Branch name (default: "main")
- * @param {string} params.anthropicApiKey - Anthropic API key
+ * @param {Object} [params.providerConfig={}] - OpenCode provider config (from buildProviderConfig)
  * @param {string} [params.appPort="3000"] - Application port
  * @param {string} [params.appStartCommand="npm run dev"] - Application start command
- * @param {string} [params.bitbucketEmail=""] - Bitbucket email
- * @param {string} [params.bitbucketToken=""] - Bitbucket API token
+ * @param {string} [params.gitEmail=""] - Git provider email
+ * @param {string} [params.gitToken=""] - Git provider API token or installation token
+ * @param {string} [params.gitProvider="bitbucket"] - Git provider type ("bitbucket" or "github")
  * @param {Array}  [params.rearchServices=[]] - Service port definitions from subResource.rearch.services
  * @param {Object} [params.resourceConstraints] - Docker resource constraints from subResource.rearch.resources
  * @param {number} [params.resourceConstraints.memoryMb=0] - Memory limit in MB (0 = no limit)
@@ -48,11 +49,12 @@ export async function createConversationContainer({
   conversationId,
   repoUrl = "",
   repoBranch = "main",
-  anthropicApiKey,
+  providerConfig = {},
   appPort = "3000",
   appStartCommand = "npm run dev",
-  bitbucketEmail = "",
-  bitbucketToken = "",
+  gitEmail = "",
+  gitToken = "",
+  gitProvider = "bitbucket",
   rearchServices = [],
   resourceConstraints = {},
   log,
@@ -153,18 +155,28 @@ export async function createConversationContainer({
       `CONVERSATION_ID=${conversationId}`,
       `REPOSITORY_URL=${repoUrl}`,
       `REPOSITORY_BRANCH=${repoBranch}`,
-      `ANTHROPIC_API_KEY=${anthropicApiKey}`,
       // Node.js app specific environment variables
       `APP_PORT=${appPort}`,
       `APP_START_COMMAND=${appStartCommand}`,
-      // Bitbucket credentials from parent Resource
-      `BITBUCKET_EMAIL=${bitbucketEmail}`,
-      `BITBUCKET_TOKEN=${bitbucketToken}`,
+      // Git provider type (bitbucket or github)
+      `GIT_PROVIDER=${gitProvider}`,
+      // Legacy Bitbucket env vars for backward compatibility
+      `BITBUCKET_EMAIL=${gitEmail}`,
+      `BITBUCKET_TOKEN=${gitToken}`,
       // GIT_TOKEN used by entrypoint.sh to configure git push authentication
-      `GIT_TOKEN=${bitbucketToken}`,
+      `GIT_TOKEN=${gitToken}`,
       // OpenCode config JSON — written by entrypoint.sh before supervisord
-      // starts, so OpenCode has MCP tools available at launch time
+      // starts, so OpenCode has MCP tools and LLM provider credentials
+      // available at launch time. Provider config comes from the admin-managed
+      // LlmProvider collection in MongoDB.
       `OPENCODE_CONFIG_CONTENT=${JSON.stringify({
+        // Disable sharing and Zen (OpenCode's built-in provider) in dev containers
+        share: "disabled",
+        disabled_providers: ["opencode"],
+        // LLM provider credentials and model whitelists from admin config
+        ...(Object.keys(providerConfig).length > 0
+          ? { provider: providerConfig }
+          : {}),
         mcp: {
           "rearch-tools": {
             type: "remote",

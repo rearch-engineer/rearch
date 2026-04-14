@@ -15,12 +15,6 @@ const schema = new mongoose.Schema({
     lowercase: true,
     trim: true,
   },
-  description: {
-    type: String,
-    default: '',
-    maxlength: 500,
-    trim: true,
-  },
   order: {
     type: Number,
     default: 0,

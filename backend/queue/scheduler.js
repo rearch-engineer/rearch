@@ -167,9 +167,9 @@ async function triggerContainerCleanup() {
 
     stoppedConversations.push(conversation._id.toString());
 
-    broadcast("conversation.stopped.idle", {
+    broadcast("conversation.environment.status", {
       conversationId: conversation._id.toString(),
-      reason: "idle_timeout",
+      status: "stopped",
     });
   }
 
@@ -216,9 +216,9 @@ async function triggerContainerCleanup() {
 
     removedConversations.push(conversation._id.toString());
 
-    broadcast("conversation.removed.idle", {
+    broadcast("conversation.environment.status", {
       conversationId: conversation._id.toString(),
-      reason: "idle_remove",
+      status: "stopped",
     });
   }
 

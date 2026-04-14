@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -26,11 +27,12 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
-const UNIT_OPTIONS = [
-  { value: "minutes", label: "Minutes", toMinutes: (v) => v,           fromMinutes: (m) => m,             min: 1,  max: 1440  },
-  { value: "hours",   label: "Hours",   toMinutes: (v) => v * 60,      fromMinutes: (m) => m / 60,        min: 1,  max: 168   },
-  { value: "days",    label: "Days",    toMinutes: (v) => v * 60 * 24, fromMinutes: (m) => m / 60 / 24,   min: 1,  max: 7     },
+const UNIT_DEFS = [
+  { value: "minutes", labelKey: "containerCleanup.unitMinutes", toMinutes: (v) => v,           fromMinutes: (m) => m,             min: 1,  max: 1440  },
+  { value: "hours",   labelKey: "containerCleanup.unitHours",   toMinutes: (v) => v * 60,      fromMinutes: (m) => m / 60,        min: 1,  max: 168   },
+  { value: "days",    labelKey: "containerCleanup.unitDays",    toMinutes: (v) => v * 60 * 24, fromMinutes: (m) => m / 60 / 24,   min: 1,  max: 7     },
 ];
 
 /**
@@ -43,14 +45,14 @@ function minutesToDisplay(totalMinutes) {
 }
 
 function toMinutes(amount, unit) {
-  const u = UNIT_OPTIONS.find((o) => o.value === unit);
+  const u = UNIT_DEFS.find((o) => o.value === unit);
   return u ? u.toMinutes(amount) : amount;
 }
 
 // ─── Reusable duration input ──────────────────────────────────────────────────
 
-function DurationInput({ label, description, amount, unit, saving, onChange }) {
-  const unitDef = UNIT_OPTIONS.find((u) => u.value === unit);
+function DurationInput({ label, description, amount, unit, saving, onChange, t }) {
+  const unitDef = UNIT_DEFS.find((u) => u.value === unit);
 
   const handleAmountChange = (e) => {
     onChange({ amount: e.target.value === "" ? "" : Number(e.target.value), unit });
@@ -65,7 +67,7 @@ function DurationInput({ label, description, amount, unit, saving, onChange }) {
   const handleUnitChange = (_, newUnit) => {
     if (!newUnit) return;
     const currentMinutes = toMinutes(amount || unitDef.min, unit);
-    const newDef = UNIT_OPTIONS.find((u) => u.value === newUnit);
+    const newDef = UNIT_DEFS.find((u) => u.value === newUnit);
     let newAmount = Math.round(newDef.fromMinutes(currentMinutes));
     newAmount = Math.max(newDef.min, Math.min(newDef.max, newAmount));
     onChange({ amount: newAmount, unit: newUnit, commit: true });
@@ -98,8 +100,8 @@ function DurationInput({ label, description, amount, unit, saving, onChange }) {
           disabled={saving}
           sx={{ minWidth: 120 }}
         >
-          {UNIT_OPTIONS.map((u) => (
-            <Option key={u.value} value={u.value}>{u.label}</Option>
+          {UNIT_DEFS.map((u) => (
+            <Option key={u.value} value={u.value}>{t(u.labelKey)}</Option>
           ))}
         </Select>
       </Stack>
@@ -110,7 +112,9 @@ function DurationInput({ label, description, amount, unit, saving, onChange }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ContainerCleanupSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [triggering, setTriggering] = useState(false);
@@ -152,7 +156,7 @@ export default function ContainerCleanupSettings() {
       setLastTriggeredAt(settings.lastTriggeredAt || null);
       setHasRearchEnabled(subResources.some((sr) => sr.rearch?.enabled === true));
     } catch (err) {
-      toast.error("Failed to load container cleanup settings: " + err.message);
+      toast.error(t("containerCleanup.failedToLoadSettings", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -171,9 +175,9 @@ export default function ContainerCleanupSettings() {
           : toMinutes(removeAmount, removeUnit),
       };
       await api.updateContainerCleanupSettings(data);
-      toast.success("Container cleanup settings saved.");
+      toast.success(t("containerCleanup.settingsSaved"));
     } catch (err) {
-      toast.error("Failed to save container cleanup settings: " + err.message);
+      toast.error(t("containerCleanup.failedToSaveSettings", { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -198,17 +202,17 @@ export default function ContainerCleanupSettings() {
   };
 
   const handleSaveClick = async () => {
-    const stopDef = UNIT_OPTIONS.find((u) => u.value === stopUnit);
-    const removeDef = UNIT_OPTIONS.find((u) => u.value === removeUnit);
+    const stopDef = UNIT_DEFS.find((u) => u.value === stopUnit);
+    const removeDef = UNIT_DEFS.find((u) => u.value === removeUnit);
     const stopVal = Number(stopAmount);
     const removeVal = Number(removeAmount);
 
     if (!Number.isFinite(stopVal) || stopVal < stopDef.min || stopVal > stopDef.max) {
-      toast.error(`Stop threshold must be between ${stopDef.min} and ${stopDef.max} ${stopDef.label.toLowerCase()}.`);
+      toast.error(t("containerCleanup.stopThresholdError", { min: stopDef.min, max: stopDef.max, unit: t(stopDef.labelKey).toLowerCase() }));
       return;
     }
     if (!Number.isFinite(removeVal) || removeVal < removeDef.min || removeVal > removeDef.max) {
-      toast.error(`Remove threshold must be between ${removeDef.min} and ${removeDef.max} ${removeDef.label.toLowerCase()}.`);
+      toast.error(t("containerCleanup.removeThresholdError", { min: removeDef.min, max: removeDef.max, unit: t(removeDef.labelKey).toLowerCase() }));
       return;
     }
 
@@ -217,9 +221,12 @@ export default function ContainerCleanupSettings() {
   };
 
   const handleTriggerCleanup = async () => {
-    const confirmed = window.confirm(
-      "This will immediately stop idle running containers and remove stale stopped containers. Continue?"
-    );
+    const confirmed = await confirm({
+      title: t("containerCleanup.triggerCleanupTitle"),
+      message: t("containerCleanup.triggerCleanupMessage"),
+      confirmText: t("containerCleanup.continue"),
+      confirmColor: "warning",
+    });
     if (!confirmed) return;
 
     try {
@@ -231,18 +238,18 @@ export default function ContainerCleanupSettings() {
       if (result.removedCount > 0) parts.push(`${result.removedCount} removed`);
       toast.success(
         parts.length > 0
-          ? `Cleanup complete: ${parts.join(", ")}.`
-          : "Cleanup complete: no idle containers found."
+          ? t("containerCleanup.cleanupComplete", { details: parts.join(", ") })
+          : t("containerCleanup.cleanupCompleteNoIdle")
       );
     } catch (err) {
-      toast.error("Failed to trigger cleanup: " + err.message);
+      toast.error(t("containerCleanup.failedToTriggerCleanup", { message: err.message }));
     } finally {
       setTriggering(false);
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return "Never";
+    if (!dateString) return t("containerCleanup.never");
     return new Date(dateString).toLocaleString();
   };
 
@@ -256,42 +263,47 @@ export default function ContainerCleanupSettings() {
 
   if (!hasRearchEnabled) {
     return (
-      <Box sx={{ p: 3, maxWidth: 700 }}>
-        <Typography level="h3" sx={{ mb: 3 }}>Container Cleanup</Typography>
+      <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', overflow: 'auto' }}>
+        <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+        <Typography level="h3" sx={{ mb: 3 }}>{t("containerCleanup.title")}</Typography>
         <Alert variant="soft" color="neutral" startDecorator={<InfoOutlinedIcon />}>
           <Box>
-            <Typography level="title-sm">No ReArch integrations enabled</Typography>
+            <Typography level="title-sm">{t("containerCleanup.noRearchEnabled")}</Typography>
             <Typography level="body-sm">
-              Container cleanup is only relevant when at least one subresource has the
-              ReArch integration enabled. Enable ReArch on a repository's settings to
-              use this feature.
+              {t("containerCleanup.noRearchEnabledDescription")}
             </Typography>
           </Box>
         </Alert>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 700 }}>
-      <Typography level="h3" sx={{ mb: 3 }}>Container Cleanup</Typography>
-
-      {/* Info Alert */}
-      <Alert variant="soft" color="primary" startDecorator={<InfoOutlinedIcon />} sx={{ mb: 3 }}>
-        <Box>
-          <Typography level="title-sm">Automatic idle container cleanup</Typography>
-          <Typography level="body-sm">
-            When enabled, the system periodically checks for idle containers and
-            applies two thresholds: first containers are <b>stopped</b> (freeing
-            compute but keeping the container on disk), then after a longer period
-            they are <b>removed</b> entirely. Conversation data is always preserved.
-          </Typography>
-        </Box>
-      </Alert>
+    <Box sx={{ flex: 1, p: { xs: 2, sm: 3, md: 4 }, bgcolor: 'var(--bg-primary)', color: 'var(--text-primary)', overflow: 'auto' }}>
+      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+      <Typography level="h3" sx={{ mb: 3 }}>{t("containerCleanup.title")}</Typography>
 
       {/* Enable toggle + thresholds */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ mb: 2 }}
+          >
+            <CleaningServicesIcon sx={{ color: "var(--text-secondary)" }} />
+            <Typography level="title-md">{t("containerCleanup.scheduledCleanup")}</Typography>
+          </Stack>
+
+          <Typography
+            level="body-sm"
+            sx={{ color: "var(--text-secondary)", mb: 2 }}
+          >
+            {t("containerCleanup.scheduledCleanupDescription")}
+          </Typography>
+
           <Stack spacing={2.5}>
             {/* Master toggle */}
             <FormControl
@@ -299,10 +311,7 @@ export default function ContainerCleanupSettings() {
               sx={{ justifyContent: "space-between", alignItems: "center" }}
             >
               <Box>
-                <FormLabel sx={{ mb: 0 }}>Enable idle container cleanup</FormLabel>
-                <Typography level="body-xs" sx={{ color: "var(--text-secondary)" }}>
-                  Periodically stop and remove idle containers automatically
-                </Typography>
+                <FormLabel sx={{ mb: 0 }}>{t("containerCleanup.enableIdleContainerCleanup")}</FormLabel>
               </Box>
               <Switch
                 checked={enabled}
@@ -321,12 +330,13 @@ export default function ContainerCleanupSettings() {
                   <StopCircleOutlinedIcon sx={{ mt: 0.5, color: "var(--joy-palette-warning-500, #ed6c02)" }} />
                   <Box sx={{ flex: 1 }}>
                     <DurationInput
-                      label="Stop idle containers after"
-                      description="Running containers with no user interaction for this long will be stopped. The container is preserved on disk."
+                      label={t("containerCleanup.stopIdleContainersAfter")}
+                      description={t("containerCleanup.stopIdleContainersDescription")}
                       amount={stopAmount}
                       unit={stopUnit}
                       saving={saving}
                       onChange={handleStopChange}
+                      t={t}
                     />
                   </Box>
                 </Stack>
@@ -336,12 +346,13 @@ export default function ContainerCleanupSettings() {
                   <DeleteOutlineIcon sx={{ mt: 0.5, color: "var(--joy-palette-danger-500, #d32f2f)" }} />
                   <Box sx={{ flex: 1 }}>
                     <DurationInput
-                      label="Remove stopped containers after"
-                      description="Stopped containers that remain idle for this long will be permanently removed from Docker. The conversation is kept."
+                      label={t("containerCleanup.removeStoppedContainersAfter")}
+                      description={t("containerCleanup.removeStoppedContainersDescription")}
                       amount={removeAmount}
                       unit={removeUnit}
                       saving={saving}
                       onChange={handleRemoveChange}
+                      t={t}
                     />
                   </Box>
                 </Stack>
@@ -357,7 +368,7 @@ export default function ContainerCleanupSettings() {
                     loading={saving}
                     onClick={handleSaveClick}
                   >
-                    Save
+                    {t("containerCleanup.save")}
                   </Button>
                 </Box>
 
@@ -366,7 +377,7 @@ export default function ContainerCleanupSettings() {
                 {/* Last run chip */}
                 <Box>
                   <Typography level="body-sm" fontWeight="bold" sx={{ color: "var(--text-secondary)", mb: 0.5 }}>
-                    Last cleanup run
+                    {t("containerCleanup.lastCleanupRun")}
                   </Typography>
                   <Chip size="sm" variant="soft" color={lastTriggeredAt ? "primary" : "neutral"}>
                     {formatDate(lastTriggeredAt)}
@@ -383,14 +394,11 @@ export default function ContainerCleanupSettings() {
         <CardContent>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
             <CleaningServicesIcon sx={{ color: "var(--text-secondary)" }} />
-            <Typography level="title-md">Manual Cleanup</Typography>
+            <Typography level="title-md">{t("containerCleanup.manualCleanup")}</Typography>
           </Stack>
 
           <Typography level="body-sm" sx={{ color: "var(--text-secondary)", mb: 2 }}>
-            Immediately run both cleanup phases: stop idle running containers and
-            remove stale stopped containers based on the configured thresholds.
-            If no thresholds are configured, defaults of 30 minutes (stop) and 1 day
-            (remove) are used.
+            {t("containerCleanup.manualCleanupDescription")}
           </Typography>
 
           <Button
@@ -400,10 +408,11 @@ export default function ContainerCleanupSettings() {
             loading={triggering}
             onClick={handleTriggerCleanup}
           >
-            Run Cleanup Now
+            {t("containerCleanup.runCleanupNow")}
           </Button>
         </CardContent>
       </Card>
+    </Box>
     </Box>
   );
 }

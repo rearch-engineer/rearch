@@ -1,0 +1,20 @@
+{
+  "searchPlaceholder": "Rechercher...",
+  "backToSearch": "← Retour à la recherche",
+  "loading": "Chargement...",
+  "loadingModels": "Chargement des modèles...",
+  "noResultsFound": "Aucun résultat trouvé",
+  "active": "actif",
+  "new": "nouveau",
+  "navigate": "naviguer",
+  "select": "sélectionner",
+  "close": "fermer",
+  "repositories": "Dépôts",
+  "conversations": "Conversations",
+  "actions": "Actions",
+  "newConversation": "Nouvelle conversation",
+  "switchModel": "Changer de modèle",
+  "documentation": "Documentation",
+  "website": "Site web",
+  "logout": "Déconnexion"
+}

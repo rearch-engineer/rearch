@@ -99,6 +99,9 @@ const profileBodySchema = z.object({
   theme: z.enum(["light", "dark", "system"], {
     errorMap: () => ({ message: "theme must be one of: light, dark, system." }),
   }).optional(),
+  language: z.enum(["en", "es", "fr", "nl"], {
+    errorMap: () => ({ message: "language must be one of: en, es, fr, nl." }),
+  }).optional(),
 });
 
 const oauthCallbackBodySchema = z.object({
@@ -695,7 +698,7 @@ router.patch("/profile", async ({ body, user, status }) => {
   }
 
   try {
-    const { display_name, voice_language, theme } = parsed.data;
+    const { display_name, voice_language, theme, language } = parsed.data;
 
     const dbUser = await User.findById(user.userId);
     if (!dbUser) {
@@ -708,6 +711,10 @@ router.patch("/profile", async ({ body, user, status }) => {
 
     if (voice_language !== undefined) {
       dbUser.profile.preferences.voice_language = voice_language;
+    }
+
+    if (language !== undefined) {
+      dbUser.profile.preferences.language = language;
     }
 
     if (theme !== undefined) {

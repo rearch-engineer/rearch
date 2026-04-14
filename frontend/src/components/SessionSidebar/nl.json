@@ -1,0 +1,18 @@
+{
+  "expandSidebar": "Zijbalk uitvouwen",
+  "collapseSidebar": "Zijbalk invouwen",
+  "participants": "Deelnemers",
+  "changedFiles": "Gewijzigde bestanden",
+  "concludeChange": "Wijziging afronden",
+  "session": "Sessie",
+  "sessionStatus": "Sessie: {{status}}",
+  "repository": "Repository",
+  "contextWindow": "Contextvenster",
+  "context": "Context",
+  "contextPercent": "Context: {{percent}}%",
+  "sessionCost": "Sessiekosten",
+  "cost": "Kosten",
+  "costValue": "Kosten: ${{value}}",
+  "noData": "Geen gegevens",
+  "changedFilesCount": "{{count}} gewijzigde bestanden"
+}

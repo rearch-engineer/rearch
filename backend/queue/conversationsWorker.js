@@ -7,10 +7,12 @@ import config from "../config.js";
 import { clearClientCache } from "../utils/opencodeContainer.js";
 
 import { redisConfig, docker } from "./config.js";
+import { broadcast } from "../ws.js";
 import { emitJobEvent, jobLog } from "./events.js";
 import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
 import { CLEANUP_JOB_NAME, triggerContainerCleanup } from "./scheduler.js";
+import { buildProviderConfig } from "../utils/llmProviderConfig.js";
 
 /** CONVERSATIONS WORKER */
 const conversationsWorker = new Worker(
@@ -94,8 +96,141 @@ const conversationsWorker = new Worker(
     if (job.name === CLEANUP_JOB_NAME) {
       console.log("🧹 Running scheduled container cleanup...");
       const result = await triggerContainerCleanup();
-      console.log(`🧹 Cleanup complete: ${result.stoppedCount} container(s) stopped`);
+      console.log(
+        `🧹 Cleanup complete: ${result.stoppedCount} container(s) stopped`,
+      );
       return { success: true, ...result };
+    }
+
+    // ── Restart conversation (auto-restart stopped/errored containers) ──
+    if (job.name === "restart-conversation") {
+      const { conversationId, repositoryId, subResourceId } = job.data;
+
+      await jobLog(
+        job,
+        "conversations",
+        `Restarting conversation ${conversationId}`,
+      );
+      console.log(`♻️ Restarting conversation ${conversationId}`);
+
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      const containerId = conversation.environment?.container;
+      let restarted = false;
+
+      // Try restarting the existing Docker container
+      if (containerId) {
+        try {
+          const container = docker.getContainer(containerId);
+          await container.start();
+          await jobLog(
+            job,
+            "conversations",
+            `Container ${containerId} restarted`,
+          );
+          console.log(
+            `♻️ Container ${containerId} restarted for conversation ${conversationId}`,
+          );
+
+          // Rediscover port mapping from the running container
+          // (stored values are nulled when the scheduler stops a container)
+          const inspectData = await container.inspect();
+          const portBindings = inspectData.NetworkSettings?.Ports || {};
+          const opencodePortBinding = portBindings["4096/tcp"];
+          const hostPort = opencodePortBinding?.[0]?.HostPort
+            ? Number(opencodePortBinding[0].HostPort)
+            : null;
+
+          // Check overlay network mode (no host port, use container network alias)
+          let opencodeUrl;
+          if (hostPort) {
+            opencodeUrl = `http://localhost:${hostPort}`;
+          } else {
+            // Overlay mode: use container name on the Docker network
+            opencodeUrl = `http://rearch_session_${conversationId}:4096`;
+          }
+
+          await jobLog(
+            job,
+            "conversations",
+            `Waiting for OpenCode server at ${opencodeUrl}`,
+          );
+          await waitForOpencodeReady(opencodeUrl);
+          await jobLog(job, "conversations", "OpenCode server is ready");
+
+          // Reinject skills
+          await injectSkillsIntoContainer(
+            containerId,
+            subResourceId,
+            (message) => jobLog(job, "conversations", message),
+          );
+
+          // Restore environment status with rediscovered URLs
+          conversation.environment = {
+            ...conversation.environment,
+            status: "running",
+            statusChangedAt: new Date(),
+            errorMessage: null,
+            opencodeUrl,
+            hostPort,
+          };
+          await conversation.save();
+          broadcast("conversation.environment.status", {
+            conversationId,
+            status: "running",
+          });
+
+          await jobLog(
+            job,
+            "conversations",
+            "Conversation restarted successfully",
+          );
+          restarted = true;
+        } catch (startErr) {
+          // Container is gone or cannot be started — clean it up before fallback
+          await jobLog(
+            job,
+            "conversations",
+            `Container restart failed: ${startErr.message}, will create new container`,
+          );
+          console.log(
+            `♻️ Container restart failed for ${conversationId}: ${startErr.message}`,
+          );
+          clearClientCache(conversationId);
+
+          // Stop and remove the old container so the fallback can reuse the name
+          try {
+            const oldContainer = docker.getContainer(containerId);
+            try {
+              await oldContainer.stop();
+            } catch (_) {
+              /* already stopped */
+            }
+            await oldContainer.remove();
+            await jobLog(
+              job,
+              "conversations",
+              `Old container ${containerId} removed`,
+            );
+          } catch (_) {
+            /* container already gone */
+          }
+        }
+      }
+
+      if (!restarted) {
+        // Fall through to full setup-conversation logic below
+        await jobLog(
+          job,
+          "conversations",
+          "Falling back to full container setup",
+        );
+      } else {
+        return { success: true, conversationId, restarted: true };
+      }
     }
 
     // ── Setup conversation ───────────────────────────────────────────────
@@ -124,6 +259,10 @@ const conversationsWorker = new Worker(
         statusChangedAt: new Date(),
       };
       await conversation.save();
+      broadcast("conversation.environment.status", {
+        conversationId,
+        status: "starting",
+      });
 
       await jobLog(
         job,
@@ -159,19 +298,16 @@ const conversationsWorker = new Worker(
         );
       }
 
-      // Validate Anthropic API key is set
-      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-      if (!anthropicApiKey) {
+      // Build LLM provider config from admin-managed LlmProvider collection
+      const providerConfig = await buildProviderConfig();
+      const enabledProviderCount = Object.keys(providerConfig).length;
+      if (enabledProviderCount === 0) {
         throw new Error(
-          "ANTHROPIC_API_KEY environment variable not set - required for OpenCode containers",
+          "No LLM providers configured. An administrator must configure at least one LLM provider with an API key in the Administration panel.",
         );
       }
-
-      // Log API key is set without exposing the value
-      const keyPrefix = anthropicApiKey.substring(0, 7);
-      const keyLength = anthropicApiKey.length;
       console.log(
-        `✅ Anthropic API key configured (${keyPrefix}...${keyLength} chars)`,
+        `✅ ${enabledProviderCount} LLM provider(s) configured: ${Object.keys(providerConfig).join(", ")}`,
       );
 
       await jobLog(
@@ -185,9 +321,22 @@ const conversationsWorker = new Worker(
       const appPort = repository.data.appPort || "3000";
       const appStartCommand = repository.data.appStartCommand || "npm run dev";
 
-      // Get Bitbucket credentials from the parent resource data
-      const bitbucketEmail = repository.data.email || "";
-      const bitbucketToken = repository.data.apiToken || "";
+      // Get credentials from the parent resource based on provider type
+      const provider = repository.provider || "bitbucket";
+      let gitEmail = "";
+      let gitToken = "";
+
+      if (provider === "github") {
+        // For GitHub Apps, generate an installation access token
+        const { getInstallationToken } =
+          await import("../utils/github/github.js");
+        gitToken = await getInstallationToken(repository.data);
+        gitEmail = "github-app@users.noreply.github.com";
+      } else {
+        // Bitbucket: use email + API token
+        gitEmail = repository.data.email || "";
+        gitToken = repository.data.apiToken || "";
+      }
 
       // Derive repository URL from subresource clone links (prefer HTTPS)
       let repoUrl = "";
@@ -222,11 +371,12 @@ const conversationsWorker = new Worker(
         conversationId,
         repoUrl,
         repoBranch,
-        anthropicApiKey,
+        providerConfig,
         appPort,
         appStartCommand,
-        bitbucketEmail,
-        bitbucketToken,
+        gitEmail,
+        gitToken,
+        gitProvider: provider,
         rearchServices: subResource.rearch?.services || [],
         resourceConstraints: subResource.rearch?.resources || {},
         log: (msg) => jobLog(job, "conversations", msg),
@@ -278,6 +428,10 @@ const conversationsWorker = new Worker(
         postgresPort: postgresHostPort,
       };
       await conversation.save();
+      broadcast("conversation.environment.status", {
+        conversationId,
+        status: "running",
+      });
 
       await jobLog(
         job,
@@ -318,6 +472,10 @@ const conversationsWorker = new Worker(
             errorMessage: error.message,
           };
           await conversation.save();
+          broadcast("conversation.environment.status", {
+            conversationId: job.data.conversationId,
+            status: "error",
+          });
         }
       } catch (updateError) {
         console.error("Failed to update conversation status:", updateError);

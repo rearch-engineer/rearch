@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
   Typography,
-  Card,
-  CardContent,
   FormControl,
   FormLabel,
   Input,
@@ -27,29 +26,32 @@ import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import SearchIcon from "@mui/icons-material/Search";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const STATUS_CONFIG = {
   active: {
     color: "success",
     icon: <CheckCircleIcon fontSize="small" />,
-    label: "Active",
+    labelKey: "users.activeStatus",
   },
   suspended: {
     color: "danger",
     icon: <BlockIcon fontSize="small" />,
-    label: "Suspended",
+    labelKey: "users.suspendedStatus",
   },
   pending_verification: {
     color: "warning",
     icon: <HourglassEmptyIcon fontSize="small" />,
-    label: "Pending",
+    labelKey: "users.pendingStatus",
   },
 };
 
 const AVAILABLE_ROLES = ["user", "admin"];
 
 export default function UsersSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function UsersSettings() {
         setPagination(data.pagination);
       } catch (err) {
         toast.error(
-          "Failed to load users: " + (err.response?.data?.error || err.message),
+          t("users.failedToLoadUsers", { message: err.response?.data?.error || err.message }),
         );
       } finally {
         setLoading(false);
@@ -111,9 +113,7 @@ export default function UsersSettings() {
       setEditingUser(null);
       loadUsers(pagination.page);
     } catch (err) {
-      toast.error(
-        "Failed to update user: " + (err.response?.data?.error || err.message),
-      );
+      toast.error(t("users.failedToUpdateUser", { message: err.response?.data?.error || err.message }));
     }
   };
 
@@ -122,10 +122,7 @@ export default function UsersSettings() {
       await api.updateUser(user._id, { status: "active" });
       loadUsers(pagination.page);
     } catch (err) {
-      toast.error(
-        "Failed to activate user: " +
-          (err.response?.data?.error || err.message),
-      );
+      toast.error(t("users.failedToActivateUser", { message: err.response?.data?.error || err.message }));
     }
   };
 
@@ -134,26 +131,24 @@ export default function UsersSettings() {
       await api.updateUser(user._id, { status: "suspended" });
       loadUsers(pagination.page);
     } catch (err) {
-      toast.error(
-        "Failed to suspend user: " + (err.response?.data?.error || err.message),
-      );
+      toast.error(t("users.failedToSuspendUser", { message: err.response?.data?.error || err.message }));
     }
   };
 
   const handleDelete = async (user) => {
     if (
-      window.confirm(
-        `Are you sure you want to delete user "${user.account.email}"? This cannot be undone.`,
-      )
+      await confirm({
+        title: t("users.deleteUser"),
+        message: t("users.deleteUserConfirm", { email: user.account.email }),
+        confirmText: t("users.delete"),
+        confirmColor: "danger",
+      })
     ) {
       try {
         await api.deleteUser(user._id);
         loadUsers(pagination.page);
       } catch (err) {
-        toast.error(
-          "Failed to delete user: " +
-            (err.response?.data?.error || err.message),
-        );
+        toast.error(t("users.failedToDeleteUser", { message: err.response?.data?.error || err.message }));
       }
     }
   };
@@ -191,107 +186,54 @@ export default function UsersSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
-            Users
-          </Typography>
-          <Typography
-            level="body-lg"
-            sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-          >
-            Manage user accounts, roles, and access.
+          <Typography level="h3" sx={{ mb: 3 }}>
+            {t("users.title")}
           </Typography>
         </Box>
 
         {/* Search & filter */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderColor: "var(--border-color)",
-            bgcolor: "var(--bg-primary)",
-            mb: 3,
-          }}
-        >
-          <CardContent>
-            <form onSubmit={handleSearch}>
-              <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={2}
-                alignItems="flex-end"
+        <Box sx={{ mb: 3 }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems="flex-end"
+          >
+            <FormControl sx={{ flex: 1 }}>
+              <Input
+                size="sm"
+                placeholder={t("users.searchPlaceholder")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+                sx={{
+                  bgcolor: "var(--bg-secondary)",
+                  borderColor: "var(--border-color)",
+                }}
+              />
+            </FormControl>
+            <FormControl sx={{ minWidth: 160 }}>
+              <Select
+                size="sm"
+                value={statusFilter}
+                onChange={(_, val) => setStatusFilter(val || "")}
+                placeholder={t("users.allStatuses")}
+                sx={{
+                  bgcolor: "var(--bg-secondary)",
+                  borderColor: "var(--border-color)",
+                }}
               >
-                <FormControl sx={{ flex: 1 }}>
-                  <FormLabel
-                    sx={{
-                      color: "var(--text-secondary)",
-                      fontWeight: 600,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Search
-                  </FormLabel>
-                  <Input
-                    placeholder="Search by email, username, or name..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    startDecorator={<SearchIcon />}
-                    sx={{
-                      bgcolor: "var(--bg-secondary)",
-                      borderColor: "var(--border-color)",
-                    }}
-                  />
-                </FormControl>
-                <FormControl sx={{ minWidth: 160 }}>
-                  <FormLabel
-                    sx={{
-                      color: "var(--text-secondary)",
-                      fontWeight: 600,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Status
-                  </FormLabel>
-                  <Select
-                    value={statusFilter}
-                    onChange={(_, val) => setStatusFilter(val || "")}
-                    placeholder="All statuses"
-                    sx={{
-                      bgcolor: "var(--bg-secondary)",
-                      borderColor: "var(--border-color)",
-                    }}
-                  >
-                    <Option value="">All</Option>
-                    <Option value="active">Active</Option>
-                    <Option value="pending_verification">Pending</Option>
-                    <Option value="suspended">Suspended</Option>
-                  </Select>
-                </FormControl>
-                <Button
-                  type="submit"
-                  variant="outlined"
-                  sx={{
-                    borderColor: "var(--border-color)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  Filter
-                </Button>
-              </Stack>
-            </form>
-          </CardContent>
-        </Card>
+                <Option value="">{t("users.all")}</Option>
+                <Option value="active">{t("users.activeStatus")}</Option>
+                <Option value="pending_verification">{t("users.pendingStatus")}</Option>
+                <Option value="suspended">{t("users.suspendedStatus")}</Option>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Box>
 
         {/* Users table */}
-        <Card
-          variant="outlined"
+        <Box
           sx={{
-            borderColor: "var(--border-color)",
             bgcolor: "var(--bg-primary)",
             overflow: "auto",
           }}
@@ -314,11 +256,11 @@ export default function UsersSettings() {
           >
             <thead>
               <tr>
-                <th>User</th>
-                <th>Status</th>
-                <th>Roles</th>
-                <th>Last Login</th>
-                <th style={{ width: 200 }}>Actions</th>
+                <th>{t("users.user")}</th>
+                <th>{t("users.status")}</th>
+                <th>{t("users.roles")}</th>
+                <th>{t("users.lastLogin")}</th>
+                <th style={{ width: 200 }}>{t("users.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -332,7 +274,7 @@ export default function UsersSettings() {
                       level="body-sm"
                       sx={{ color: "var(--text-secondary)" }}
                     >
-                      Loading...
+                      {t("users.loading")}
                     </Typography>
                   </td>
                 </tr>
@@ -346,7 +288,7 @@ export default function UsersSettings() {
                       level="body-sm"
                       sx={{ color: "var(--text-secondary)" }}
                     >
-                      No users found.
+                      {t("users.noUsersFound")}
                     </Typography>
                   </td>
                 </tr>
@@ -390,7 +332,7 @@ export default function UsersSettings() {
                           color={statusCfg.color}
                           startDecorator={statusCfg.icon}
                         >
-                          {statusCfg.label}
+                          {t(statusCfg.labelKey)}
                         </Chip>
                       </td>
                       <td>
@@ -425,9 +367,9 @@ export default function UsersSettings() {
                               size="sm"
                               variant="soft"
                               color="success"
-                              onClick={() => handleQuickActivate(user)}
+                               onClick={() => handleQuickActivate(user)}
                             >
-                              Activate
+                              {t("users.activate")}
                             </Button>
                           )}
                           {user.account.status === "active" && (
@@ -437,7 +379,7 @@ export default function UsersSettings() {
                               color="warning"
                               onClick={() => handleQuickSuspend(user)}
                             >
-                              Suspend
+                              {t("users.suspend")}
                             </Button>
                           )}
                           {user.account.status === "suspended" && (
@@ -447,7 +389,7 @@ export default function UsersSettings() {
                               color="success"
                               onClick={() => handleQuickActivate(user)}
                             >
-                              Reactivate
+                              {t("users.reactivate")}
                             </Button>
                           )}
                           <IconButton
@@ -474,7 +416,7 @@ export default function UsersSettings() {
               )}
             </tbody>
           </Table>
-        </Card>
+        </Box>
 
         {/* Pagination */}
         {pagination.pages > 1 && (
@@ -497,11 +439,10 @@ export default function UsersSettings() {
                 color: "var(--text-primary)",
               }}
             >
-              Previous
+              {t("users.previous")}
             </Button>
             <Typography level="body-sm" sx={{ color: "var(--text-secondary)" }}>
-              Page {pagination.page} of {pagination.pages} ({pagination.total}{" "}
-              users)
+              {t("users.pageInfo", { page: pagination.page, pages: pagination.pages, total: pagination.total })}
             </Typography>
             <Button
               size="sm"
@@ -513,7 +454,7 @@ export default function UsersSettings() {
                 color: "var(--text-primary)",
               }}
             >
-              Next
+              {t("users.next")}
             </Button>
           </Box>
         )}
@@ -524,7 +465,7 @@ export default function UsersSettings() {
         <ModalDialog sx={{ minWidth: 400 }}>
           <ModalClose />
           <Typography level="h4" sx={{ mb: 2, color: "var(--text-primary)" }}>
-            Edit User
+            {t("users.editUser")}
           </Typography>
           {editingUser && (
             <Stack spacing={2}>
@@ -543,7 +484,7 @@ export default function UsersSettings() {
                 </Typography>
               </Box>
               <FormControl>
-                <FormLabel>Display Name</FormLabel>
+                <FormLabel>{t("users.displayName")}</FormLabel>
                 <Input
                   value={editForm.display_name}
                   onChange={(e) =>
@@ -552,22 +493,22 @@ export default function UsersSettings() {
                 />
               </FormControl>
               <FormControl>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>{t("users.status")}</FormLabel>
                 <Select
                   value={editForm.status}
                   onChange={(_, val) =>
                     setEditForm({ ...editForm, status: val })
                   }
                 >
-                  <Option value="active">Active</Option>
+                  <Option value="active">{t("users.activeStatus")}</Option>
                   <Option value="pending_verification">
-                    Pending Verification
+                    {t("users.pendingVerification")}
                   </Option>
-                  <Option value="suspended">Suspended</Option>
+                  <Option value="suspended">{t("users.suspendedStatus")}</Option>
                 </Select>
               </FormControl>
               <FormControl>
-                <FormLabel>Roles</FormLabel>
+                <FormLabel>{t("users.roles")}</FormLabel>
                 <Stack spacing={1}>
                   {AVAILABLE_ROLES.map((role) => (
                     <Checkbox
@@ -585,9 +526,9 @@ export default function UsersSettings() {
                   color="neutral"
                   onClick={() => setEditModalOpen(false)}
                 >
-                  Cancel
+                  {t("users.cancel")}
                 </Button>
-                <Button onClick={handleSaveEdit}>Save Changes</Button>
+                <Button onClick={handleSaveEdit}>{t("users.saveChanges")}</Button>
               </Stack>
             </Stack>
           )}

@@ -13,6 +13,7 @@ import SecurityIcon from "@mui/icons-material/Security";
 import CheckIcon from "@mui/icons-material/Check";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import BlockIcon from "@mui/icons-material/Block";
+import { useTranslation } from "react-i18next";
 
 /**
  * PermissionDisplay renders an inline permission request from the OpenCode agent.
@@ -44,6 +45,8 @@ const PermissionDisplay = ({
     status,
     reply: historicalReply,
   } = permissionData;
+
+  const { t } = useTranslation("tools");
 
   const [submitting, setSubmitting] = useState(false);
   const [rejectMessage, setRejectMessage] = useState("");
@@ -79,7 +82,7 @@ const PermissionDisplay = ({
 
   // Format permission name for display (e.g., "file.write" -> "File Write")
   const formatPermission = (perm) => {
-    if (!perm) return "Unknown Permission";
+    if (!perm) return t("unknownPermission");
     return perm
       .split(/[._-]/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -90,7 +93,7 @@ const PermissionDisplay = ({
   const getStatusChip = () => {
     if (isGranted) {
       const label =
-        historicalReply === "always" ? "Always Allowed" : "Allowed Once";
+        historicalReply === "always" ? t("alwaysAllowed") : t("allowedOnce");
       return (
         <Chip size="sm" color="success" variant="soft">
           {label}
@@ -100,12 +103,12 @@ const PermissionDisplay = ({
     if (isRejected)
       return (
         <Chip size="sm" color="danger" variant="soft">
-          Rejected
+          {t("rejected")}
         </Chip>
       );
     return (
       <Chip size="sm" color="warning" variant="soft">
-        Awaiting Approval
+        {t("awaitingApproval")}
       </Chip>
     );
   };
@@ -132,7 +135,7 @@ const PermissionDisplay = ({
           }}
         />
         <Typography level="title-sm" fontWeight="lg">
-          Permission Required
+          {t("permissionRequired")}
         </Typography>
         {getStatusChip()}
       </Box>
@@ -151,7 +154,7 @@ const PermissionDisplay = ({
             level="body-xs"
             sx={{ color: "text.tertiary", mb: 0.5 }}
           >
-            Affected patterns:
+            {t("affectedPatterns")}
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
             {patterns.map((pattern, idx) => (
@@ -179,7 +182,7 @@ const PermissionDisplay = ({
             level="body-xs"
             sx={{ color: "text.tertiary", mb: 0.5 }}
           >
-            Context:
+            {t("context")}
           </Typography>
           {Object.entries(metadata).map(([key, value]) => (
             <Typography key={key} level="body-xs" sx={{ fontFamily: "monospace" }}>
@@ -195,7 +198,7 @@ const PermissionDisplay = ({
           level="body-xs"
           sx={{ color: "text.tertiary", fontStyle: "italic" }}
         >
-          This permission request was rejected.
+          {t("permissionRejectedMessage")}
         </Typography>
       )}
 
@@ -205,8 +208,7 @@ const PermissionDisplay = ({
           level="body-xs"
           sx={{ color: "text.tertiary", fontStyle: "italic" }}
         >
-          This permission was{" "}
-          {historicalReply === "always" ? "always allowed" : "allowed once"}.
+          {historicalReply === "always" ? t("permissionAlwaysAllowed") : t("permissionAllowedOnce")}
         </Typography>
       )}
 
@@ -218,7 +220,7 @@ const PermissionDisplay = ({
             <Box sx={{ mb: 1.5 }}>
               <Input
                 size="sm"
-                placeholder="Reason for rejection (optional)..."
+                placeholder={t("rejectionReasonPlaceholder")}
                 value={rejectMessage}
                 onChange={(e) => setRejectMessage(e.target.value)}
                 disabled={disabled || submitting}
@@ -234,7 +236,7 @@ const PermissionDisplay = ({
                 sx={{ mb: 0.5 }}
               />
               <Typography level="body-xs" sx={{ color: "text.tertiary" }}>
-                Press Enter to confirm rejection, Escape to cancel
+                {t("rejectionHelperText")}
               </Typography>
             </Box>
           )}
@@ -252,7 +254,7 @@ const PermissionDisplay = ({
                 disabled={disabled || submitting}
                 startDecorator={<BlockIcon />}
               >
-                Reject
+                {t("reject")}
               </Button>
             ) : (
               <Button
@@ -265,7 +267,7 @@ const PermissionDisplay = ({
                 }}
                 disabled={submitting}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             )}
 
@@ -278,7 +280,7 @@ const PermissionDisplay = ({
                 loading={submitting}
                 startDecorator={<BlockIcon />}
               >
-                Confirm Reject
+                {t("confirmReject")}
               </Button>
             )}
 
@@ -293,7 +295,7 @@ const PermissionDisplay = ({
                   loading={submitting}
                   startDecorator={<CheckIcon />}
                 >
-                  Allow Once
+                  {t("allowOnce")}
                 </Button>
                 <Button
                   size="sm"
@@ -304,7 +306,7 @@ const PermissionDisplay = ({
                   loading={submitting}
                   startDecorator={<CheckCircleOutlineIcon />}
                 >
-                  Always Allow
+                  {t("alwaysAllow")}
                 </Button>
               </>
             )}

@@ -1,0 +1,5 @@
+{
+  "headingWithName": "What about {{repoName}}, {{firstName}}?",
+  "headingWithoutName": "What about {{repoName}}?",
+  "thisRepository": "this repository"
+}

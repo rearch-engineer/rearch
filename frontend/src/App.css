@@ -1,8 +1,9 @@
 .main-menu-wrapper {
-  width: 280px;
-  min-width: 280px;
-  overflow: hidden;
+  overflow: visible;
   height: 100%;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 .conversations-page {

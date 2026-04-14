@@ -1,12 +1,12 @@
 @echo off
 REM ------------------------------------------------------------------
-REM development.cmd — ReArch Development Server (Windows)
+REM development.cmd — ReArch CLI (Windows)
 REM
-REM Launches the interactive TUI dashboard that manages:
-REM   Docker (detached):  Redis, MongoDB
-REM   Local (foreground): mcp-proxy, backend, frontend
-REM
-REM The TUI provides live status, switchable log views, and controls.
+REM Usage: development.cmd [command] [args]
+REM        development.cmd start
+REM        development.cmd logs
+REM        development.cmd stop
+REM        development.cmd help
 REM ------------------------------------------------------------------
 
 set "ROOT_DIR=%~dp0"
@@ -24,6 +24,6 @@ if not exist "%DEVTOOLS_DIR%\node_modules" (
 )
 
 REM ------------------------------------------------------------------
-REM Launch the TUI
+REM Run CLI — pass all arguments through
 REM ------------------------------------------------------------------
-bun run "%DEVTOOLS_DIR%\src\index.ts"
+bun run "%DEVTOOLS_DIR%\src\cli.ts" %*

@@ -1,0 +1,9 @@
+{
+  "missingAuthCode": "Falta el código de autorización o el estado. Por favor, intenta iniciar sesión de nuevo.",
+  "missingStateToken": "Falta el token de estado. Por favor, intenta iniciar sesión de nuevo.",
+  "authFailed": "Error de autenticación.",
+  "accountPendingApproval": "Cuenta pendiente de aprobación",
+  "accountPendingMessage": "Tu cuenta ha sido creada pero está pendiente de aprobación por un administrador. Por favor, contacta con un administrador para activar tu cuenta.",
+  "backToLogin": "Volver al inicio de sesión",
+  "completingSignIn": "Completando inicio de sesión..."
+}

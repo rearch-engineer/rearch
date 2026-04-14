@@ -1,0 +1,21 @@
+{
+  "placeholderPrefix": "Vraag ReArch om ",
+  "hint_darkMode": "ondersteuning voor donkere modus toe te voegen",
+  "hint_writeTests": "tests te schrijven voor alle componenten",
+  "hint_slowApi": "waarom is deze API zo traag?",
+  "hint_typescript": "het project te converteren naar TypeScript",
+  "hint_unusedDeps": "ongebruikte afhankelijkheden te vinden",
+  "hint_errorHandling": "goede foutafhandeling toe te voegen",
+  "hint_responsive": "dit responsive te maken",
+  "hint_optimizeDb": "een databasequery te optimaliseren",
+  "hint_validation": "invoervalidatie toe te voegen",
+  "hint_regex": "een reguliere expressie uit te leggen",
+  "hint_splitMonolith": "een monolithisch bestand op te splitsen in kleinere functies",
+  "hint_loadingStates": "laadstatussen toe te voegen aan de schermen",
+  "hint_updateDeps": "verouderde afhankelijkheden bij te werken",
+  "hint_readme": "een README te genereren voor dit project",
+  "dropFilesToAttach": "Sleep bestanden om bij te voegen",
+  "modelPlaceholder": "Model",
+  "stopListening": "Stop met luisteren",
+  "voiceInput": "Spraakinvoer"
+}

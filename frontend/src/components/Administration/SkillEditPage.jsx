@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, Card, FormControl, FormLabel,
@@ -10,6 +11,7 @@ import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 
 export default function SkillEditPage() {
+  const { t } = useTranslation("Administration");
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -38,7 +40,7 @@ export default function SkillEditPage() {
         isDefault: data.isDefault || false,
       });
     } catch (err) {
-      toast.error('Failed to load skill: ' + err.message);
+      toast.error(t("skillEdit.failedToLoadSkill", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function SkillEditPage() {
 
   const loadRepositorySubResources = async () => {
     try {
-      const subResources = await api.getAllSubResources('bitbucket-repository');
+      const subResources = await api.getAllSubResources();
       setRepositorySubResources(subResources);
     } catch (err) {
       console.error('Failed to load repository subresources:', err);
@@ -63,11 +65,11 @@ export default function SkillEditPage() {
       setSaving(true);
       await api.updateSkill(id, formData);
       setDirty(false);
-      toast.success('Skill saved successfully');
+      toast.success(t("skillEdit.skillSaved"));
       const updated = await api.getSkill(id);
       setSkill(updated);
     } catch (err) {
-      toast.error('Failed to save skill: ' + err.message);
+      toast.error(t("skillEdit.failedToSaveSkill", { message: err.message }));
     } finally {
       setSaving(false);
     }
@@ -76,7 +78,7 @@ export default function SkillEditPage() {
   if (loading) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg-primary)' }}>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>Loading...</Typography>
+        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>{t("skillEdit.loading")}</Typography>
       </Box>
     );
   }
@@ -84,7 +86,7 @@ export default function SkillEditPage() {
   if (!skill) {
     return (
       <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'var(--bg-primary)' }}>
-        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>Skill not found</Typography>
+        <Typography level="body-lg" sx={{ color: 'var(--text-secondary)' }}>{t("skillEdit.skillNotFound")}</Typography>
       </Box>
     );
   }
@@ -116,7 +118,7 @@ export default function SkillEditPage() {
               level="h2"
               sx={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
             >
-              Edit Skill
+              {t("skillEdit.editSkill")}
             </Typography>
           </Box>
           <Button
@@ -127,7 +129,7 @@ export default function SkillEditPage() {
             loading={saving}
             disabled={!dirty}
           >
-            Save Changes
+            {t("skillEdit.saveChanges")}
           </Button>
         </Stack>
 
@@ -135,25 +137,24 @@ export default function SkillEditPage() {
         <Card variant="outlined" sx={{ borderColor: 'var(--border-color)', bgcolor: 'var(--bg-primary)', mb: 3, p: 3 }}>
           <Stack spacing={2.5}>
             <FormControl required>
-              <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Title
+              <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>{t("skillEdit.title")}
               </FormLabel>
               <Input
                 value={formData.title}
                 onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="Enter skill title"
+                placeholder={t("skillEdit.titlePlaceholder")}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               />
             </FormControl>
 
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Description
+                {t("skillEdit.description")}
               </FormLabel>
               <Textarea
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Enter skill description"
+                placeholder={t("skillEdit.descriptionPlaceholder")}
                 minRows={4}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               />
@@ -161,12 +162,12 @@ export default function SkillEditPage() {
 
             <FormControl required>
               <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                Skills Repository
+                {t("skillEdit.skillsRepository")}
               </FormLabel>
               <Select
                 value={formData.skillsRepository}
                 onChange={(_, newValue) => handleChange('skillsRepository', newValue || '')}
-                placeholder="Select a repository"
+                placeholder={t("skillEdit.selectRepository")}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               >
                 {repositorySubResources.map((r) => (
@@ -181,10 +182,10 @@ export default function SkillEditPage() {
             >
               <Box>
                 <FormLabel sx={{ mb: 0, color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
-                  Default Skill
+                  {t("skillEdit.defaultSkill")}
                 </FormLabel>
                 <Typography level="body-xs" sx={{ color: 'var(--text-tertiary)' }}>
-                  Default skills are cloned into every new conversation
+                  {t("skillEdit.defaultSkillDescription")}
                 </Typography>
               </Box>
               <Switch

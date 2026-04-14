@@ -5,24 +5,13 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
-import toolsRoutes from "./routes/tools.js";
-import SkillRoutes from "./routes/skill.js";
 import authRoutes from "./routes/auth.js";
-import userRoutes from "./routes/users.js";
 import Queue from "./queue";
-import jobRoutes from "./routes/jobs.js";
-import usageRoutes from "./routes/usage.js";
-import settingsRoutes, {
-  publicRouter as publicSettingsRoutes,
-} from "./routes/settings.js";
-import mcpRoutes from "./routes/mcp.js";
-import {
-  publicRouter as suggestedPromptsPublicRoutes,
-  adminRouter as suggestedPromptsAdminRoutes,
-} from "./routes/suggestedPrompts.js";
+import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
+import { publicRouter as suggestedPromptsPublicRoutes } from "./routes/suggestedPrompts.js";
+import adminRoutes from "./routes/admin/index.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
-import requireRole from "./middleware/requireRole.js";
 import User from "./models/User.js";
 import {
   privateRouter as fileRoutes,
@@ -37,7 +26,22 @@ const corsOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL, "http://localhost:4200", "http://localhost:3000"]
   : true; // true = allow all origins in Elysia CORS
 
+const requestTimings = new WeakMap();
+
 const app = new Elysia()
+  // ─── Request logging ────────────────────────────────────────────────────
+  .onRequest(({ request }) => {
+    requestTimings.set(request, Date.now());
+  })
+  .onAfterResponse(({ request, set }) => {
+    const start = requestTimings.get(request) || Date.now();
+    const duration = Date.now() - start;
+    const status = set.status || 200;
+    const url = new URL(request.url);
+    console.log(`[API] ${request.method} ${url.pathname} ${status} ${duration}ms`);
+    requestTimings.delete(request);
+  })
+
   // ─── Security headers (replaces helmet) ───────────────────────────────
   .onRequest(({ set }) => {
     set.headers["X-Content-Type-Options"] = "nosniff";
@@ -138,17 +142,10 @@ const app = new Elysia()
   .use(apiRoutes)
   .use(fileRoutes)
   .use(resourceRoutes)
-  .use(toolsRoutes)
   .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────
-  .use(SkillRoutes)
-  .use(userRoutes)
-  .use(jobRoutes)
-  .use(usageRoutes)
-  .use(settingsRoutes)
-  .use(mcpRoutes)
-  .use(suggestedPromptsAdminRoutes)
+  .use(adminRoutes)
 
   // ─── Start ────────────────────────────────────────────────────────────
   .listen(PORT);

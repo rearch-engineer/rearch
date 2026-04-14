@@ -1,0 +1,20 @@
+{
+  "expandSidebar": "Expand sidebar",
+  "collapseSidebar": "Collapse sidebar",
+  "home": "Home",
+  "search": "Search",
+  "searchShortcut": "Search (Ctrl+P)",
+  "conversations": "Conversations",
+  "newConversation": "New conversation",
+  "noConversationsYet": "No conversations yet",
+  "clickToStart": "Click + to start",
+  "rename": "Rename",
+  "delete": "Delete",
+  "help": "Help",
+  "administration": "Administration",
+  "account": "Account",
+  "deleteConversation": "Delete Conversation",
+  "deleteConfirmation": "Are you sure you want to delete",
+  "deleteWarning": "All associated messages and unsaved changes will be removed.",
+  "cancel": "Cancel"
+}

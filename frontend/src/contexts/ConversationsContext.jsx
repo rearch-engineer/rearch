@@ -82,14 +82,28 @@ export function ConversationsProvider({ children }) {
       }
     };
 
+    const handleEnvironmentStatus = (data) => {
+      if (data?.conversationId && data?.status) {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === data.conversationId
+              ? { ...c, environment: { ...c.environment, status: data.status } }
+              : c
+          )
+        );
+      }
+    };
+
     socket.on('conversation.busy', handleBusy);
     socket.on('conversation.idle', handleIdle);
     socket.on('conversation.titleUpdated', handleTitleUpdated);
+    socket.on('conversation.environment.status', handleEnvironmentStatus);
 
     return () => {
       socket.off('conversation.busy', handleBusy);
       socket.off('conversation.idle', handleIdle);
       socket.off('conversation.titleUpdated', handleTitleUpdated);
+      socket.off('conversation.environment.status', handleEnvironmentStatus);
     };
   }, []);
 

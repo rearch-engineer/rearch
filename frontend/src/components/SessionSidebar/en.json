@@ -1,0 +1,18 @@
+{
+  "expandSidebar": "Expand sidebar",
+  "collapseSidebar": "Collapse sidebar",
+  "participants": "Participants",
+  "changedFiles": "Changed files",
+  "concludeChange": "Conclude change",
+  "session": "Session",
+  "sessionStatus": "Session: {{status}}",
+  "repository": "Repository",
+  "contextWindow": "Context Window",
+  "context": "Context",
+  "contextPercent": "Context: {{percent}}%",
+  "sessionCost": "Session Cost",
+  "cost": "Cost",
+  "costValue": "Cost: ${{value}}",
+  "noData": "No data",
+  "changedFilesCount": "{{count}} changed files"
+}

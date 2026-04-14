@@ -15,48 +15,50 @@ import {
 import { useColorScheme } from '@mui/joy/styles';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined';
+import { useTranslation } from 'react-i18next';
+import LanguageOutlined from '@mui/icons-material/LanguageOutlined';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../api/client';
 import UserAvatar from '../UserAvatar';
 
 const VOICE_LANGUAGES = [
-  { code: '', label: 'Browser default' },
-  { code: 'en-US', label: 'English (US)' },
-  { code: 'en-GB', label: 'English (UK)' },
-  { code: 'es-ES', label: 'Spanish (Spain)' },
-  { code: 'es-MX', label: 'Spanish (Mexico)' },
-  { code: 'fr-FR', label: 'French (France)' },
-  { code: 'de-DE', label: 'German' },
-  { code: 'it-IT', label: 'Italian' },
-  { code: 'pt-BR', label: 'Portuguese (Brazil)' },
-  { code: 'pt-PT', label: 'Portuguese (Portugal)' },
-  { code: 'zh-CN', label: 'Chinese (Simplified)' },
-  { code: 'zh-TW', label: 'Chinese (Traditional)' },
-  { code: 'ja-JP', label: 'Japanese' },
-  { code: 'ko-KR', label: 'Korean' },
-  { code: 'ru-RU', label: 'Russian' },
-  { code: 'ar-SA', label: 'Arabic (Saudi Arabia)' },
-  { code: 'hi-IN', label: 'Hindi' },
-  { code: 'nl-NL', label: 'Dutch' },
-  { code: 'pl-PL', label: 'Polish' },
-  { code: 'sv-SE', label: 'Swedish' },
-  { code: 'da-DK', label: 'Danish' },
-  { code: 'fi-FI', label: 'Finnish' },
-  { code: 'nb-NO', label: 'Norwegian' },
-  { code: 'tr-TR', label: 'Turkish' },
-  { code: 'uk-UA', label: 'Ukrainian' },
-  { code: 'cs-CZ', label: 'Czech' },
-  { code: 'ro-RO', label: 'Romanian' },
-  { code: 'el-GR', label: 'Greek' },
-  { code: 'he-IL', label: 'Hebrew' },
-  { code: 'th-TH', label: 'Thai' },
-  { code: 'vi-VN', label: 'Vietnamese' },
-  { code: 'id-ID', label: 'Indonesian' },
-  { code: 'ms-MY', label: 'Malay' },
-  { code: 'ca-ES', label: 'Catalan' },
-  { code: 'gl-ES', label: 'Galician' },
-  { code: 'eu-ES', label: 'Basque' },
+  { code: '', labelKey: 'voiceLangBrowserDefault' },
+  { code: 'en-US', labelKey: 'voiceLangEnUS' },
+  { code: 'en-GB', labelKey: 'voiceLangEnGB' },
+  { code: 'es-ES', labelKey: 'voiceLangEsES' },
+  { code: 'es-MX', labelKey: 'voiceLangEsMX' },
+  { code: 'fr-FR', labelKey: 'voiceLangFrFR' },
+  { code: 'de-DE', labelKey: 'voiceLangDeDe' },
+  { code: 'it-IT', labelKey: 'voiceLangItIT' },
+  { code: 'pt-BR', labelKey: 'voiceLangPtBR' },
+  { code: 'pt-PT', labelKey: 'voiceLangPtPT' },
+  { code: 'zh-CN', labelKey: 'voiceLangZhCN' },
+  { code: 'zh-TW', labelKey: 'voiceLangZhTW' },
+  { code: 'ja-JP', labelKey: 'voiceLangJaJP' },
+  { code: 'ko-KR', labelKey: 'voiceLangKoKR' },
+  { code: 'ru-RU', labelKey: 'voiceLangRuRU' },
+  { code: 'ar-SA', labelKey: 'voiceLangArSA' },
+  { code: 'hi-IN', labelKey: 'voiceLangHiIN' },
+  { code: 'nl-NL', labelKey: 'voiceLangNlNL' },
+  { code: 'pl-PL', labelKey: 'voiceLangPlPL' },
+  { code: 'sv-SE', labelKey: 'voiceLangSvSE' },
+  { code: 'da-DK', labelKey: 'voiceLangDaDK' },
+  { code: 'fi-FI', labelKey: 'voiceLangFiFI' },
+  { code: 'nb-NO', labelKey: 'voiceLangNbNO' },
+  { code: 'tr-TR', labelKey: 'voiceLangTrTR' },
+  { code: 'uk-UA', labelKey: 'voiceLangUkUA' },
+  { code: 'cs-CZ', labelKey: 'voiceLangCsCZ' },
+  { code: 'ro-RO', labelKey: 'voiceLangRoRO' },
+  { code: 'el-GR', labelKey: 'voiceLangElGR' },
+  { code: 'he-IL', labelKey: 'voiceLangHeIL' },
+  { code: 'th-TH', labelKey: 'voiceLangThTH' },
+  { code: 'vi-VN', labelKey: 'voiceLangViVN' },
+  { code: 'id-ID', labelKey: 'voiceLangIdID' },
+  { code: 'ms-MY', labelKey: 'voiceLangMsMY' },
+  { code: 'ca-ES', labelKey: 'voiceLangCaES' },
+  { code: 'gl-ES', labelKey: 'voiceLangGlES' },
+  { code: 'eu-ES', labelKey: 'voiceLangEuES' },
 ];
 
 /* ── Mini-mockup card for theme preview ──────────────────────────────────── */
@@ -167,7 +169,7 @@ function AutoThemePreviewCard() {
 const THEME_OPTIONS = [
   {
     value: 'light',
-    label: 'Light',
+    labelKey: 'themeLight',
     preview: (
       <ThemePreviewCard
         bgColor="#ffffff"
@@ -180,12 +182,12 @@ const THEME_OPTIONS = [
   },
   {
     value: 'system',
-    label: 'Auto',
+    labelKey: 'themeAuto',
     preview: <AutoThemePreviewCard />,
   },
   {
     value: 'dark',
-    label: 'Dark',
+    labelKey: 'themeDark',
     preview: (
       <ThemePreviewCard
         bgColor="#343541"
@@ -201,12 +203,14 @@ const THEME_OPTIONS = [
 export default function Preferences() {
   const { user, refreshUser } = useAuth();
   const { setMode } = useColorScheme();
+  const { t, i18n } = useTranslation('Account');
 
   const [displayName, setDisplayName] = useState('');
   const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const [displayNameError, setDisplayNameError] = useState('');
   const [voiceLanguage, setVoiceLanguage] = useState('');
   const [theme, setTheme] = useState('system');
+  const [language, setLanguage] = useState('en');
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState('');
   const avatarInputRef = useRef(null);
@@ -222,16 +226,19 @@ export default function Preferences() {
     if (user?.profile?.preferences?.theme) {
       setTheme(user.profile.preferences.theme);
     }
+    if (user?.profile?.preferences?.language) {
+      setLanguage(user.profile.preferences.language);
+    }
   }, [user]);
 
   const handleDisplayNameSave = async () => {
     const trimmed = displayName.trim();
     if (!trimmed) {
-      setDisplayNameError('Display name must not be empty.');
+      setDisplayNameError(t('displayNameEmpty'));
       return;
     }
     if (trimmed.length > 100) {
-      setDisplayNameError('Display name must not exceed 100 characters.');
+      setDisplayNameError(t('displayNameTooLong'));
       return;
     }
     setDisplayNameError('');
@@ -240,7 +247,7 @@ export default function Preferences() {
       await api.updateProfile({ display_name: trimmed });
       await refreshUser();
     } catch (err) {
-      setDisplayNameError(err?.response?.data?.error || 'Failed to update display name.');
+      setDisplayNameError(err?.response?.data?.error || t('displayNameUpdateFailed'));
     } finally {
       setDisplayNameSaving(false);
     }
@@ -254,6 +261,17 @@ export default function Preferences() {
       await refreshUser();
     } catch (err) {
       console.error('Failed to save theme preference:', err);
+    }
+  };
+
+  const handleLanguageChange = async (value) => {
+    setLanguage(value);
+    i18n.changeLanguage(value);
+    try {
+      await api.updateProfile({ language: value });
+      await refreshUser();
+    } catch (err) {
+      console.error('Failed to save language preference:', err);
     }
   };
 
@@ -273,11 +291,11 @@ export default function Preferences() {
     setAvatarError('');
 
     if (!file.type.startsWith('image/')) {
-      setAvatarError('Only image files are allowed.');
+      setAvatarError(t('avatarOnlyImages'));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setAvatarError('Image must be smaller than 2 MB.');
+      setAvatarError(t('avatarTooLarge'));
       return;
     }
 
@@ -286,7 +304,7 @@ export default function Preferences() {
       await api.uploadAvatar(file);
       await refreshUser();
     } catch (err) {
-      setAvatarError(err?.response?.data?.error || 'Upload failed. Please try again.');
+      setAvatarError(err?.response?.data?.error || t('avatarUploadFailed'));
     } finally {
       setAvatarUploading(false);
       // Reset input so the same file can be re-selected after removal
@@ -301,7 +319,7 @@ export default function Preferences() {
       await api.deleteAvatar();
       await refreshUser();
     } catch (err) {
-      setAvatarError('Failed to remove avatar.');
+      setAvatarError(t('avatarRemoveFailed'));
     } finally {
       setAvatarUploading(false);
     }
@@ -323,66 +341,55 @@ export default function Preferences() {
             level="h2"
             sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
           >
-            Preferences
+            {t('preferences')}
           </Typography>
         </Box>
 
-        {/* ── Display Name ─────────────────────────────────────────── */}
+        {/* ── Profile: Avatar + Display Name ────────────────────── */}
         <Card variant="outlined" sx={{ width: '100%', mb: 3 }}>
-          <Typography level="title-md" sx={{ mb: 1 }}>
-            Display Name
-          </Typography>
-          <Typography level="body-sm" sx={{ mb: 2, color: 'text.secondary' }}>
-            This is the name shown to other users across the platform.
-          </Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-            <FormControl sx={{ flex: 1 }} error={!!displayNameError}>
-              <Input
-                value={displayName}
-                onChange={(e) => {
-                  setDisplayName(e.target.value);
-                  setDisplayNameError('');
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleDisplayNameSave();
-                }}
-                placeholder="Your display name"
-                slotProps={{ input: { maxLength: 100 } }}
-              />
-              {displayNameError && (
-                <FormHelperText>{displayNameError}</FormHelperText>
-              )}
-            </FormControl>
-            <Button
-              size="sm"
-              loading={displayNameSaving}
-              disabled={displayName.trim() === (user?.profile?.display_name || '')}
-              onClick={handleDisplayNameSave}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            {/* Avatar with hover overlay */}
+            <Box
+              onClick={() => avatarInputRef.current?.click()}
+              sx={{
+                position: 'relative',
+                width: 80,
+                height: 80,
+                flexShrink: 0,
+                borderRadius: '50%',
+                cursor: 'pointer',
+                overflow: 'hidden',
+                '&:hover .avatar-overlay': {
+                  opacity: 1,
+                },
+                '&:hover': {
+                  boxShadow: '0 0 0 3px var(--joy-palette-primary-200)',
+                },
+                transition: 'box-shadow 0.2s',
+              }}
             >
-              Save
-            </Button>
-          </Box>
-        </Card>
-
-        {/* ── Avatar ──────────────────────────────────────────────────── */}
-        <Card variant="outlined" sx={{ width: '100%', mb: 3 }}>
-          <Typography level="title-md" sx={{ mb: 1 }}>
-            Avatar
-          </Typography>
-          <Typography level="body-sm" sx={{ mb: 2, color: 'text.secondary' }}>
-            Upload a profile picture. Images are resized to 256&times;256 and served publicly.
-          </Typography>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <UserAvatar
-              avatarFileId={user?.profile?.avatar_fileId}
-              fallbackName={user?.profile?.display_name || user?.email || user?.username}
-              size="lg"
-              sx={{ width: 72, height: 72, fontSize: '1.75rem' }}
-            />
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <UserAvatar
+                avatarFileId={user?.profile?.avatar_fileId}
+                fallbackName={user?.profile?.display_name || user?.email || user?.username}
+                size="lg"
+                sx={{ width: 80, height: 80, fontSize: '2rem' }}
+              />
+              <Box
+                className="avatar-overlay"
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  bgcolor: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                  borderRadius: '50%',
+                }}
+              >
+                <PhotoCameraOutlinedIcon sx={{ color: '#fff', fontSize: 22 }} />
+              </Box>
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -390,27 +397,55 @@ export default function Preferences() {
                 style={{ display: 'none' }}
                 onChange={handleAvatarFileChange}
               />
-              <Button
-                size="sm"
-                variant="outlined"
-                color="neutral"
-                loading={avatarUploading}
-                startDecorator={<PhotoCameraOutlinedIcon />}
-                onClick={() => avatarInputRef.current?.click()}
-              >
-                {user?.profile?.avatar_fileId ? 'Change avatar' : 'Upload avatar'}
-              </Button>
+            </Box>
 
+            {/* Display name */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography level="title-md">
+                {t('displayName')}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <FormControl sx={{ flex: 1 }} error={!!displayNameError}>
+                  <Input
+                    value={displayName}
+                    onChange={(e) => {
+                      setDisplayName(e.target.value);
+                      setDisplayNameError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleDisplayNameSave();
+                    }}
+                    placeholder={t('displayNamePlaceholder')}
+                    slotProps={{ input: { maxLength: 100 } }}
+                  />
+                  {displayNameError && (
+                    <FormHelperText>{displayNameError}</FormHelperText>
+                  )}
+                </FormControl>
+                <Button
+                  size="sm"
+                  loading={displayNameSaving}
+                  disabled={displayName.trim() === (user?.profile?.display_name || '')}
+                  onClick={handleDisplayNameSave}
+                  sx={{ mt: '2px' }}
+                >
+                  {t('save')}
+                </Button>
+              </Box>
+              <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
+                {t('displayNameDescription')}
+              </Typography>
               {user?.profile?.avatar_fileId && (
                 <Button
                   size="sm"
                   variant="plain"
                   color="danger"
                   loading={avatarUploading}
-                  startDecorator={<DeleteOutlineIcon />}
+                  startDecorator={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
                   onClick={handleAvatarDelete}
+                  sx={{ alignSelf: 'flex-start', px: 0.5, py: 0, minHeight: 'unset', fontSize: '0.75rem' }}
                 >
-                  Remove avatar
+                  {t('removeAvatar')}
                 </Button>
               )}
             </Box>
@@ -426,10 +461,10 @@ export default function Preferences() {
         {/* ── Appearance ──────────────────────────────────────────────── */}
         <Card variant="outlined" sx={{ width: '100%', mb: 3 }}>
           <Typography level="title-md" sx={{ mb: 1 }}>
-            Appearance
+            {t('appearance')}
           </Typography>
           <Typography level="body-sm" sx={{ mb: 2, color: 'text.secondary' }}>
-            Color mode
+            {t('colorMode')}
           </Typography>
 
           <Box
@@ -475,38 +510,57 @@ export default function Preferences() {
                     color: theme === opt.value ? 'primary.plainColor' : 'text.secondary',
                   }}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </Typography>
               </Box>
             ))}
           </Box>
         </Card>
 
-        {/* ── Voice Input ─────────────────────────────────────────────── */}
+        {/* ── Language ─────────────────────────────────────────────────── */}
         <Card variant="outlined" sx={{ width: '100%' }}>
-          <Typography level="title-md" sx={{ mb: 2 }}>
-            Voice Input
+          <Typography level="title-md" sx={{ mb: 1 }}>
+            {t('language')}
+          </Typography>
+          <Typography level="body-sm" sx={{ mb: 2, color: 'text.secondary' }}>
+            {t('languageDescription')}
           </Typography>
 
-          <FormControl>
-            <FormLabel>Voice recognition language</FormLabel>
-            <Select
-              value={voiceLanguage}
-              onChange={(_, value) => handleVoiceLanguageChange(value ?? '')}
-              placeholder="Select a language"
-              sx={{ maxWidth: 320 }}
-            >
-              {VOICE_LANGUAGES.map((lang) => (
-                <Option key={lang.code} value={lang.code}>
-                  {lang.label}{lang.code ? ` (${lang.code})` : ''}
-                </Option>
-              ))}
-            </Select>
-            <FormHelperText>
-              Language used for the microphone voice-to-text feature. Leave as
-              "Browser default" to use your browser's language.
-            </FormHelperText>
-          </FormControl>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <FormControl>
+              <FormLabel>{t('language')}</FormLabel>
+              <Select
+                value={language}
+                onChange={(_, value) => handleLanguageChange(value ?? 'en')}
+                startDecorator={<LanguageOutlined />}
+                sx={{ maxWidth: 320 }}
+              >
+                <Option value="en">{t('languageEn')}</Option>
+                <Option value="es">{t('languageEs')}</Option>
+                <Option value="fr">{t('languageFr')}</Option>
+                <Option value="nl">{t('languageNl')}</Option>
+              </Select>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('voiceRecognitionLanguage')}</FormLabel>
+              <Select
+                value={voiceLanguage}
+                onChange={(_, value) => handleVoiceLanguageChange(value ?? '')}
+                placeholder={t('selectLanguage')}
+                sx={{ maxWidth: 320 }}
+              >
+                {VOICE_LANGUAGES.map((lang) => (
+                  <Option key={lang.code} value={lang.code}>
+                    {t(lang.labelKey)}{lang.code ? ` (${lang.code})` : ''}
+                  </Option>
+                ))}
+              </Select>
+              <FormHelperText>
+                {t('voiceHelperText')}
+              </FormHelperText>
+            </FormControl>
+          </Box>
         </Card>
       </Box>
     </Box>

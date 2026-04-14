@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
@@ -21,6 +22,7 @@ import { useToast } from "../../contexts/ToastContext";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function GeneralSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
   const { authMode } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function GeneralSettings() {
         setAllowedDomains(signupSetting.value.allowedDomains || []);
       }
     } catch (err) {
-      toast.error("Failed to load settings: " + err.message);
+      toast.error(t("general.failedToLoadSettings", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -60,9 +62,9 @@ export default function GeneralSettings() {
         allowedDomains: overrides.allowedDomains !== undefined ? overrides.allowedDomains : allowedDomains,
       };
       await api.updateSignupSettings(data);
-      toast.success("Signup settings saved.");
+      toast.success(t("general.signupSettingsSaved"));
     } catch (err) {
-      toast.error("Failed to save signup settings: " + err.message);
+      toast.error(t("general.failedToSaveSignupSettings", { message: err.message }));
     } finally {
       setSavingSignup(false);
     }
@@ -78,11 +80,11 @@ export default function GeneralSettings() {
     const domain = newDomain.trim().toLowerCase();
     if (!domain) return;
     if (!/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/.test(domain)) {
-      toast.error("Invalid domain format.");
+      toast.error(t("general.invalidDomainFormat"));
       return;
     }
     if (allowedDomains.includes(domain)) {
-      toast.error("Domain already in the list.");
+      toast.error(t("general.domainAlreadyInList"));
       return;
     }
     const updated = [...allowedDomains, domain];
@@ -109,7 +111,7 @@ export default function GeneralSettings() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading...
+          {t("general.loading")}
         </Typography>
       </Box>
     );
@@ -128,78 +130,47 @@ export default function GeneralSettings() {
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            level="h2"
-            sx={{
-              mb: 1,
-              color: "var(--text-primary)",
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", md: "1.75rem" },
-            }}
-          >
-            General
+          <Typography level="h3" sx={{ mb: 3 }}>
+            {t("general.title")}
           </Typography>
-          <Typography
-            level="body-lg"
-            sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-          >
-            Application-wide settings.
-          </Typography>
+
         </Box>
 
         {/* Signup Restrictions card — only shown in LOCAL auth mode */}
         {authMode === "LOCAL" && (
-          <Card
-            variant="outlined"
-            sx={{
-              borderColor: "var(--border-color)",
-              bgcolor: "var(--bg-primary)",
-            }}
-          >
+          <Card variant="outlined" sx={{ mb: 3 }}>
             <CardContent>
               <Typography
                 level="title-md"
-                sx={{ mb: 0.5, fontWeight: 700, color: "var(--text-primary)" }}
+                sx={{ mb: 0.5 }}
               >
-                Signup Restrictions
+                {t("general.signupRestrictions")}
               </Typography>
               <Typography
                 level="body-sm"
-                sx={{ mb: 3, color: "var(--text-secondary)" }}
+                sx={{ color: "var(--text-secondary)", mb: 2 }}
               >
-                Control who can create new accounts when using local
-                authentication.
+                {t("general.signupRestrictionsDescription")}
               </Typography>
 
-              <Stack spacing={3}>
+              <Stack spacing={2}>
                 {/* Toggle: Restrict new signups */}
                 <FormControl
                   orientation="horizontal"
                   sx={{
                     justifyContent: "space-between",
                     alignItems: "center",
-                    p: 2,
-                    borderRadius: "8px",
-                    border: "1px solid var(--border-color)",
-                    bgcolor: "var(--bg-secondary)",
                   }}
                 >
                   <Box>
-                    <FormLabel
-                      sx={{
-                        color: "var(--text-primary)",
-                        fontWeight: 600,
-                        fontSize: "0.9rem",
-                        mb: 0.25,
-                      }}
-                    >
-                      Restrict new signups
+                    <FormLabel sx={{ mb: 0 }}>
+                      {t("general.restrictNewSignups")}
                     </FormLabel>
                     <Typography
                       level="body-xs"
-                      sx={{ color: "var(--text-tertiary)" }}
+                      sx={{ color: "var(--text-secondary)" }}
                     >
-                      When enabled, no new users can register.
+                      {t("general.restrictNewSignupsDescription")}
                     </Typography>
                   </Box>
                   <Switch
@@ -220,14 +191,13 @@ export default function GeneralSettings() {
                         mb: 1,
                       }}
                     >
-                      Accept only specific email domains
+                      {t("general.acceptOnlySpecificDomains")}
                     </FormLabel>
                     <Typography
                       level="body-xs"
                       sx={{ color: "var(--text-tertiary)", mb: 1.5 }}
                     >
-                      When domains are listed, only users with matching email
-                      addresses can register. Leave empty to allow all domains.
+                      {t("general.acceptOnlySpecificDomainsDescription")}
                     </Typography>
 
                     {/* Domain chips */}
@@ -281,7 +251,7 @@ export default function GeneralSettings() {
                         onClick={handleAddDomain}
                         disabled={savingSignup || !newDomain.trim()}
                       >
-                        Add
+                        {t("general.add")}
                       </Button>
                     </Box>
 
@@ -292,7 +262,7 @@ export default function GeneralSettings() {
                         size="sm"
                         sx={{ mt: 1.5 }}
                       >
-                        No domain restrictions — all email addresses are accepted.
+                        {t("general.noDomainRestrictions")}
                       </Alert>
                     )}
                   </Box>

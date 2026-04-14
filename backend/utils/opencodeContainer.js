@@ -5,6 +5,7 @@ import SubResource from "../models/SubResource.js";
 import { downloadFileStream } from "./gridfs.js";
 import { broadcast } from "../ws.js";
 import { execInContainer } from "./containerExec.js";
+import { getDefaultModel } from "./llmProviderConfig.js";
 
 const docker = new Docker();
 
@@ -184,12 +185,14 @@ export async function sendPrompt(conversationId, prompt, options = {}) {
   // Convert attached files to OpenCode FilePartInput objects
   const fileParts = await filesToParts(options.files);
 
+  const defaultModel = options.model || (await getDefaultModel()) || {
+    providerID: "anthropic",
+    modelID: "claude-sonnet-4-20250514",
+  };
+
   const promptParams = {
     sessionID: sessionId,
-    model: options.model || {
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-20250514",
-    },
+    model: defaultModel,
     parts: [{ type: "text", text: prompt }, ...fileParts],
   };
   if (options.agent) {
@@ -276,12 +279,14 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
   const fileParts = await filesToParts(options.files);
 
   // Build prompt parameters
+  const streamDefaultModel = options.model || (await getDefaultModel()) || {
+    providerID: "anthropic",
+    modelID: "claude-sonnet-4-20250514",
+  };
+
   const promptParams = {
     sessionID: sessionId,
-    model: options.model || {
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-20250514",
-    },
+    model: streamDefaultModel,
     parts: [{ type: "text", text: prompt }, ...fileParts],
   };
   if (options.agent) {

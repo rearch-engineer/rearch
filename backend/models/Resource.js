@@ -11,7 +11,7 @@ const resourceSchema = new mongoose.Schema({
   provider: {
     type: String,
     required: true,
-    enum: ['jira', 'bitbucket']
+    enum: ['bitbucket', 'github']
   },
   data: {
     type: mongoose.Schema.Types.Mixed,

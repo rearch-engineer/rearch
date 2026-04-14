@@ -6,6 +6,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
+import { useTranslation } from "react-i18next";
 import MarkdownRenderer from "../MarkdownRenderer";
 import "./ToolCallDisplay.css";
 
@@ -38,6 +39,7 @@ const getToolSummary = (toolName, input) => {
 const ToolCallDisplay = ({ toolPart, toolCall, toolResult }) => {
   const [expanded, setExpanded] = useState(false);
   const [rawView, setRawView] = useState(false);
+  const { t } = useTranslation("tools");
 
   // Normalise: support both new ToolPart format and legacy { toolCall, toolResult }
   let toolName, input, output, error, status;
@@ -191,7 +193,7 @@ const ToolCallDisplay = ({ toolPart, toolCall, toolResult }) => {
                 fontWeight="lg"
                 sx={{ mb: 0.5, color: "text.tertiary" }}
               >
-                Output:
+                {t("output")}
               </Typography>
               <Box
                 sx={{
@@ -220,7 +222,7 @@ const ToolCallDisplay = ({ toolPart, toolCall, toolResult }) => {
                 fontWeight="lg"
                 sx={{ mb: 0.5, color: "danger.500" }}
               >
-                Error:
+                {t("error")}
               </Typography>
               <Box
                 sx={{
@@ -258,7 +260,7 @@ const ToolCallDisplay = ({ toolPart, toolCall, toolResult }) => {
             <Box sx={{ p: 1 }}>
               <img
                 src={isImageContent ? truncatedContent.trim() : soleImageSrc}
-                alt={`${toolName} output`}
+                alt={t("toolOutputAlt", { toolName })}
                 style={{
                   maxWidth: "100%",
                   height: "auto",
@@ -281,7 +283,7 @@ const ToolCallDisplay = ({ toolPart, toolCall, toolResult }) => {
                 }}
               >
                 <Tooltip
-                  title={rawView ? "Render as markdown" : "View raw text"}
+                  title={rawView ? t("renderAsMarkdown") : t("viewRawText")}
                   size="sm"
                 >
                   <IconButton

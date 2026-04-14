@@ -1,0 +1,21 @@
+{
+  "placeholderPrefix": "Pídele a ReArch que ",
+  "hint_darkMode": "agregue modo oscuro",
+  "hint_writeTests": "escriba pruebas para todos los componentes",
+  "hint_slowApi": "¿por qué esta API es tan lenta?",
+  "hint_typescript": "convierta el proyecto a TypeScript",
+  "hint_unusedDeps": "encuentre dependencias sin usar",
+  "hint_errorHandling": "agregue manejo de errores adecuado",
+  "hint_responsive": "haga esto responsivo",
+  "hint_optimizeDb": "optimice una consulta de base de datos",
+  "hint_validation": "agregue validación de entrada",
+  "hint_regex": "explique una expresión regular",
+  "hint_splitMonolith": "divida un archivo monolítico en funciones más pequeñas",
+  "hint_loadingStates": "agregue estados de carga a las pantallas",
+  "hint_updateDeps": "actualice las dependencias obsoletas",
+  "hint_readme": "genere un README para este proyecto",
+  "dropFilesToAttach": "Suelta archivos para adjuntar",
+  "modelPlaceholder": "Modelo",
+  "stopListening": "Dejar de escuchar",
+  "voiceInput": "Entrada de voz"
+}

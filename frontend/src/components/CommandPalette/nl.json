@@ -1,0 +1,20 @@
+{
+  "searchPlaceholder": "Zoek overal...",
+  "backToSearch": "← Terug naar zoeken",
+  "loading": "Laden...",
+  "loadingModels": "Modellen laden...",
+  "noResultsFound": "Geen resultaten gevonden",
+  "active": "actief",
+  "new": "nieuw",
+  "navigate": "navigeren",
+  "select": "selecteren",
+  "close": "sluiten",
+  "repositories": "Repositories",
+  "conversations": "Gesprekken",
+  "actions": "Acties",
+  "newConversation": "Nieuw gesprek",
+  "switchModel": "Model wisselen",
+  "documentation": "Documentatie",
+  "website": "Website",
+  "logout": "Uitloggen"
+}

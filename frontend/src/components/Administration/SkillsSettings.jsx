@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Button,
   Typography,
-  Card,
   FormControl,
   FormLabel,
   Input,
@@ -22,20 +22,25 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
+import { useConfirm } from "../../contexts/ConfirmContext";
 
 const EMPTY_FORM = { title: "", description: "", skillsRepository: "", isDefault: false };
 
 export default function SkillsSettings() {
+  const { t } = useTranslation("Administration");
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
   const [repositorySubResources, setRepositorySubResources] = useState([]);
 
   useEffect(() => {
@@ -49,7 +54,7 @@ export default function SkillsSettings() {
       const data = await api.getSkills();
       setSkills(data);
     } catch (err) {
-      toast.error("Failed to load skills: " + err.message);
+      toast.error(t("skills.failedToLoadSkills", { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -57,7 +62,7 @@ export default function SkillsSettings() {
 
   const loadRepositorySubResources = async () => {
     try {
-      const subResources = await api.getAllSubResources("bitbucket-repository");
+      const subResources = await api.getAllSubResources();
       setRepositorySubResources(subResources);
     } catch (err) {
       console.error("Failed to load repository subresources:", err);
@@ -82,19 +87,19 @@ export default function SkillsSettings() {
       handleClose();
       loadSkills();
     } catch (err) {
-      toast.error("Failed to create skill: " + err.message);
+      toast.error(t("skills.failedToCreateSkill", { message: err.message }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this skill?")) {
+    if (await confirm({ title: t("skills.deleteSkill"), message: t("skills.deleteSkillConfirm"), confirmText: t("skills.delete"), confirmColor: "danger" })) {
       try {
         await api.deleteSkill(id);
         loadSkills();
       } catch (err) {
-        toast.error("Failed to delete skill: " + err.message);
+        toast.error(t("skills.failedToDeleteSkill", { message: err.message }));
       }
     }
   };
@@ -111,7 +116,7 @@ export default function SkillsSettings() {
         }}
       >
         <Typography level="body-lg" sx={{ color: "var(--text-secondary)" }}>
-          Loading...
+          {t("skills.loading")}
         </Typography>
       </Box>
     );
@@ -129,74 +134,46 @@ export default function SkillsSettings() {
     >
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="flex-start"
-          justifyContent="space-between"
-          spacing={2}
-          sx={{ mb: 4 }}
-        >
-          <Box>
-            <Typography
-              level="h2"
-              sx={{
-                mb: 1,
-                color: "var(--text-primary)",
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", md: "1.75rem" },
-              }}
-            >
-              Skills
-            </Typography>
-            <Typography
-              level="body-lg"
-              sx={{ color: "var(--text-secondary)", fontSize: "1rem" }}
-            >
-              Define the repositorie(s) that contain cross-repository skills.
-            </Typography>
-          </Box>
+        <Box sx={{ mb: 4 }}>
+          <Typography level="h3" sx={{ mb: 3 }}>
+            {t("skills.title")}
+          </Typography>
+        </Box>
+
+        {/* Search & actions */}
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center" sx={{ mb: 3 }}>
+          <Input
+            size="sm"
+            placeholder={t("skills.searchPlaceholder")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            startDecorator={<SearchIcon sx={{ color: "var(--text-secondary)" }} />}
+            sx={{
+              flex: 1,
+              bgcolor: "var(--bg-secondary)",
+              borderColor: "var(--border-color)",
+            }}
+          />
           <Button
+            size="sm"
             variant="solid"
-            color="primary"
-            startDecorator={<AddIcon />}
             onClick={openCreate}
-            sx={{ flexShrink: 0, mt: 0.5 }}
+            sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
           >
-            Add Skill
+            {t("skills.addSkill")}
           </Button>
         </Stack>
 
-        {/* Table card */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderColor: "var(--border-color)",
-            bgcolor: "var(--bg-primary)",
-            overflow: "auto",
-          }}
-        >
+        {/* Table */}
+        <Box sx={{ bgcolor: "var(--bg-primary)", overflow: "auto" }}>
           {skills.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography
-                level="body-lg"
-                sx={{ color: "var(--text-secondary)", mb: 1 }}
-              >
-                No skills configured
-              </Typography>
+            <Box sx={{ textAlign: "center", py: 4 }}>
               <Typography
                 level="body-sm"
-                sx={{ color: "var(--text-tertiary)", mb: 3 }}
+                sx={{ color: "var(--text-tertiary)" }}
               >
-                Add a skill to define AI capabilities for SDLC processes.
+                {t("skills.getStartedHint")}
               </Typography>
-              <Button
-                variant="soft"
-                color="primary"
-                startDecorator={<AddIcon />}
-                onClick={openCreate}
-              >
-                Add Skill
-              </Button>
             </Box>
           ) : (
             <Table
@@ -217,15 +194,15 @@ export default function SkillsSettings() {
             >
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Description</th>
-                  <th>Skills Repository</th>
-                  <th>Default</th>
-                  <th style={{ width: 100 }}>Actions</th>
+                  <th>{t("skills.tableTitle")}</th>
+                  <th>{t("skills.tableDescription")}</th>
+                  <th>{t("skills.tableSkillsRepository")}</th>
+                  <th>{t("skills.tableDefault")}</th>
+                  <th style={{ width: 100 }}>{t("skills.tableActions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {skills.map((skill) => {
+                {skills.filter((s) => s.title.toLowerCase().includes(search.toLowerCase())).map((skill) => {
                   const linkedRepo = repositorySubResources.find(
                     (r) => r._id === skill.skillsRepository,
                   );
@@ -264,7 +241,7 @@ export default function SkillsSettings() {
                       <td>
                         {skill.isDefault ? (
                           <Chip size="sm" variant="soft" color="success">
-                            Default
+                            {t("skills.default")}
                           </Chip>
                         ) : (
                           <Typography
@@ -303,7 +280,7 @@ export default function SkillsSettings() {
               </tbody>
             </Table>
           )}
-        </Card>
+        </Box>
       </Box>
 
       {/* Create modal */}
@@ -323,7 +300,7 @@ export default function SkillsSettings() {
             level="title-lg"
             sx={{ mb: 2, fontWeight: 700, color: "var(--text-primary)" }}
           >
-            Add Skill
+            {t("skills.addSkill")}
           </Typography>
 
           <form onSubmit={handleSubmit}>
@@ -336,14 +313,14 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Title
+                  {t("skills.skillTitle")}
                 </FormLabel>
                 <Input
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  placeholder="Enter skill title"
+                  placeholder={t("skills.titlePlaceholder")}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
                     borderColor: "var(--border-color)",
@@ -359,14 +336,14 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Description
+                  {t("skills.description")}
                 </FormLabel>
                 <Textarea
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Enter skill description"
+                  placeholder={t("skills.descriptionPlaceholder")}
                   minRows={4}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
@@ -383,7 +360,7 @@ export default function SkillsSettings() {
                     fontSize: "0.8rem",
                   }}
                 >
-                  Skills Repository
+                  {t("skills.skillsRepository")}
                 </FormLabel>
                 <Select
                   value={formData.skillsRepository}
@@ -393,7 +370,7 @@ export default function SkillsSettings() {
                       skillsRepository: newValue || "",
                     })
                   }
-                  placeholder="Select a repository"
+                  placeholder={t("skills.selectRepository")}
                   sx={{
                     bgcolor: "var(--bg-secondary)",
                     borderColor: "var(--border-color)",
@@ -413,10 +390,10 @@ export default function SkillsSettings() {
               >
                 <Box>
                   <FormLabel sx={{ mb: 0, color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>
-                    Default Skill
+                    {t("skills.defaultSkill")}
                   </FormLabel>
                   <Typography level="body-xs" sx={{ color: "var(--text-tertiary)" }}>
-                    Default skills are cloned into every new conversation
+                    {t("skills.defaultSkillDescription")}
                   </Typography>
                 </Box>
                 <Switch
@@ -440,7 +417,7 @@ export default function SkillsSettings() {
                   onClick={handleClose}
                   sx={{ borderColor: "var(--border-color)" }}
                 >
-                  Cancel
+                  {t("skills.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -449,7 +426,7 @@ export default function SkillsSettings() {
                   loading={saving}
                   startDecorator={<AddIcon />}
                 >
-                  Add Skill
+                  {t("skills.addSkill")}
                 </Button>
               </Stack>
             </Stack>

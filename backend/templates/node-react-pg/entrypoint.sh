@@ -33,9 +33,15 @@ su - coder -c "git config --global user.name '$GIT_USER_NAME'"
 echo "  -> Git name configured: $GIT_USER_NAME"
 
 if [ -n "$GIT_TOKEN" ]; then
-    su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"https://bitbucket.org/\""
-    su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"git@bitbucket.org:\""
-    echo "  -> Git credentials configured for Bitbucket"
+    if [ "$GIT_PROVIDER" = "github" ]; then
+        su - coder -c "git config --global url.\"https://x-access-token:${GIT_TOKEN}@github.com/\".insteadOf \"https://github.com/\""
+        su - coder -c "git config --global url.\"https://x-access-token:${GIT_TOKEN}@github.com/\".insteadOf \"git@github.com:\""
+        echo "  -> Git credentials configured for GitHub"
+    else
+        su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"https://bitbucket.org/\""
+        su - coder -c "git config --global url.\"https://x-token-auth:${GIT_TOKEN}@bitbucket.org/\".insteadOf \"git@bitbucket.org:\""
+        echo "  -> Git credentials configured for Bitbucket"
+    fi
 fi
 
 # =============================================================================
@@ -184,9 +190,23 @@ su - coder -c "node /tmp/patch-vite.js"
 rm -f /tmp/patch-vite.js
 
 # =============================================================================
-# 5. Start Services
+# 5. Write OpenCode config (before supervisord starts opencode)
 # =============================================================================
-echo "[5/5] Starting services..."
+echo "[5/6] Configuring OpenCode..."
+
+if [ -n "$OPENCODE_CONFIG_CONTENT" ]; then
+    mkdir -p /home/coder/.config/opencode
+    echo "$OPENCODE_CONFIG_CONTENT" > /home/coder/.config/opencode/opencode.json
+    chown -R coder:coder /home/coder/.config/opencode
+    echo "  -> OpenCode config written"
+else
+    echo "  -> OPENCODE_CONFIG_CONTENT not set, skipping"
+fi
+
+# =============================================================================
+# 6. Start Services
+# =============================================================================
+echo "[6/6] Starting services..."
 
 echo "=========================================="
 echo "Container Configuration:"

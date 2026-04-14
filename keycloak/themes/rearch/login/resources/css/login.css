@@ -7,9 +7,9 @@
 /* ─── CSS Custom Properties ─────────────────────────────────────────────── */
 :root {
   /* Sidebar panel (left side) */
-  --rearch-sidebar-bg: #202123;
+  --rearch-sidebar-bg: #1E1E1E;
   /* Main area (right side) */
-  --rearch-main-bg: #000000;
+  --rearch-main-bg: #1B1B1B;
   /* Inputs */
   --rearch-input-bg: #2a2b32;
   --rearch-input-border: #40414f;

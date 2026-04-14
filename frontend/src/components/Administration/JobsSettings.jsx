@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   List,
@@ -22,28 +23,29 @@ import { api } from "../../api/client";
 
 const STATUS_CONFIG = {
   active: {
-    label: "Active",
+    label: "statusActive",
     color: "primary",
     icon: <PlayArrowIcon fontSize="small" />,
   },
   waiting: {
-    label: "Waiting",
+    label: "statusWaiting",
     color: "warning",
     icon: <HourglassEmptyIcon fontSize="small" />,
   },
   completed: {
-    label: "Completed",
+    label: "statusCompleted",
     color: "success",
     icon: <CheckCircleIcon fontSize="small" />,
   },
   failed: {
-    label: "Failed",
+    label: "statusFailed",
     color: "danger",
     icon: <ErrorIcon fontSize="small" />,
   },
 };
 
 function StatusChip({ status }) {
+  const { t } = useTranslation("Administration");
   const cfg = STATUS_CONFIG[status] || {
     label: status,
     color: "neutral",
@@ -51,7 +53,7 @@ function StatusChip({ status }) {
   };
   return (
     <Chip size="sm" variant="soft" color={cfg.color} startDecorator={cfg.icon}>
-      {cfg.label}
+      {t(`jobs.${cfg.label}`)}
     </Chip>
   );
 }
@@ -94,6 +96,7 @@ function LiveDuration({ start, end }) {
 // ─── Job List (left panel) ───────────────────────────────────────────────────
 
 function JobList({ jobs, selectedJobKey, onSelect, loading }) {
+  const { t } = useTranslation("Administration");
   if (loading) {
     return (
       <Box
@@ -164,6 +167,7 @@ function JobList({ jobs, selectedJobKey, onSelect, loading }) {
 // ─── Job Details (right panel) ───────────────────────────────────────────────
 
 function JobDetails({ job, logs, logsLoading }) {
+  const { t } = useTranslation("Administration");
   const logsEndRef = useRef(null);
 
   // Auto-scroll to the bottom when new logs arrive
@@ -316,7 +320,7 @@ function JobDetails({ job, logs, logsLoading }) {
 
       {/* Logs */}
       <Typography level="title-sm" sx={{ mb: 1 }}>
-        Logs {logs.length > 0 && `(${logs.length})`}
+        {logs.length > 0 ? t("jobs.logsCount", { count: logs.length }) : t("jobs.logs")}
       </Typography>
       <Box
         sx={{
@@ -391,6 +395,7 @@ function JobDetails({ job, logs, logsLoading }) {
 // ─── Main JobsSettings ──────────────────────────────────────────────────────
 
 export default function JobsSettings() {
+  const { t } = useTranslation("Administration");
   const { socket } = useSocket();
   const { refreshCounts } = useJobs();
 
@@ -543,16 +548,10 @@ export default function JobsSettings() {
           }}
         >
           <Typography
-            level="title-md"
-            sx={{ color: "var(--text-primary)", fontWeight: 600 }}
-          >
-            All Jobs
-          </Typography>
-          <Typography
             level="body-xs"
             sx={{ color: "var(--text-tertiary)", mt: 0.5 }}
           >
-            {jobs.length} job{jobs.length !== 1 ? "s" : ""}
+            {jobs.length === 1 ? t("jobs.jobCount", { count: jobs.length }) : t("jobs.jobCount_plural", { count: jobs.length })}
           </Typography>
         </Box>
         <Box sx={{ flex: 1, overflow: "auto" }}>

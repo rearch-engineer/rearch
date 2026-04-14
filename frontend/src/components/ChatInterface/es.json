@@ -1,0 +1,12 @@
+{
+  "selectRepository": "Selecciona un repositorio para iniciar una nueva conversación.",
+  "searchRepositories": "Buscar repositorios...",
+  "loadingRepositories": "Cargando repositorios...",
+  "noRepositoriesEnabled": "No se encontraron repositorios con ReArch habilitado. Habilita ReArch en tus repositorios desde la página de Recursos primero.",
+  "noRepositoriesMatch": "Ningún repositorio coincide con tu búsqueda.",
+  "startConversation": "Iniciar Conversación",
+  "pleaseSelectRepository": "Por favor selecciona un repositorio",
+  "newConversation": "Nueva Conversación",
+  "errorCreatingConversation": "Error al crear conversación: {{message}}",
+  "openInBitbucket": "Abrir en Bitbucket"
+}

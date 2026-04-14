@@ -1,0 +1,18 @@
+{
+  "expandSidebar": "Expandir barra lateral",
+  "collapseSidebar": "Contraer barra lateral",
+  "participants": "Participantes",
+  "changedFiles": "Archivos modificados",
+  "concludeChange": "Concluir cambio",
+  "session": "Sesión",
+  "sessionStatus": "Sesión: {{status}}",
+  "repository": "Repositorio",
+  "contextWindow": "Ventana de contexto",
+  "context": "Contexto",
+  "contextPercent": "Contexto: {{percent}}%",
+  "sessionCost": "Costo de sesión",
+  "cost": "Costo",
+  "costValue": "Costo: ${{value}}",
+  "noData": "Sin datos",
+  "changedFilesCount": "{{count}} archivos modificados"
+}

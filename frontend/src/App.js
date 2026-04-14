@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import i18n from "./i18n";
 import {
   BrowserRouter,
   Routes,
@@ -12,20 +13,19 @@ import MainMenu from "./components/MainMenu";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ConversationsPage from "./pages/ConversationsPage";
 import AdministrationPage from "./pages/AdministrationPage";
-import ResourcesPage from "./pages/ResourcesPage";
 import AccountPage from "./pages/AccountPage";
 import CommandPalette from "./components/CommandPalette";
 import LoginPage from "./pages/LoginPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import StartPage from "./pages/StartPage";
 import { ResourcesProvider } from "./contexts/ResourcesContext";
-import { ToolsProvider } from "./contexts/ToolsContext";
 import { SkillsProvider } from "./contexts/SkillsContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ConversationsProvider } from "./contexts/ConversationsContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ConfirmProvider } from "./contexts/ConfirmContext";
 import "./App.css";
 
 /**
@@ -46,7 +46,7 @@ function RequireAuth({ children }) {
           height: "100vh",
         }}
       >
-        Loading...
+        {i18n.t('loading', { ns: 'App' })}
       </Box>
     );
   }
@@ -82,7 +82,7 @@ function RedirectIfAuth({ children }) {
           height: "100vh",
         }}
       >
-        Loading...
+        {i18n.t('loading', { ns: 'App' })}
       </Box>
     );
   }
@@ -97,6 +97,22 @@ function RedirectIfAuth({ children }) {
   }
 
   return children;
+}
+
+/**
+ * Applies the user's saved language preference on load.
+ */
+function LanguageApplier() {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const savedLang = user?.profile?.preferences?.language;
+    if (savedLang) {
+      i18n.changeLanguage(savedLang);
+    }
+  }, [user]);
+
+  return null;
 }
 
 /**
@@ -144,9 +160,9 @@ function AuthenticatedApp() {
     <SocketProvider>
       <JobsProvider>
         <ResourcesProvider>
-          <ToolsProvider>
             <SkillsProvider>
               <ConversationsProvider>
+                <LanguageApplier />
                 <ThemeApplier />
                 <StartRedirectHandler />
                 <CommandPalette />
@@ -172,7 +188,6 @@ function AuthenticatedApp() {
                         path="/conversations/:id"
                         element={<ConversationsPage />}
                       />
-                      <Route path="/resources/*" element={<ResourcesPage />} />
                       <Route
                         path="/administration/*"
                         element={<AdministrationPage />}
@@ -183,7 +198,6 @@ function AuthenticatedApp() {
                 </Box>
               </ConversationsProvider>
             </SkillsProvider>
-          </ToolsProvider>
         </ResourcesProvider>
       </JobsProvider>
     </SocketProvider>
@@ -194,6 +208,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
+        <ConfirmProvider>
         <AuthProvider>
           <BrowserRouter>
             <Routes>
@@ -220,6 +235,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </AuthProvider>
+        </ConfirmProvider>
       </ToastProvider>
     </ErrorBoundary>
   );

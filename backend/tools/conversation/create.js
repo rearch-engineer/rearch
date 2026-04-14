@@ -1,4 +1,4 @@
-import queue from '../../queue';
+import queue from "../../queue";
 
 /**
  * Trigger a BullMQ job to set up a conversation environment
@@ -6,14 +6,20 @@ import queue from '../../queue';
  * @param {string} repositoryId - The ID of the repository resource
  * @param {string} subResourceId - The ID of the subresource (repository)
  */
-export const createConversation = async (conversationId, repositoryId, subResourceId) => {
+export const createConversation = async (
+  conversationId,
+  repositoryId,
+  subResourceId,
+) => {
   try {
-    await queue.addJobToQueue('conversations', 'setup-conversation', {
+    await queue.addJobToQueue("conversations", "setup-conversation", {
       conversationId,
       repositoryId,
-      subResourceId
+      subResourceId,
     });
-    console.log(`✅ Conversation setup job added for conversation ${conversationId}`);
+    console.log(
+      `✅ Conversation setup job added for conversation ${conversationId}`,
+    );
   } catch (error) {
     console.error(`❌ Failed to add conversation setup job:`, error);
     throw error;

@@ -16,6 +16,7 @@ import {
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
+import { useTranslation } from "react-i18next";
 
 /**
  * QuestionDisplay renders an inline question form for OpenCode agent questions.
@@ -38,6 +39,7 @@ const QuestionDisplay = ({
   readOnly = false,
 }) => {
   const { requestId, questions, status, answers: historicalAnswers } = questionData;
+  const { t } = useTranslation("tools");
 
   // Track selected answers for each question: { [questionIndex]: string[] }
   const [selections, setSelections] = useState(() => {
@@ -136,10 +138,10 @@ const QuestionDisplay = ({
 
   // Determine the status chip
   const getStatusChip = () => {
-    if (isAnswered) return <Chip size="sm" color="success" variant="soft">Answered</Chip>;
-    if (isRejected) return <Chip size="sm" color="neutral" variant="soft">Dismissed</Chip>;
-    if (reviewing) return <Chip size="sm" color="warning" variant="soft">Reviewing</Chip>;
-    return <Chip size="sm" color="primary" variant="soft">Awaiting Answer</Chip>;
+    if (isAnswered) return <Chip size="sm" color="success" variant="soft">{t("answered")}</Chip>;
+    if (isRejected) return <Chip size="sm" color="neutral" variant="soft">{t("dismissed")}</Chip>;
+    if (reviewing) return <Chip size="sm" color="warning" variant="soft">{t("reviewing")}</Chip>;
+    return <Chip size="sm" color="primary" variant="soft">{t("awaitingAnswer")}</Chip>;
   };
 
   // Render a single question section (editing mode)
@@ -257,7 +259,7 @@ const QuestionDisplay = ({
         {allowCustom && (
           <Input
             size="sm"
-            placeholder="Or type a custom answer..."
+            placeholder={t("orTypeCustomAnswer")}
             value={customTexts[idx] || ""}
             onChange={(e) => handleCustomTextChange(idx, e.target.value)}
             disabled={disabled}
@@ -290,7 +292,7 @@ const QuestionDisplay = ({
             ))
           ) : (
             <Typography level="body-xs" sx={{ color: "warning.500", fontStyle: "italic" }}>
-              No answer selected
+              {t("noAnswerSelected")}
             </Typography>
           )}
         </Box>
@@ -321,7 +323,7 @@ const QuestionDisplay = ({
             ))
           ) : (
             <Typography level="body-xs" sx={{ color: "text.tertiary", fontStyle: "italic" }}>
-              No answer provided
+              {t("noAnswerProvided")}
             </Typography>
           )}
         </Box>
@@ -351,7 +353,7 @@ const QuestionDisplay = ({
           }}
         />
         <Typography level="title-sm" fontWeight="lg">
-          {questions.length === 1 ? questions[0].header : "Agent has questions"}
+          {questions.length === 1 ? questions[0].header : t("agentHasQuestions")}
         </Typography>
         {getStatusChip()}
       </Box>
@@ -359,7 +361,7 @@ const QuestionDisplay = ({
       {/* Rejected state */}
       {isRejected && (
         <Typography level="body-xs" sx={{ color: "text.tertiary", fontStyle: "italic" }}>
-          This question was dismissed.
+          {t("questionDismissed")}
         </Typography>
       )}
 
@@ -385,7 +387,7 @@ const QuestionDisplay = ({
               disabled={disabled || submitting}
               startDecorator={<CloseIcon />}
             >
-              Dismiss
+              {t("dismiss")}
             </Button>
             <Button
               size="sm"
@@ -394,7 +396,7 @@ const QuestionDisplay = ({
               onClick={handleReview}
               disabled={disabled || submitting || !canSubmit()}
             >
-              Review Answers
+              {t("reviewAnswers")}
             </Button>
           </Box>
         </Box>
@@ -405,7 +407,7 @@ const QuestionDisplay = ({
         <Box>
           <Alert color="neutral" variant="soft" sx={{ mb: 1.5 }}>
             <Typography level="body-sm">
-              Please review your answers before submitting. The agent will continue working after you submit.
+              {t("reviewAnswersAlert")}
             </Typography>
           </Alert>
 
@@ -420,7 +422,7 @@ const QuestionDisplay = ({
               onClick={handleBackToEdit}
               disabled={submitting}
             >
-              Back to Edit
+              {t("backToEdit")}
             </Button>
             <Button
               size="sm"
@@ -430,7 +432,7 @@ const QuestionDisplay = ({
               loading={submitting}
               startDecorator={<SendIcon />}
             >
-              Submit Answers
+              {t("submitAnswers")}
             </Button>
           </Box>
         </Box>

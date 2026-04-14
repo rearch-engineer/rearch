@@ -15,7 +15,8 @@
   --text-primary: #000000;
   --text-secondary: #565869;
   --text-tertiary: #8e8ea0;
-  --border-color: #d9d9e3;
+  --border-color: #DEDEDE;
+  --scrollbar-thumb: #C0C0C0;
   --accent-color: #10a37f;
   --accent-hover: #0d8c6d;
   --user-message-bg: #f7f7f8;
@@ -40,16 +41,17 @@
 
 /* Dark mode: sync with MUI Joy's color scheme attribute */
 [data-joy-color-scheme="dark"] {
-  --bg-primary: #343541;
-  --bg-secondary: #202123;
+  --bg-primary: #1B1B1B;
+  --bg-secondary: #1E1E1E;
   --bg-tertiary: #40414f;
-  --bg-input: #40414f;
+  --bg-input: #292929;
   --bg-hover: #2a2b32;
   --bg-active: #343541;
   --text-primary: #ececf1;
   --text-secondary: #c5c5d2;
   --text-tertiary: #8e8ea0;
   --border-color: #565869;
+  --scrollbar-thumb: #5A5A5A;
   --accent-color: #10a37f;
   --accent-hover: #0d8c6d;
   --user-message-bg: #444654;
@@ -90,4 +92,21 @@ code {
 #root {
   height: 100vh;
   display: flex;
+}
+
+/* Primary button overrides */
+.MuiButton-colorPrimary {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+.MuiButton-colorPrimary:hover {
+  background-color: #222222 !important;
+}
+
+[data-joy-color-scheme="dark"] .MuiButton-colorPrimary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+[data-joy-color-scheme="dark"] .MuiButton-colorPrimary:hover {
+  background-color: #dddddd !important;
 }

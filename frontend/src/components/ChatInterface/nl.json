@@ -1,0 +1,12 @@
+{
+  "selectRepository": "Selecteer een repository om een nieuw gesprek te starten.",
+  "searchRepositories": "Repositories zoeken...",
+  "loadingRepositories": "Repositories laden...",
+  "noRepositoriesEnabled": "Geen repositories met ReArch ingeschakeld gevonden. Schakel eerst ReArch in op uw repositories via de pagina Bronnen.",
+  "noRepositoriesMatch": "Geen repositories komen overeen met uw zoekopdracht.",
+  "startConversation": "Gesprek starten",
+  "pleaseSelectRepository": "Selecteer een repository",
+  "newConversation": "Nieuw gesprek",
+  "errorCreatingConversation": "Fout bij het aanmaken van het gesprek: {{message}}",
+  "openInBitbucket": "Openen in Bitbucket"
+}

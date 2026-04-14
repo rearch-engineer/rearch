@@ -1,0 +1,167 @@
+/* Single scrollable container, hidden scrollbar */
+.welcome-screen {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.welcome-screen::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/*
+ * The heading+input sits at the vertical center of the viewport.
+ * We use padding-top to push it down to ~50vh, minus half the content height.
+ * The transform pulls it back up by half its own height → true center.
+ */
+.welcome-center-anchor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(50vh - 80px) 24px 24px;
+}
+
+.welcome-heading {
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0 0 32px 0;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .welcome-heading {
+    font-size: 2rem;
+  }
+}
+
+.welcome-input-wrapper {
+  width: 100%;
+  max-width: 700px;
+}
+
+/* Prompts section flows right after */
+.welcome-prompts-section {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 24px 40px;
+}
+
+/* Category sections */
+.welcome-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.welcome-category-section {
+  width: 100%;
+}
+
+.welcome-category-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+  line-height: 1.3;
+}
+
+/* 3-column grid */
+.welcome-prompts-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .welcome-prompts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .welcome-prompts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card */
+.welcome-prompt-card {
+  max-width: 325px;
+  height: 158px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  background-color: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.welcome-prompt-card:hover {
+  border-color: var(--text-tertiary);
+  box-shadow: 0 2px 10px var(--shadow-color);
+  transform: translateY(-1px);
+}
+
+/* Preview area */
+.welcome-prompt-card-preview {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+}
+
+.welcome-prompt-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.welcome-prompt-card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-secondary);
+}
+
+/* Footer: icon + title */
+.welcome-prompt-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.welcome-prompt-card-icon {
+  flex-shrink: 0;
+  font-size: 20px !important;
+}
+
+.welcome-prompt-card-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark mode prompt card background */
+[data-joy-color-scheme="dark"] .welcome-prompt-card {
+  background-color: #232323;
+}
+
+/* Loading */
+.welcome-prompts-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
