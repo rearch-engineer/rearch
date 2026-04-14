@@ -96,7 +96,9 @@ const conversationsWorker = new Worker(
     if (job.name === CLEANUP_JOB_NAME) {
       console.log("🧹 Running scheduled container cleanup...");
       const result = await triggerContainerCleanup();
-      console.log(`🧹 Cleanup complete: ${result.stoppedCount} container(s) stopped`);
+      console.log(
+        `🧹 Cleanup complete: ${result.stoppedCount} container(s) stopped`,
+      );
       return { success: true, ...result };
     }
 
@@ -104,7 +106,11 @@ const conversationsWorker = new Worker(
     if (job.name === "restart-conversation") {
       const { conversationId, repositoryId, subResourceId } = job.data;
 
-      await jobLog(job, "conversations", `Restarting conversation ${conversationId}`);
+      await jobLog(
+        job,
+        "conversations",
+        `Restarting conversation ${conversationId}`,
+      );
       console.log(`♻️ Restarting conversation ${conversationId}`);
 
       const conversation = await Conversation.findById(conversationId);
@@ -120,8 +126,14 @@ const conversationsWorker = new Worker(
         try {
           const container = docker.getContainer(containerId);
           await container.start();
-          await jobLog(job, "conversations", `Container ${containerId} restarted`);
-          console.log(`♻️ Container ${containerId} restarted for conversation ${conversationId}`);
+          await jobLog(
+            job,
+            "conversations",
+            `Container ${containerId} restarted`,
+          );
+          console.log(
+            `♻️ Container ${containerId} restarted for conversation ${conversationId}`,
+          );
 
           // Rediscover port mapping from the running container
           // (stored values are nulled when the scheduler stops a container)
@@ -141,13 +153,19 @@ const conversationsWorker = new Worker(
             opencodeUrl = `http://rearch_session_${conversationId}:4096`;
           }
 
-          await jobLog(job, "conversations", `Waiting for OpenCode server at ${opencodeUrl}`);
+          await jobLog(
+            job,
+            "conversations",
+            `Waiting for OpenCode server at ${opencodeUrl}`,
+          );
           await waitForOpencodeReady(opencodeUrl);
           await jobLog(job, "conversations", "OpenCode server is ready");
 
           // Reinject skills
-          await injectSkillsIntoContainer(containerId, subResourceId, (message) =>
-            jobLog(job, "conversations", message),
+          await injectSkillsIntoContainer(
+            containerId,
+            subResourceId,
+            (message) => jobLog(job, "conversations", message),
           );
 
           // Restore environment status with rediscovered URLs
@@ -160,29 +178,56 @@ const conversationsWorker = new Worker(
             hostPort,
           };
           await conversation.save();
-          broadcast("conversation.environment.status", { conversationId, status: "running" });
+          broadcast("conversation.environment.status", {
+            conversationId,
+            status: "running",
+          });
 
-          await jobLog(job, "conversations", "Conversation restarted successfully");
+          await jobLog(
+            job,
+            "conversations",
+            "Conversation restarted successfully",
+          );
           restarted = true;
         } catch (startErr) {
           // Container is gone or cannot be started — clean it up before fallback
-          await jobLog(job, "conversations", `Container restart failed: ${startErr.message}, will create new container`);
-          console.log(`♻️ Container restart failed for ${conversationId}: ${startErr.message}`);
+          await jobLog(
+            job,
+            "conversations",
+            `Container restart failed: ${startErr.message}, will create new container`,
+          );
+          console.log(
+            `♻️ Container restart failed for ${conversationId}: ${startErr.message}`,
+          );
           clearClientCache(conversationId);
 
           // Stop and remove the old container so the fallback can reuse the name
           try {
             const oldContainer = docker.getContainer(containerId);
-            try { await oldContainer.stop(); } catch (_) { /* already stopped */ }
+            try {
+              await oldContainer.stop();
+            } catch (_) {
+              /* already stopped */
+            }
             await oldContainer.remove();
-            await jobLog(job, "conversations", `Old container ${containerId} removed`);
-          } catch (_) { /* container already gone */ }
+            await jobLog(
+              job,
+              "conversations",
+              `Old container ${containerId} removed`,
+            );
+          } catch (_) {
+            /* container already gone */
+          }
         }
       }
 
       if (!restarted) {
         // Fall through to full setup-conversation logic below
-        await jobLog(job, "conversations", "Falling back to full container setup");
+        await jobLog(
+          job,
+          "conversations",
+          "Falling back to full container setup",
+        );
       } else {
         return { success: true, conversationId, restarted: true };
       }
@@ -214,7 +259,10 @@ const conversationsWorker = new Worker(
         statusChangedAt: new Date(),
       };
       await conversation.save();
-      broadcast("conversation.environment.status", { conversationId, status: "starting" });
+      broadcast("conversation.environment.status", {
+        conversationId,
+        status: "starting",
+      });
 
       await jobLog(
         job,
@@ -280,7 +328,8 @@ const conversationsWorker = new Worker(
 
       if (provider === "github") {
         // For GitHub Apps, generate an installation access token
-        const { getInstallationToken } = await import("../utils/github/github.js");
+        const { getInstallationToken } =
+          await import("../utils/github/github.js");
         gitToken = await getInstallationToken(repository.data);
         gitEmail = "github-app@users.noreply.github.com";
       } else {
@@ -379,7 +428,10 @@ const conversationsWorker = new Worker(
         postgresPort: postgresHostPort,
       };
       await conversation.save();
-      broadcast("conversation.environment.status", { conversationId, status: "running" });
+      broadcast("conversation.environment.status", {
+        conversationId,
+        status: "running",
+      });
 
       await jobLog(
         job,
@@ -420,7 +472,10 @@ const conversationsWorker = new Worker(
             errorMessage: error.message,
           };
           await conversation.save();
-          broadcast("conversation.environment.status", { conversationId: job.data.conversationId, status: "error" });
+          broadcast("conversation.environment.status", {
+            conversationId: job.data.conversationId,
+            status: "error",
+          });
         }
       } catch (updateError) {
         console.error("Failed to update conversation status:", updateError);

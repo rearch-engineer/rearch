@@ -176,10 +176,15 @@ const router = new Elysia({ prefix: "/api" })
         };
       }
 
-      if (!["bitbucket-repository", "github-repository"].includes(subResourceDoc.type)) {
+      if (
+        !["bitbucket-repository", "github-repository"].includes(
+          subResourceDoc.type,
+        )
+      ) {
         set.status = 400;
         return {
-          error: "SubResource must be of type bitbucket-repository or github-repository",
+          error:
+            "SubResource must be of type bitbucket-repository or github-repository",
         };
       }
 
@@ -214,7 +219,12 @@ const router = new Elysia({ prefix: "/api" })
     try {
       // Find the subresource by name (case-insensitive), must be an enabled repository
       const subResourceDoc = await SubResource.findOne({
-        name: { $regex: new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        name: {
+          $regex: new RegExp(
+            `^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+            "i",
+          ),
+        },
         type: { $in: ["bitbucket-repository", "github-repository"] },
         "rearch.enabled": true,
       }).populate("resource");
@@ -224,7 +234,10 @@ const router = new Elysia({ prefix: "/api" })
         return { error: "repository-not-found" };
       }
 
-      if (!subResourceDoc.resource || !["bitbucket", "github"].includes(subResourceDoc.resource.provider)) {
+      if (
+        !subResourceDoc.resource ||
+        !["bitbucket", "github"].includes(subResourceDoc.resource.provider)
+      ) {
         set.status = 400;
         return { error: "Resource must be of type bitbucket or github" };
       }
@@ -511,7 +524,7 @@ const router = new Elysia({ prefix: "/api" })
       return { error: parsed.error.flatten() };
     }
 
-    console.log("Validation sucess");
+    console.log("Validation success");
 
     const { content, model, agent, files } = parsed.data;
     const conversationId = params.id;
@@ -1431,13 +1444,18 @@ const router = new Elysia({ prefix: "/api" })
           reviewers,
         });
       } else {
-        pr = await createBitbucketPR(resource.data, ownerOrWorkspace, repoSlug, {
-          title,
-          description: description || "",
-          sourceBranch,
-          destinationBranch,
-          reviewers,
-        });
+        pr = await createBitbucketPR(
+          resource.data,
+          ownerOrWorkspace,
+          repoSlug,
+          {
+            title,
+            description: description || "",
+            sourceBranch,
+            destinationBranch,
+            reviewers,
+          },
+        );
       }
 
       // Persist the PR record on the conversation
@@ -1513,9 +1531,13 @@ const router = new Elysia({ prefix: "/api" })
             { search },
           );
         } else {
-          members = await listWorkspaceMembers(resource.data, ownerOrWorkspace, {
-            search,
-          });
+          members = await listWorkspaceMembers(
+            resource.data,
+            ownerOrWorkspace,
+            {
+              search,
+            },
+          );
         }
 
         return { members };

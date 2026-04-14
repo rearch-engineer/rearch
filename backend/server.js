@@ -26,7 +26,22 @@ const corsOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL, "http://localhost:4200", "http://localhost:3000"]
   : true; // true = allow all origins in Elysia CORS
 
+const requestTimings = new WeakMap();
+
 const app = new Elysia()
+  // ─── Request logging ────────────────────────────────────────────────────
+  .onRequest(({ request }) => {
+    requestTimings.set(request, Date.now());
+  })
+  .onAfterResponse(({ request, set }) => {
+    const start = requestTimings.get(request) || Date.now();
+    const duration = Date.now() - start;
+    const status = set.status || 200;
+    const url = new URL(request.url);
+    console.log(`[API] ${request.method} ${url.pathname} ${status} ${duration}ms`);
+    requestTimings.delete(request);
+  })
+
   // ─── Security headers (replaces helmet) ───────────────────────────────
   .onRequest(({ set }) => {
     set.headers["X-Content-Type-Options"] = "nosniff";

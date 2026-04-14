@@ -1,6 +1,6 @@
-import { Elysia } from 'elysia';
-import { z } from 'zod';
-import { resourcesQueue, conversationsQueue } from '../../queue';
+import { Elysia } from "elysia";
+import { z } from "zod";
+import { resourcesQueue, conversationsQueue } from "../../queue";
 
 /**
  * Map of queue names to queue instances
@@ -38,15 +38,17 @@ const listJobsSchema = z.object({
 });
 
 const getJobParamsSchema = z.object({
-  queue: z.enum(['resources', 'conversations'], {
-    errorMap: () => ({ message: "Unknown queue. Must be 'resources' or 'conversations'." }),
+  queue: z.enum(["resources", "conversations"], {
+    errorMap: () => ({
+      message: "Unknown queue. Must be 'resources' or 'conversations'.",
+    }),
   }),
   id: z.string().min(1, "Job ID is required."),
 });
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 
-const router = new Elysia({ prefix: '/jobs' });
+const router = new Elysia({ prefix: "/jobs" });
 
 /**
  * GET /api/admin/jobs
@@ -54,16 +56,16 @@ const router = new Elysia({ prefix: '/jobs' });
  * Returns aggregated job counts and a combined list of jobs across all queues
  * and statuses (active, waiting, completed, failed).
  */
-router.get('/', async ({ query, status }) => {
+router.get("/", async ({ query, status }) => {
   const parsed = listJobsSchema.safeParse(query);
   if (!parsed.success) {
     return status(400, { error: parsed.error.flatten() });
   }
 
   try {
-    const allowedStatuses = ['active', 'waiting', 'completed', 'failed'];
+    const allowedStatuses = ["active", "waiting", "completed", "failed"];
     const statusFilter = parsed.data.status
-      ? parsed.data.status.split(',').filter((s) => allowedStatuses.includes(s))
+      ? parsed.data.status.split(",").filter((s) => allowedStatuses.includes(s))
       : allowedStatuses;
     const limit = parsed.data.limit;
 
@@ -72,6 +74,7 @@ router.get('/', async ({ query, status }) => {
 
     for (const [queueName, queue] of Object.entries(queues)) {
       // Get counts
+      console.log(queueName);
       const queueCounts = await queue.getJobCounts(...allowedStatuses);
       for (const s of allowedStatuses) {
         counts[s] += queueCounts[s] || 0;
@@ -91,8 +94,8 @@ router.get('/', async ({ query, status }) => {
 
     return { counts, jobs: allJobs };
   } catch (err) {
-    console.error('Error fetching jobs:', err);
-    return status(500, { error: 'Failed to fetch jobs' });
+    console.error("Error fetching jobs:", err);
+    return status(500, { error: "Failed to fetch jobs" });
   }
 });
 
@@ -101,7 +104,7 @@ router.get('/', async ({ query, status }) => {
  *
  * Returns details for a single job including its logs.
  */
-router.get('/:queue/:id', async ({ params, status }) => {
+router.get("/:queue/:id", async ({ params, status }) => {
   const parsed = getJobParamsSchema.safeParse(params);
   if (!parsed.success) {
     return status(400, { error: parsed.error.flatten() });
@@ -113,7 +116,7 @@ router.get('/:queue/:id', async ({ params, status }) => {
 
     const job = await queue.getJob(id);
     if (!job) {
-      return status(404, { error: 'Job not found' });
+      return status(404, { error: "Job not found" });
     }
 
     // Determine the current state of the job
@@ -129,8 +132,8 @@ router.get('/:queue/:id', async ({ params, status }) => {
       logCount: count,
     };
   } catch (err) {
-    console.error('Error fetching job details:', err);
-    return status(500, { error: 'Failed to fetch job details' });
+    console.error("Error fetching job details:", err);
+    return status(500, { error: "Failed to fetch job details" });
   }
 });
 
