@@ -42,44 +42,33 @@ ReArch provides a familiar user interface where users can have AI-assisted conve
 
 ## Local Development
 
-```bash
-# This launches everything. Using docker. 
-# Press `Ctrl+C` to stop everything.
+`./development.sh` manages the full development environment — Docker infrastructure, backend, frontend, and MCP proxy — from a single entry point.
 
-./development.sh # there's also a version for windows.
-```
-
-Alternatively you can:
-
-### 1. Start infrastructure
+### Start all services
 
 ```bash
-docker compose -f docker-compose-dev.yml up -d
+./development.sh start
 ```
 
-This starts MongoDB (port 27017) and Redis (port 6379).
+This will:
 
-### 2. Configure the backend
+- Start Docker infrastructure (Redis on `:6379`, MongoDB on `:27017`)
+- Copy `backend/.env.example` to `backend/.env` if it doesn't exist
+- Install dependencies for local services if needed
+- Start MCP Proxy (`:3100`), Backend (`:5000`), and Frontend (`:4200`)
+
+### Manage services
 
 ```bash
-cd backend
-cp .env.example .env
-# Edit .env and fill in your values
-bun install
-bun dev
+./development.sh stop                # Stop everything
+./development.sh restart             # Restart all services
+./development.sh restart backend     # Restart a specific service
+./development.sh logs                # Tail all logs
+./development.sh logs backend        # Tail logs for a specific service
+./development.sh ps                  # Show status of all services
 ```
 
-The backend starts on `http://localhost:5000`.
-
-### 3. Configure the frontend
-
-```bash
-cd frontend
-bun install
-bun dev
-```
-
-The frontend starts on `http://localhost:4200`.
+The frontend is available at `http://localhost:4200` and the backend at `http://localhost:5000`.
 
 ## Backend Environment Variables
 
@@ -94,7 +83,6 @@ Copy `backend/.env.example` to `backend/.env` and configure:
 | `AUTH_MODE` | No | `LOCAL`, `OAUTH`, or `KEYCLOAK_FIREWALL` (default: `LOCAL`) |
 | `ADMIN_EMAIL` | Yes | Bootstrap admin email (first run only) |
 | `ADMIN_PASSWORD` | Yes (LOCAL) | Bootstrap admin password |
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
 | `CONVERSATION_CONTAINER_IMAGE` | Yes | Docker image for OpenCode sessions |
 | `FRONTEND_URL` | No | Frontend URL for CORS |
 
@@ -155,6 +143,7 @@ rearch/
 │   │   ├── api/           # API client
 │   │   └── contexts/      # React contexts
 │   └── nginx.conf         # nginx config for production
+├── devtools/              # Dev environment CLI (start/stop/logs/status)
 ├── mcp-proxy/             # 
 ├── keycloak/              # Keycloak realm export
 ├── traefik/               # Traefik static and dynamic config

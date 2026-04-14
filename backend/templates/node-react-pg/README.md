@@ -33,7 +33,7 @@ The `projects/` repository serves as a reference implementation throughout this 
 The `.rearch/` directory contains everything Docker needs to build a self-contained development environment for your project. When the ReArch platform (`backend/queue.js`) starts a conversation container, it:
 
 1. Pulls the Docker image built from your `.rearch/Dockerfile`
-2. Passes environment variables (`ANTHROPIC_API_KEY`, `GIT_TOKEN`, etc.)
+2. Passes environment variables (`GIT_TOKEN`, etc.)
 3. Runs the container, which executes `.rearch/entrypoint.sh`
 4. The entrypoint initializes services (database, git config, .env files, etc.)
 5. Supervisor starts and manages all long-running processes
@@ -145,7 +145,6 @@ docker run -d \
   -p 8081:8081 \
   -p 8080:8080 \
   -p 4096:4096 \
-  -e ANTHROPIC_API_KEY="your-key" \
   --name your-project-dev \
   your-project
 
@@ -191,8 +190,6 @@ priority=25  -> Frontend (needs backend for API proxy)
 ```
 
 Services with the same priority start in parallel.
-
-Note the `%(ENV_ANTHROPIC_API_KEY)` syntax in the OpenCode program block — this is supervisor's way of referencing the container's environment variables.
 
 ### Entrypoint: runtime initialization
 
@@ -375,7 +372,6 @@ docker run -d \
   -p 9200:4200 \
   -p 9080:8080 \
   -p 9096:4096 \
-  -e ANTHROPIC_API_KEY="your-key" \
   --name your-project-dev \
   your-project
 ```

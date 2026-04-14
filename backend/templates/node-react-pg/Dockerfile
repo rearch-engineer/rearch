@@ -11,7 +11,6 @@
 # - OpenCode (AI coding assistant) on port 4096
 #
 # ENVIRONMENT VARIABLES (passed at runtime):
-# - ANTHROPIC_API_KEY (required): API key for OpenCode
 # - REPOSITORY_URL (optional): Git repository URL (metadata for coding agent)
 # - REPOSITORY_BRANCH (optional, default: main): Branch name
 # - GIT_USER_EMAIL (optional, default: rearch.bot.external@lab34.es): Git user.email
