@@ -119,6 +119,7 @@ services:
       - FRONTEND_URL=https://app.rearch.engineer
       - MCP_PROXY_URL=http://mcp-proxy:3100
       - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-}
       - NODE_ENV=production
       - LOG_LEVEL=${LOG_LEVEL:-info}
     logging:
@@ -290,6 +291,9 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/rearch
       - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
       - MCP_PROXY_PORT=3100
+      - BACKEND_API_URL=http://backend:5000
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-}
+      - FRONTEND_URL=https://app.rearch.engineer
       - NODE_ENV=production
       - LOG_LEVEL=${LOG_LEVEL:-info}
     logging:

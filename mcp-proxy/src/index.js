@@ -18,6 +18,8 @@ import { handleMcpRequest } from "./proxy.js";
 const PORT = parseInt(process.env.MCP_PROXY_PORT || "3100", 10);
 const MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://localhost:27017/rearch";
+const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:5000";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 // ---------------------------------------------------------------------------
 // State
@@ -135,6 +137,8 @@ async function start() {
     });
 
     console.log(`[proxy] MCP proxy listening on http://0.0.0.0:${PORT}`);
+    console.log(`[proxy] Backend API: ${BACKEND_API_URL}`);
+    console.log(`[proxy] Frontend URL: ${FRONTEND_URL}`);
     console.log(`[proxy] Endpoints:`);
     console.log(`         POST /mcp      – MCP Streamable HTTP`);
     console.log(`         GET  /health   – Health check`);

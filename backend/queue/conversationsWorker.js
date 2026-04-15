@@ -4,7 +4,7 @@ import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
 import config from "../config.js";
-import { clearClientCache } from "../utils/opencodeContainer.js";
+import { clearClientCache, sendPrompt } from "../utils/opencodeContainer.js";
 
 import { redisConfig, docker } from "./config.js";
 import { broadcast } from "../ws.js";
@@ -438,6 +438,31 @@ const conversationsWorker = new Worker(
         "conversations",
         "Conversation environment setup complete",
       );
+
+      // Send initial prompt if set (created via MCP tool)
+      if (conversation.initialPrompt) {
+        try {
+          await jobLog(
+            job,
+            "conversations",
+            "Sending initial prompt to conversation agent",
+          );
+          await sendPrompt(conversationId, conversation.initialPrompt);
+          // Clear the field after sending so it isn't re-sent on restart
+          conversation.initialPrompt = null;
+          await conversation.save();
+        } catch (promptErr) {
+          console.error(
+            `Failed to send initial prompt for ${conversationId}:`,
+            promptErr.message,
+          );
+          await jobLog(
+            job,
+            "conversations",
+            `Warning: Failed to send initial prompt: ${promptErr.message}`,
+          );
+        }
+      }
 
       return {
         success: true,

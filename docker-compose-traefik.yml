@@ -119,6 +119,7 @@ services:
       - FRONTEND_URL=https://app.${DOMAIN}
       - MCP_PROXY_URL=http://mcp-proxy:3100
       - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - backend-data:/app/data
@@ -276,6 +277,9 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/rearch
       - MCP_PROXY_SECRET=${MCP_PROXY_SECRET:-}
       - MCP_PROXY_PORT=3100
+      - BACKEND_API_URL=http://backend:5000
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-}
+      - FRONTEND_URL=https://app.${DOMAIN}
     networks:
       - rearch
     depends_on:

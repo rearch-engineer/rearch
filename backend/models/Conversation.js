@@ -100,6 +100,11 @@ const conversationSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     at: { type: Date }
   }],
+  // Initial prompt to send automatically after container setup (set via MCP tool)
+  initialPrompt: {
+    type: String,
+    default: null
+  },
   // Pull requests created from this conversation
   pullRequests: [{
     url: { type: String, required: true },

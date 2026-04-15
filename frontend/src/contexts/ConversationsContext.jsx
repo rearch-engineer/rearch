@@ -94,16 +94,28 @@ export function ConversationsProvider({ children }) {
       }
     };
 
+    const handleConversationCreatedWs = (data) => {
+      if (data?.conversation) {
+        setConversations((prev) => {
+          // Avoid duplicates (in case the current user created it via UI)
+          if (prev.some((c) => c._id === data.conversation._id)) return prev;
+          return [data.conversation, ...prev];
+        });
+      }
+    };
+
     socket.on('conversation.busy', handleBusy);
     socket.on('conversation.idle', handleIdle);
     socket.on('conversation.titleUpdated', handleTitleUpdated);
     socket.on('conversation.environment.status', handleEnvironmentStatus);
+    socket.on('conversation.created', handleConversationCreatedWs);
 
     return () => {
       socket.off('conversation.busy', handleBusy);
       socket.off('conversation.idle', handleIdle);
       socket.off('conversation.titleUpdated', handleTitleUpdated);
       socket.off('conversation.environment.status', handleEnvironmentStatus);
+      socket.off('conversation.created', handleConversationCreatedWs);
     };
   }, []);
 

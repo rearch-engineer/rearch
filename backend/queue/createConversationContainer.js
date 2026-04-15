@@ -181,11 +181,12 @@ export async function createConversationContainer({
           "rearch-tools": {
             type: "remote",
             url: `${process.env.MCP_PROXY_FROM_DEV_CONTAINERS || "http://host.docker.internal:3100"}/mcp`,
-            ...(process.env.MCP_PROXY_SECRET
-              ? {
-                  headers: { "X-MCP-Secret": process.env.MCP_PROXY_SECRET },
-                }
-              : {}),
+            headers: {
+              ...(process.env.MCP_PROXY_SECRET
+                ? { "X-MCP-Secret": process.env.MCP_PROXY_SECRET }
+                : {}),
+              "X-MCP-Conversation-Id": conversationId,
+            },
           },
         },
       })}`,

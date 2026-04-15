@@ -10,6 +10,7 @@ import Queue from "./queue";
 import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
 import { publicRouter as suggestedPromptsPublicRoutes } from "./routes/suggestedPrompts.js";
 import adminRoutes from "./routes/admin/index.js";
+import internalRoutes from "./routes/internal.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
 import User from "./models/User.js";
@@ -38,7 +39,9 @@ const app = new Elysia()
     const duration = Date.now() - start;
     const status = set.status || 200;
     const url = new URL(request.url);
-    console.log(`[API] ${request.method} ${url.pathname} ${status} ${duration}ms`);
+    console.log(
+      `[API] ${request.method} ${url.pathname} ${status} ${duration}ms`,
+    );
     requestTimings.delete(request);
   })
 
@@ -134,6 +137,9 @@ const app = new Elysia()
   .use(authRoutes)
   .use(publicFileRoutes)
   .use(publicSettingsRoutes)
+
+  // ─── Internal Routes (service-to-service, own auth via X-Internal-Secret) ─
+  .use(internalRoutes)
 
   // ─── Health check ─────────────────────────────────────────────────────
   .get("/health", () => ({ status: "ok", message: "Server is running" }))

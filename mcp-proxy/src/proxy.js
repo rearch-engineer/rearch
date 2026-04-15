@@ -3,7 +3,12 @@
  *
  * Accepts a raw Request, parses the JSON-RPC body, dispatches to the
  * appropriate handler, and returns a spec-compliant JSON-RPC 2.0 Response.
+ *
+ * Built-in ReArch tools (rearch_search_repositories, rearch_create_conversation)
+ * are served directly; all other tools are routed to upstream MCP servers.
  */
+
+import { getBuiltinTools, isBuiltinTool, callBuiltinTool } from './builtin-tools.js';
 
 const SERVER_INFO = {
   name: 'rearch-mcp-proxy',
@@ -54,7 +59,7 @@ export async function handleMcpRequest(request, upstreamManager) {
   // Support batched requests
   if (Array.isArray(body)) {
     const responses = await Promise.all(
-      body.map((req) => dispatch(req, upstreamManager)),
+      body.map((req) => dispatch(req, upstreamManager, request)),
     );
     // Filter out null responses (notifications)
     const filtered = responses.filter(Boolean);
@@ -67,7 +72,7 @@ export async function handleMcpRequest(request, upstreamManager) {
     });
   }
 
-  const response = await dispatch(body, upstreamManager);
+  const response = await dispatch(body, upstreamManager, request);
   return response || new Response(null, { status: 202 });
 }
 
@@ -75,7 +80,7 @@ export async function handleMcpRequest(request, upstreamManager) {
 // Dispatcher
 // ---------------------------------------------------------------------------
 
-async function dispatch(req, upstreamManager) {
+async function dispatch(req, upstreamManager, httpRequest) {
   if (!req || typeof req !== 'object' || req.jsonrpc !== '2.0') {
     return jsonrpcError(req?.id ?? null, -32600, 'Invalid JSON-RPC 2.0 request');
   }
@@ -99,8 +104,9 @@ async function dispatch(req, upstreamManager) {
 
       // -- Tools ------------------------------------------------------------
       case 'tools/list': {
-        const tools = await upstreamManager.getTools();
-        return jsonrpcResult(id, { tools });
+        const upstreamTools = await upstreamManager.getTools();
+        const builtinTools = getBuiltinTools();
+        return jsonrpcResult(id, { tools: [...builtinTools, ...upstreamTools] });
       }
 
       case 'tools/call': {
@@ -110,6 +116,12 @@ async function dispatch(req, upstreamManager) {
         }
 
         try {
+          // Route to built-in handler or upstream
+          if (isBuiltinTool(name)) {
+            const result = await callBuiltinTool(name, args || {}, httpRequest);
+            return jsonrpcResult(id, result);
+          }
+
           const result = await upstreamManager.callTool(name, args || {});
           return jsonrpcResult(id, result);
         } catch (err) {
