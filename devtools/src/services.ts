@@ -1,7 +1,7 @@
 // services.ts — Service process management for the ReArch CLI
 
 import { spawn, type Subprocess } from "bun";
-import { existsSync, copyFileSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, appendFileSync } from "node:fs";
+import { existsSync, copyFileSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, openSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { isPortResponding } from "./ports.js";
 
@@ -121,22 +121,7 @@ export function logFilePath(rootDir: string, key: string): string {
   return join(getPaths(rootDir).logsDir, `${key}.log`);
 }
 
-function pipeToLogFile(stream: ReadableStream<Uint8Array> | null, filePath: string): void {
-  if (!stream) return;
-  const reader = stream.getReader();
-  const read = async () => {
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        appendFileSync(filePath, value);
-      }
-    } catch {
-      // stream closed
-    }
-  };
-  read();
-}
+
 
 // ── Dependency installation ──────────────────────────────────
 
@@ -212,21 +197,20 @@ export async function startServices(rootDir: string): Promise<void> {
     const cwd = resolve(rootDir, svc.cwd!);
     const logFile = logFilePath(rootDir, svc.key);
 
-    // Truncate log file
-    writeFileSync(logFile, "");
+    // Open log file as a file descriptor so the OS handles redirection
+    // directly — this survives the parent CLI process exiting.
+    const logFd = openSync(logFile, "w");
 
     const proc = spawn({
       cmd: [svc.cmd!, "run", "dev"],
-      stdout: "pipe",
-      stderr: "pipe",
+      stdout: logFd,
+      stderr: logFd,
       cwd,
       detached: true,
       env: { ...process.env, FORCE_COLOR: "0" },
     });
 
     pids[svc.key] = proc.pid; // PID == PGID for the group leader
-    pipeToLogFile(proc.stdout, logFile);
-    pipeToLogFile(proc.stderr, logFile);
 
     console.log(`  Started ${svc.name} (PGID ${proc.pid})`);
   }
@@ -369,12 +353,12 @@ export async function restartService(rootDir: string, serviceKey?: string): Prom
   ensureLogsDir(rootDir);
   const cwd = resolve(rootDir, svc.cwd!);
   const logFile = logFilePath(rootDir, svc.key);
-  writeFileSync(logFile, "");
+  const logFd = openSync(logFile, "w");
 
   const proc = spawn({
     cmd: [svc.cmd!, "run", "dev"],
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: logFd,
+    stderr: logFd,
     cwd,
     detached: true,
     env: { ...process.env, FORCE_COLOR: "0" },
@@ -382,8 +366,6 @@ export async function restartService(rootDir: string, serviceKey?: string): Prom
 
   pids[svc.key] = proc.pid;
   writePids(rootDir, pids);
-  pipeToLogFile(proc.stdout, logFile);
-  pipeToLogFile(proc.stderr, logFile);
 
   console.log(`  Started ${svc.name} (PID ${proc.pid})`);
 
