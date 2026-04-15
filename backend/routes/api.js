@@ -562,13 +562,15 @@ const router = new Elysia({ prefix: "/api" })
 
     console.log("Ensured user is part of conversation");
 
+    // AbortController lets us tear down the SSE subscription to the OpenCode
+    // container when the client disconnects or the stream ends.
+    const streamAbortController = new AbortController();
+
     // Stream events from OpenCode agent via SSE
     let streamClosed = false;
     const stream = new ReadableStream({
       async start(controller) {
         const safeEnqueue = (chunk) => {
-          console.log("safe enqueue chunk");
-
           if (!streamClosed) controller.enqueue(chunk);
         };
         const safeClose = () => {
@@ -584,12 +586,10 @@ const router = new Elysia({ prefix: "/api" })
             agent,
             files,
             userId: user.userId,
+            signal: streamAbortController.signal,
           });
 
-          console.log("Streaming started");
-
           for await (const event of eventStream) {
-            console.log(event);
             safeEnqueue(`data: ${JSON.stringify(event)}\n\n`);
           }
 
@@ -608,6 +608,9 @@ const router = new Elysia({ prefix: "/api" })
       },
       cancel() {
         streamClosed = true;
+        // Client disconnected — abort the SSE subscription so the generator
+        // and all underlying fetch connections are cleaned up immediately.
+        streamAbortController.abort();
       },
     });
 

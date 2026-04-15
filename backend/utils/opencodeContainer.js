@@ -267,10 +267,25 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
   };
 
   // Broadcast busy status via WebSocket so all clients (including other tabs) know
+
   broadcast("conversation.busy", { conversationId });
 
+  // Create an AbortController so we can forcefully close the SSE subscription
+  // when the stream ends or the caller disconnects.  Without this, the
+  // underlying `reader.read()` inside the SDK's async generator never settles
+  // after the last event, which prevents `.return()` from completing and hangs
+  // the entire response — and consequently the server.
+  const sseAbortController = new AbortController();
+
+  // Allow the caller to abort us (e.g. when the HTTP client disconnects).
+  if (options.signal) {
+    options.signal.addEventListener("abort", () => sseAbortController.abort(), { once: true });
+  }
+
   // Subscribe to events before sending prompt
-  const events = await client.event.subscribe();
+  const events = await client.event.subscribe(undefined, {
+    signal: sseAbortController.signal,
+  });
 
   // Track assistant message for response.complete event
   let currentAssistantMessageId = null;
@@ -437,10 +452,20 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
       }
     }
   } catch (error) {
-    yield {
-      type: "error",
-      error: error.message,
-    };
+    // Ignore AbortError — it's expected when we abort the SSE subscription.
+    const isAbort = error?.name === "AbortError" || sseAbortController.signal.aborted;
+    if (!isAbort) {
+      yield {
+        type: "error",
+        error: error.message,
+      };
+    }
+  } finally {
+    // Forcefully close the SSE connection so the SDK's internal reader.read()
+    // settles immediately instead of hanging until the container drops us.
+    if (!sseAbortController.signal.aborted) {
+      sseAbortController.abort();
+    }
   }
 
   // Wait for prompt to complete (cleanup)
