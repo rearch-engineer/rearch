@@ -47,7 +47,11 @@ const timeAgo = (date) => {
   return `${Math.floor(diff / (30 * 86400))}mo`;
 };
 
-const ConversationStatusIndicator = ({ conv, busyConversationIds, unreadConversationIds }) => {
+const ConversationStatusIndicator = ({
+  conv,
+  busyConversationIds,
+  unreadConversationIds,
+}) => {
   const envStatus = conv.environment?.status;
 
   if (envStatus === "starting") {
@@ -75,9 +79,7 @@ const ConversationStatusIndicator = ({ conv, busyConversationIds, unreadConversa
   if (envStatus === "running") {
     const isUnread = unreadConversationIds.has(conv._id);
     return (
-      <span
-        className={`conv-status-dot running${isUnread ? " blink" : ""}`}
-      />
+      <span className={`conv-status-dot running${isUnread ? " blink" : ""}`} />
     );
   }
 
@@ -86,7 +88,7 @@ const ConversationStatusIndicator = ({ conv, busyConversationIds, unreadConversa
 };
 
 const MainMenu = () => {
-  const { t } = useTranslation('MainMenu');
+  const { t } = useTranslation("MainMenu");
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
@@ -183,7 +185,7 @@ const MainMenu = () => {
             <div
               className="main-menu-icon-btn collapsed-topbar-expand"
               onClick={() => setCollapsed(false)}
-              title={t('expandSidebar')}
+              title={t("expandSidebar")}
             >
               <ChevronRightIcon sx={{ fontSize: 20 }} />
             </div>
@@ -201,7 +203,7 @@ const MainMenu = () => {
               <div
                 className="main-menu-icon-btn"
                 onClick={() => setCollapsed(true)}
-                title={t('collapseSidebar')}
+                title={t("collapseSidebar")}
               >
                 <ChevronLeftIcon sx={{ fontSize: 20 }} />
               </div>
@@ -215,20 +217,20 @@ const MainMenu = () => {
         <div
           className={`main-menu-nav-item${location.pathname === "/" || location.pathname === "/conversations/new" ? " active" : ""}`}
           onClick={() => navigate("/")}
-          title={t('home')}
+          title={t("home")}
         >
           <HomeOutlinedIcon
             sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
           />
-          {!collapsed && <span>{t('home')}</span>}
+          {!collapsed && <span>{t("home")}</span>}
         </div>
         <div
           className="main-menu-nav-item"
           onClick={openCommandPalette}
-          title={t('searchShortcut')}
+          title={t("searchShortcut")}
         >
           <SearchIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          {!collapsed && <span>{t('search')}</span>}
+          {!collapsed && <span>{t("search")}</span>}
         </div>
       </div>
 
@@ -243,7 +245,7 @@ const MainMenu = () => {
           >
             <div
               className={`main-menu-nav-item${location.pathname.startsWith("/conversations") ? " active" : ""}`}
-              title={t('conversations')}
+              title={t("conversations")}
             >
               <ChatBubbleOutlineIcon
                 sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
@@ -256,11 +258,11 @@ const MainMenu = () => {
                 onMouseLeave={closeConvPopover}
               >
                 <div className="collapsed-conv-popover-header">
-                  <span>{t('conversations')}</span>
+                  <span>{t("conversations")}</span>
                   <div
                     className="main-menu-section-action"
                     onClick={onNewConversation}
-                    title={t('newConversation')}
+                    title={t("newConversation")}
                   >
                     <AddIcon sx={{ fontSize: 16 }} />
                   </div>
@@ -268,27 +270,25 @@ const MainMenu = () => {
                 <div className="collapsed-conv-popover-list">
                   {conversations.length === 0 ? (
                     <div className="collapsed-conv-popover-empty">
-                      {t('noConversationsYet')}
+                      {t("noConversationsYet")}
                     </div>
                   ) : (
                     conversations.map((conv) => (
                       <div
-                          key={conv._id}
-                          className={`collapsed-conv-popover-item${location.pathname === `/conversations/${conv._id}` ? " active" : ""}`}
-                          onClick={() => {
-                            onSelectConversation(conv._id);
-                            setConvPopoverOpen(false);
-                          }}
-                        >
+                        key={conv._id}
+                        className={`collapsed-conv-popover-item${location.pathname === `/conversations/${conv._id}` ? " active" : ""}`}
+                        onClick={() => {
+                          onSelectConversation(conv._id);
+                          setConvPopoverOpen(false);
+                        }}
+                      >
                         <div className="collapsed-conv-popover-item-row">
                           <ConversationStatusIndicator
                             conv={conv}
                             busyConversationIds={busyConversationIds}
                             unreadConversationIds={unreadConversationIds}
                           />
-                          <div className="conversation-title">
-                            {conv.title}
-                          </div>
+                          <div className="conversation-title">{conv.title}</div>
                         </div>
                         <div className="conversation-meta">
                           {conv.updatedAt && (
@@ -318,19 +318,19 @@ const MainMenu = () => {
       ) : (
         <div className="conversations">
           <div className="main-menu-section-title">
-            <span>{t('conversations')}</span>
+            <span>{t("conversations")}</span>
             <div
               className="main-menu-section-action"
               onClick={onNewConversation}
-              title={t('newConversation')}
+              title={t("newConversation")}
             >
               <AddIcon sx={{ fontSize: 16 }} />
             </div>
           </div>
           {conversations.length === 0 ? (
             <div className="empty-state">
-              <p>{t('noConversationsYet')}</p>
-              <p className="empty-hint">{t('clickToStart')}</p>
+              <p>{t("noConversationsYet")}</p>
+              <p className="empty-hint">{t("clickToStart")}</p>
             </div>
           ) : (
             conversations.map((conv) => (
@@ -357,9 +357,7 @@ const MainMenu = () => {
                       autoFocus
                     />
                   ) : (
-                    <div className="conversation-title">
-                      {conv.title}
-                    </div>
+                    <div className="conversation-title">{conv.title}</div>
                   )}
                   <div className="conversation-meta">
                     {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
@@ -398,31 +396,31 @@ const MainMenu = () => {
                     >
                       <MoreHorizIcon sx={{ fontSize: 18 }} />
                     </MenuButton>
-                  <Menu size="sm" placement="bottom-end">
-                    <MenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onStartRename(conv._id, conv.title);
-                      }}
-                    >
-                      <ListItemDecorator>
-                        <EditOutlinedIcon fontSize="small" />
-                      </ListItemDecorator>
-                      {t('rename')}
-                    </MenuItem>
-                    <MenuItem
-                      color="danger"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRequestDelete(conv._id);
-                      }}
-                    >
-                      <ListItemDecorator>
-                        <DeleteOutlineIcon fontSize="small" />
-                      </ListItemDecorator>
-                      {t('delete')}
-                    </MenuItem>
-                  </Menu>
+                    <Menu size="sm" placement="bottom-end">
+                      <MenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartRename(conv._id, conv.title);
+                        }}
+                      >
+                        <ListItemDecorator>
+                          <EditOutlinedIcon fontSize="small" />
+                        </ListItemDecorator>
+                        {t("rename")}
+                      </MenuItem>
+                      <MenuItem
+                        color="danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestDelete(conv._id);
+                        }}
+                      >
+                        <ListItemDecorator>
+                          <DeleteOutlineIcon fontSize="small" />
+                        </ListItemDecorator>
+                        {t("delete")}
+                      </MenuItem>
+                    </Menu>
                   </Dropdown>
                 </div>
               </div>
@@ -436,28 +434,34 @@ const MainMenu = () => {
         <div
           className="main-menu-nav-item"
           onClick={() => window.open("https://docs.rearch.engineer", "_blank")}
-          title={t('help')}
+          title={t("help")}
         >
-          <HelpOutlineIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          {!collapsed && <span>{t('help')}</span>}
+          <HelpOutlineIcon
+            sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+          />
+          {!collapsed && <span>{t("help")}</span>}
         </div>
         {isAdmin() && (
           <div
             className="main-menu-nav-item"
             onClick={() => navigate("/administration")}
-            title={t('administration')}
+            title={t("administration")}
           >
-            <AdminPanelSettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-            {!collapsed && <span>{t('administration')}</span>}
+            <AdminPanelSettingsOutlined
+              sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+            />
+            {!collapsed && <span>{t("administration")}</span>}
           </div>
         )}
         <div
-            className="main-menu-nav-item"
+          className="main-menu-nav-item"
           onClick={() => navigate("/account")}
-          title={t('account')}
+          title={t("account")}
         >
-          <SettingsOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          {!collapsed && <span>{t('account')}</span>}
+          <SettingsOutlined
+            sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
+          />
+          {!collapsed && <span>{t("account")}</span>}
         </div>
       </div>
 
@@ -473,17 +477,14 @@ const MainMenu = () => {
         >
           <ModalClose />
           <DialogTitle sx={{ color: "var(--text-primary)", fontWeight: 600 }}>
-            {t('deleteConversation')}
+            {t("deleteConversation")}
           </DialogTitle>
           <DialogContent sx={{ color: "var(--text-secondary)" }}>
-            {t('deleteConfirmation')}{" "}
+            {t("deleteConfirmation")}{" "}
             <strong style={{ color: "var(--text-primary)" }}>
               {conversations.find((c) => c._id === deleteConfirm)?.title}
             </strong>
-            ?{" "}
-            <span style={{ color: "#e57373" }}>
-              {t('deleteWarning')}
-            </span>
+            ? <span style={{ color: "#e57373" }}>{t("deleteWarning")}</span>
           </DialogContent>
           <DialogActions>
             <Button
@@ -492,14 +493,14 @@ const MainMenu = () => {
               onClick={onConfirmDelete}
               sx={{ fontWeight: 600 }}
             >
-              {t('delete')}
+              {t("delete")}
             </Button>
             <Button
               variant="outlined"
               color="neutral"
               onClick={() => setDeleteConfirm(null)}
             >
-              {t('cancel')}
+              {t("cancel")}
             </Button>
           </DialogActions>
         </ModalDialog>

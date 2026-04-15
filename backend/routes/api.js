@@ -282,7 +282,7 @@ const router = new Elysia({ prefix: "/api" })
         createdBy: user.userId,
         title: { $regex: q.trim(), $options: "i" },
       })
-        .sort({ updatedAt: -1 })
+        .sort({ createdAt: -1 })
         .populate("subResource", "name");
       return conversations;
     } catch (err) {
@@ -297,7 +297,7 @@ const router = new Elysia({ prefix: "/api" })
       const conversations = await Conversation.find({
         createdBy: user.userId,
       })
-        .sort({ updatedAt: -1 })
+        .sort({ createdAt: -1 })
         .populate("subResource", "name");
 
       // Fetch session statuses for running conversations (busy/idle)
