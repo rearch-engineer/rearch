@@ -6,16 +6,16 @@
 //
 // =============================================================================
 
-import { tool } from '@opencode-ai/plugin';
-import { closeBrowser } from './browser';
+import { tool } from "@opencode-ai/plugin";
+import { closeBrowser } from "./browser";
 
 export default tool({
   description:
-    'Close the persistent browser instance. ' +
-    'Frees memory and CPU. A new browser will be launched automatically on the next browser_* call.',
+    "Close the persistent browser instance. " +
+    "Frees memory and CPU. A new browser will be launched automatically on the next browser_* call.",
   args: {},
-  async run() {
+  async execute() {
     await closeBrowser();
-    return { closed: true };
+    return "Browser closed successfully.";
   },
 });

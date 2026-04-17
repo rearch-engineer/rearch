@@ -6,58 +6,53 @@
 //
 // =============================================================================
 
-import { tool } from '@opencode-ai/plugin';
-import { getPage } from './browser';
+import { tool } from "@opencode-ai/plugin";
+import { getPage } from "./browser";
 
 export default tool({
   description:
-    'Type text into an input field identified by CSS selector, or press keyboard keys. ' +
+    "Type text into an input field identified by CSS selector, or press keyboard keys. " +
     'Use "text" to type into a field, or "key" to press a key (e.g. Enter, Escape, Tab).',
   args: {
-    selector: {
-      type: 'string',
-      description: 'CSS selector of the input field to type into.',
-      required: false,
-    },
-    text: {
-      type: 'string',
-      description: 'Text to type into the field.',
-      required: false,
-    },
-    key: {
-      type: 'string',
-      description: 'Keyboard key to press (e.g. "Enter", "Escape", "Tab", "ArrowDown").',
-      required: false,
-    },
-    clear: {
-      type: 'boolean',
-      description: 'Clear the field before typing. Default: false',
-      required: false,
-    },
+    selector: tool.schema
+      .string()
+      .optional()
+      .describe("CSS selector of the input field to type into."),
+    text: tool.schema
+      .string()
+      .optional()
+      .describe("Text to type into the field."),
+    key: tool.schema
+      .string()
+      .optional()
+      .describe(
+        'Keyboard key to press (e.g. "Enter", "Escape", "Tab", "ArrowDown").',
+      ),
+    clear: tool.schema
+      .boolean()
+      .optional()
+      .describe("Clear the field before typing. Default: false"),
   },
-  async run({ selector, text, key, clear }) {
+  async execute({ selector, text, key, clear }) {
     const page = await getPage();
 
     if (key) {
       await page.keyboard.press(key);
-      return { pressed: key };
+      return `Pressed key: ${key}`;
     }
 
     if (!selector) {
-      return { error: 'Provide a selector when typing text into a field.' };
+      return "Error: Provide a selector when typing text into a field.";
     }
 
     if (clear) {
-      await page.fill(selector, '');
+      await page.fill(selector, "");
     }
 
     if (text) {
       await page.type(selector, text, { delay: 30 });
     }
 
-    return {
-      url: page.url(),
-      title: await page.title(),
-    };
+    return JSON.stringify({ url: page.url(), title: await page.title() });
   },
 });

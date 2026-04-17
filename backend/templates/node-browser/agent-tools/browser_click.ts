@@ -6,26 +6,24 @@
 //
 // =============================================================================
 
-import { tool } from '@opencode-ai/plugin';
-import { getPage } from './browser';
+import { tool } from "@opencode-ai/plugin";
+import { getPage } from "./browser";
 
 export default tool({
   description:
-    'Click an element on the current page. ' +
-    'Identify the target by CSS selector or by its visible text content.',
+    "Click an element on the current page. " +
+    "Identify the target by CSS selector or by its visible text content.",
   args: {
-    selector: {
-      type: 'string',
-      description: 'CSS selector of the element to click.',
-      required: false,
-    },
-    text: {
-      type: 'string',
-      description: 'Visible text of the element to click (uses getByText).',
-      required: false,
-    },
+    selector: tool.schema
+      .string()
+      .optional()
+      .describe("CSS selector of the element to click."),
+    text: tool.schema
+      .string()
+      .optional()
+      .describe("Visible text of the element to click (uses getByText)."),
   },
-  async run({ selector, text }) {
+  async execute({ selector, text }) {
     const page = await getPage();
 
     if (selector) {
@@ -33,12 +31,9 @@ export default tool({
     } else if (text) {
       await page.getByText(text, { exact: false }).click({ timeout: 10000 });
     } else {
-      return { error: 'Provide either a selector or text to identify the element.' };
+      return "Error: Provide either a selector or text to identify the element.";
     }
 
-    return {
-      url: page.url(),
-      title: await page.title(),
-    };
+    return JSON.stringify({ url: page.url(), title: await page.title() });
   },
 });

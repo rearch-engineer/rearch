@@ -6,29 +6,29 @@
 //
 // =============================================================================
 
-import { tool } from '@opencode-ai/plugin';
-import { getPage } from './browser';
+import { tool } from "@opencode-ai/plugin";
+import { getPage } from "./browser";
 
 export default tool({
   description:
-    'Execute JavaScript code in the browser page context. ' +
-    'Returns the serialisable result of the expression. ' +
-    'Useful for reading DOM state, extracting data, or triggering client-side logic.',
+    "Execute JavaScript code in the browser page context. " +
+    "Returns the serialisable result of the expression. " +
+    "Useful for reading DOM state, extracting data, or triggering client-side logic.",
   args: {
-    expression: {
-      type: 'string',
-      description: 'JavaScript expression or function body to evaluate in the page.',
-      required: true,
-    },
+    expression: tool.schema
+      .string()
+      .describe(
+        "JavaScript expression or function body to evaluate in the page.",
+      ),
   },
-  async run({ expression }) {
+  async execute({ expression }) {
     const page = await getPage();
 
     try {
       const result = await page.evaluate(expression);
-      return { result };
+      return JSON.stringify({ result });
     } catch (error: any) {
-      return { error: error.message };
+      return `Error: ${error.message}`;
     }
   },
 });
