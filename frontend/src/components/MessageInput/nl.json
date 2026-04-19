@@ -17,5 +17,6 @@
   "dropFilesToAttach": "Sleep bestanden om bij te voegen",
   "modelPlaceholder": "Model",
   "stopListening": "Stop met luisteren",
-  "voiceInput": "Spraakinvoer"
+  "voiceInput": "Spraakinvoer",
+  "uploadFile": "Bestand uploaden"
 }

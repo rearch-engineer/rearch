@@ -1,0 +1,31 @@
+.service-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary);
+}
+
+.service-panel-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-panel-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  z-index: 1;
+}
+
+.service-panel-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #fff;
+}

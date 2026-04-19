@@ -16,5 +16,6 @@
   "deleteConversation": "Supprimer la conversation",
   "deleteConfirmation": "Êtes-vous sûr de vouloir supprimer",
   "deleteWarning": "Tous les messages associés et les modifications non enregistrées seront supprimés.",
-  "cancel": "Annuler"
+  "cancel": "Annuler",
+  "logout": "Déconnexion"
 }

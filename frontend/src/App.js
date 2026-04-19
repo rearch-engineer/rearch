@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import i18n from "./i18n";
 import {
   BrowserRouter,
@@ -7,6 +7,8 @@ import {
   Navigate,
   useNavigate,
 } from "react-router-dom";
+import config, { isTauri, applyTauriConfig } from "./config";
+import ServerSetupPage from "./pages/ServerSetupPage";
 import { Box } from "@mui/joy";
 import { useColorScheme } from "@mui/joy/styles";
 import MainMenu from "./components/MainMenu";
@@ -205,6 +207,41 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  const [tauriReady, setTauriReady] = useState(!isTauri);
+  const [needsServerSetup, setNeedsServerSetup] = useState(false);
+
+  useEffect(() => {
+    if (!isTauri) return;
+    applyTauriConfig().then(() => {
+      // Show server setup only if the Tauri store returned an empty URL
+      // AND there are no defaults from __RUNTIME_CONFIG__ / config.js.
+      // In dev mode, the defaults (localhost:5000) are fine — skip setup.
+      if (!config.API_BASE_URL) {
+        setNeedsServerSetup(true);
+      }
+      setTauriReady(true);
+    });
+  }, []);
+
+  if (!tauriReady) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        Loading...
+      </Box>
+    );
+  }
+
+  if (needsServerSetup) {
+    return <ServerSetupPage />;
+  }
+
   return (
     <ErrorBoundary>
       <ToastProvider>

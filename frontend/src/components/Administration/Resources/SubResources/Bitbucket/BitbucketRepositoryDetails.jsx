@@ -189,20 +189,26 @@ function BitbucketRepositoryDetails({
    */
   const TEMPLATE_DEFAULT_SERVICES = {
     "": null,
-    minimal: [{ label: "Code", icon: "Code", internalPort: 8080 }],
+    minimal: [
+      { label: "Code", icon: "Code", internalPort: 8080 },
+      { label: "Terminal", icon: "Terminal", internalPort: 7681 },
+    ],
     node: [
       { label: "Code", icon: "Code", internalPort: 8080 },
       { label: "Backend", icon: "Storage", internalPort: 3000 },
+      { label: "Terminal", icon: "Terminal", internalPort: 7681 },
     ],
     "node-browser": [
       { label: "Code", icon: "Code", internalPort: 8080 },
       { label: "Backend", icon: "Storage", internalPort: 3000 },
+      { label: "Terminal", icon: "Terminal", internalPort: 7681 },
     ],
     "node-react-pg": [
       { label: "Code", icon: "Code", internalPort: 8080 },
       { label: "Backend", icon: "Storage", internalPort: 3000 },
       { label: "Frontend", icon: "Web", internalPort: 4200 },
       { label: "Database", icon: "Storage", internalPort: 8081 },
+      { label: "Terminal", icon: "Terminal", internalPort: 7681 },
     ],
   };
 

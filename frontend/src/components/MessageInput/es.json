@@ -17,5 +17,6 @@
   "dropFilesToAttach": "Suelta archivos para adjuntar",
   "modelPlaceholder": "Modelo",
   "stopListening": "Dejar de escuchar",
-  "voiceInput": "Entrada de voz"
+  "voiceInput": "Entrada de voz",
+  "uploadFile": "Subir archivo"
 }

@@ -16,5 +16,6 @@
   "deleteConversation": "Eliminar conversación",
   "deleteConfirmation": "¿Estás seguro de que deseas eliminar",
   "deleteWarning": "Todos los mensajes asociados y los cambios sin guardar serán eliminados.",
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "logout": "Cerrar sesión"
 }

@@ -17,5 +17,6 @@
   "dropFilesToAttach": "Drop files to attach",
   "modelPlaceholder": "Model",
   "stopListening": "Stop listening",
-  "voiceInput": "Voice input"
+  "voiceInput": "Voice input",
+  "uploadFile": "Upload file"
 }

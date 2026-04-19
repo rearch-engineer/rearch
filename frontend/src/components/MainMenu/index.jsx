@@ -20,7 +20,6 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -29,6 +28,9 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import LogoutIcon from "@mui/icons-material/Logout";
+import ListDivider from "@mui/joy/ListDivider";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConversations } from "../../contexts/ConversationsContext";
 import AdminSidebarMenu from "../Administration/AdminSidebarMenu";
@@ -91,7 +93,7 @@ const MainMenu = () => {
   const { t } = useTranslation("MainMenu");
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, logout } = useAuth();
   const {
     conversations,
     busyConversationIds,
@@ -176,20 +178,30 @@ const MainMenu = () => {
       {/* ── Top bar: brand + actions ── */}
       <div className="main-menu-topbar">
         {collapsed ? (
-          <div className="collapsed-topbar-toggle">
-            <ForumIcon
-              className="collapsed-topbar-brand"
-              sx={{ fontSize: 22, color: "#DB4F15", cursor: "pointer" }}
-              onClick={() => navigate("/")}
-            />
-            <div
-              className="main-menu-icon-btn collapsed-topbar-expand"
-              onClick={() => setCollapsed(false)}
-              title={t("expandSidebar")}
-            >
-              <ChevronRightIcon sx={{ fontSize: 20 }} />
+          <>
+            <div className="collapsed-topbar-toggle">
+              <ForumIcon
+                className="collapsed-topbar-brand"
+                sx={{ fontSize: 22, color: "#DB4F15", cursor: "pointer" }}
+                onClick={() => navigate("/")}
+              />
+              <div
+                className="main-menu-icon-btn collapsed-topbar-expand"
+                onClick={() => setCollapsed(false)}
+                title={t("expandSidebar")}
+              >
+                <ChevronRightIcon sx={{ fontSize: 20 }} />
+              </div>
             </div>
-          </div>
+            <div
+              className="main-menu-icon-btn"
+              onClick={openCommandPalette}
+              title={t("searchShortcut")}
+              style={{ marginTop: 4 }}
+            >
+              <SearchIcon sx={{ fontSize: 20 }} />
+            </div>
+          </>
         ) : (
           <>
             <span className="main-menu-brand" onClick={() => navigate("/")}>
@@ -200,6 +212,13 @@ const MainMenu = () => {
               ReArch
             </span>
             <div className="main-menu-topbar-actions">
+              <div
+                className="main-menu-icon-btn"
+                onClick={openCommandPalette}
+                title={t("searchShortcut")}
+              >
+                <SearchIcon sx={{ fontSize: 20 }} />
+              </div>
               <div
                 className="main-menu-icon-btn"
                 onClick={() => setCollapsed(true)}
@@ -215,22 +234,14 @@ const MainMenu = () => {
       {/* ── Nav items ── */}
       <div className="main-menu-nav">
         <div
-          className={`main-menu-nav-item${location.pathname === "/" || location.pathname === "/conversations/new" ? " active" : ""}`}
-          onClick={() => navigate("/")}
-          title={t("home")}
+          className="main-menu-nav-item"
+          onClick={onNewConversation}
+          title={t("newConversation")}
         >
-          <HomeOutlinedIcon
+          <AddIcon
             sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
           />
-          {!collapsed && <span>{t("home")}</span>}
-        </div>
-        <div
-          className="main-menu-nav-item"
-          onClick={openCommandPalette}
-          title={t("searchShortcut")}
-        >
-          <SearchIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
-          {!collapsed && <span>{t("search")}</span>}
+          {!collapsed && <span>{t("newConversation")}</span>}
         </div>
       </div>
 
@@ -429,40 +440,86 @@ const MainMenu = () => {
         </div>
       )}
 
-      {/* ── Bottom pinned: Help & Account ── */}
+      {/* ── Bottom pinned: User dropdown ── */}
       <div className="main-menu-bottom">
-        <div
-          className="main-menu-nav-item"
-          onClick={() => window.open("https://docs.rearch.engineer", "_blank")}
-          title={t("help")}
-        >
-          <HelpOutlineIcon
-            sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
-          />
-          {!collapsed && <span>{t("help")}</span>}
-        </div>
-        {isAdmin() && (
-          <div
-            className="main-menu-nav-item"
-            onClick={() => navigate("/administration")}
-            title={t("administration")}
+        <Dropdown>
+          <MenuButton
+            variant="plain"
+            color="neutral"
+            className="main-menu-user-btn"
+            sx={{
+              width: "100%",
+              justifyContent: collapsed ? "center" : "flex-start",
+              gap: "10px",
+              px: collapsed ? "6px" : "8px",
+              py: "6px",
+              borderRadius: "6px",
+              fontWeight: 500,
+              fontSize: 14,
+              color: "var(--text-primary)",
+              "&:hover": { bgcolor: "var(--bg-hover)" },
+            }}
           >
-            <AdminPanelSettingsOutlined
+            <PersonOutlineIcon
               sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
             />
-            {!collapsed && <span>{t("administration")}</span>}
-          </div>
-        )}
-        <div
-          className="main-menu-nav-item"
-          onClick={() => navigate("/account")}
-          title={t("account")}
-        >
-          <SettingsOutlined
-            sx={{ fontSize: 20, color: "var(--text-tertiary)" }}
-          />
-          {!collapsed && <span>{t("account")}</span>}
-        </div>
+            {!collapsed && (
+              <span className="main-menu-user-email">
+                {user?.profile?.display_name || user?.username || user?.email || t("account")}
+              </span>
+            )}
+          </MenuButton>
+          <Menu size="sm" placement="top-start">
+            {user?.email && (
+              <MenuItem
+                sx={{
+                  fontSize: 12,
+                  color: "var(--text-tertiary)",
+                  pointerEvents: "none",
+                  py: 0.5,
+                }}
+              >
+                {user.email}
+              </MenuItem>
+            )}
+            <MenuItem
+              onClick={() =>
+                window.open("https://docs.rearch.engineer", "_blank")
+              }
+            >
+              <ListItemDecorator>
+                <HelpOutlineIcon fontSize="small" />
+              </ListItemDecorator>
+              {t("help")}
+            </MenuItem>
+            {isAdmin() && (
+              <MenuItem onClick={() => navigate("/administration")}>
+                <ListItemDecorator>
+                  <AdminPanelSettingsOutlined fontSize="small" />
+                </ListItemDecorator>
+                {t("administration")}
+              </MenuItem>
+            )}
+            <MenuItem onClick={() => navigate("/account")}>
+              <ListItemDecorator>
+                <SettingsOutlined fontSize="small" />
+              </ListItemDecorator>
+              {t("account")}
+            </MenuItem>
+            <ListDivider />
+            <MenuItem
+              onClick={() => {
+                logout();
+                navigate("/login", { replace: true });
+              }}
+            >
+              <ListItemDecorator>
+                <LogoutIcon fontSize="small" />
+              </ListItemDecorator>
+              {t("logout")}
+            </MenuItem>
+          </Menu>
+        </Dropdown>
       </div>
 
       {/* ── Delete confirmation modal ── */}

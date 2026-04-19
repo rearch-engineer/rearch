@@ -16,5 +16,6 @@
   "deleteConversation": "Delete Conversation",
   "deleteConfirmation": "Are you sure you want to delete",
   "deleteWarning": "All associated messages and unsaved changes will be removed.",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "logout": "Logout"
 }

@@ -507,3 +507,12 @@
 .conversation-item:hover .conversation-menu-btn {
   opacity: 1;
 }
+
+/* ── User dropdown button ─────────────────────────────────── */
+
+.main-menu-user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}

@@ -71,3 +71,9 @@ pending/*
 # ========================
 .rearch-pids
 .rearch-logs/
+
+# ========================
+# ReArch desktop
+# ========================
+packages/desktop/src-tauri/target/debug/**
+packages/desktop/src-tauri/target/release/**

@@ -16,5 +16,6 @@
   "deleteConversation": "Gesprek verwijderen",
   "deleteConfirmation": "Weet u zeker dat u wilt verwijderen",
   "deleteWarning": "Alle bijbehorende berichten en niet-opgeslagen wijzigingen worden verwijderd.",
-  "cancel": "Annuleren"
+  "cancel": "Annuleren",
+  "logout": "Uitloggen"
 }

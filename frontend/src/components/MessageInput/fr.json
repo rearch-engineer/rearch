@@ -17,5 +17,6 @@
   "dropFilesToAttach": "Déposez des fichiers à joindre",
   "modelPlaceholder": "Modèle",
   "stopListening": "Arrêter l'écoute",
-  "voiceInput": "Saisie vocale"
+  "voiceInput": "Saisie vocale",
+  "uploadFile": "Télécharger un fichier"
 }

@@ -90,6 +90,15 @@ const ChatInterface = ({
       window.removeEventListener("model-changed", handleModelChanged);
   }, []);
 
+  // Focus message input when the conversation view becomes ready
+  useEffect(() => {
+    if (conversationId && conversationId !== "new" && isContainerReady) {
+      requestAnimationFrame(() => {
+        messageInputRef.current?.focus();
+      });
+    }
+  }, [conversationId, isContainerReady]);
+
   // Restore focus to message input when the command palette closes
   useEffect(() => {
     const handlePaletteClosed = () => {

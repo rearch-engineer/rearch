@@ -18,13 +18,16 @@ import Option from "@mui/joy/Option";
 import Button from "@mui/joy/Button";
 import ButtonGroup from "@mui/joy/ButtonGroup";
 import ListItemDecorator from "@mui/joy/ListItemDecorator";
+import Menu from "@mui/joy/Menu";
+import MenuItem from "@mui/joy/MenuItem";
 import Sheet from "@mui/joy/Sheet";
 import Typography from "@mui/joy/Typography";
 import CircularProgress from "@mui/joy/CircularProgress";
-import ImageOutlined from "@mui/icons-material/ImageOutlined";
+import AddRounded from "@mui/icons-material/AddRounded";
 import ArrowUpward from "@mui/icons-material/ArrowUpward";
 import CloseRounded from "@mui/icons-material/CloseRounded";
 import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
+import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import MicOutlined from "@mui/icons-material/MicOutlined";
 import { api } from "../../api/client";
 import "./MessageInput.css";
@@ -47,6 +50,7 @@ const MessageInput = forwardRef(
     const [attachedFiles, setAttachedFiles] = useState([]); // { file, preview, uploading, uploaded, fileId, filename, contentType, size }
     const [isListening, setIsListening] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
+    const [addMenuAnchor, setAddMenuAnchor] = useState(null);
     const dragCounterRef = useRef(0);
     const recognitionRef = useRef(null);
     const speechBaseTextRef = useRef("");
@@ -54,13 +58,34 @@ const MessageInput = forwardRef(
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
 
+    // Focus the textarea, with a retry for cases where the ref isn't ready yet
+    const focusInput = useCallback(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      } else {
+        // ref may not be assigned yet (e.g. after conditional render switch),
+        // fall back to querying the DOM
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+          } else {
+            const textarea = document.querySelector(
+              ".message-input-mentions textarea",
+            );
+            if (textarea) textarea.focus();
+          }
+        }, 100);
+      }
+    }, []);
+
     useImperativeHandle(ref, () => ({
-      focus: () => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      },
+      focus: focusInput,
     }));
+
+    // Auto-focus on mount
+    useEffect(() => {
+      focusInput();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
     const { resources } = useResources();
     const { user } = useAuth();
     const { t } = useTranslation("MessageInput");
@@ -605,135 +630,176 @@ const MessageInput = forwardRef(
               gap: 0.5,
             }}
           >
-            {/* Left side: selectors */}
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 0.5, flex: 1 }}
-            >
-              {/* Agent toggle */}
-              {agents && agents.length > 0 && (
-                <ButtonGroup
-                  size="sm"
-                  variant="plain"
-                  sx={{ "--ButtonGroup-separatorSize": "0px" }}
-                >
-                  {agents.map((agent) => (
-                    <Button
-                      key={agent.name}
-                      variant={selectedAgent === agent.name ? "soft" : "plain"}
-                      color={
-                        selectedAgent === agent.name ? "primary" : "neutral"
-                      }
-                      onClick={() => onAgentChange(agent.name)}
-                      disabled={disabled}
-                      sx={{
-                        fontSize: "12px",
-                        px: 1.5,
-                        py: 0.25,
-                        minHeight: "28px",
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {agent.name}
-                    </Button>
-                  ))}
-                </ButtonGroup>
-              )}
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.txt,.md,.json,.csv,.xml,.yaml,.yml,.js,.ts,.jsx,.tsx,.py,.java,.go,.rs,.html,.css"
+              style={{ display: "none" }}
+              onChange={handleFileSelect}
+            />
 
-              {/* Model selector */}
+            {/* Far left: "+" dropdown menu */}
+            <IconButton
+              size="sm"
+              variant="plain"
+              color="neutral"
+              disabled={disabled}
+              onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+              sx={{
+                "--IconButton-size": "32px",
+              }}
+            >
+              <AddRounded sx={{ fontSize: 20 }} />
+            </IconButton>
+            <Menu
+              anchorEl={addMenuAnchor}
+              open={Boolean(addMenuAnchor)}
+              onClose={() => setAddMenuAnchor(null)}
+              placement="top-start"
+              sx={{ fontSize: "13px", minWidth: 180 }}
+            >
+              <MenuItem
+                onClick={() => {
+                  setAddMenuAnchor(null);
+                  fileInputRef.current?.click();
+                }}
+              >
+                <ListItemDecorator>
+                  <UploadFileOutlined sx={{ fontSize: 18 }} />
+                </ListItemDecorator>
+                {t("uploadFile")}
+              </MenuItem>
+            </Menu>
+
+            {/* Spacer */}
+            <Box sx={{ flex: 1 }} />
+
+            {/* Right side: agent selector (plain text style) */}
+            {agents && agents.length > 0 && (
               <Select
                 size="sm"
                 variant="plain"
-                placeholder={t("modelPlaceholder")}
-                value={modelSelectValue || null}
-                onChange={handleModelSelect}
-                disabled={disabled || modelOptions.length === 0}
+                value={selectedAgent || null}
+                onChange={(e, value) => {
+                  if (value) onAgentChange(value);
+                }}
+                disabled={disabled}
+                indicator={null}
                 sx={{
-                  minWidth: 140,
-                  maxWidth: 240,
+                  minWidth: 0,
                   fontSize: "12px",
                   "--Select-minHeight": "28px",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                  color: "text.tertiary",
+                  textTransform: "capitalize",
+                  "&:hover": {
+                    backgroundColor: "transparent",
+                    color: "text.secondary",
+                  },
+                  "& .MuiSelect-indicator": {
+                    display: "none",
+                  },
                 }}
                 slotProps={{
+                  button: {
+                    sx: {
+                      px: 1,
+                      py: 0.25,
+                      "&:focus-visible": {
+                        outlineOffset: 0,
+                      },
+                    },
+                  },
                   listbox: {
-                    sx: { maxHeight: 300, fontSize: "12px" },
+                    sx: { fontSize: "12px" },
                   },
                 }}
               >
-                {modelOptions.map((opt) => (
+                {agents.map((agent) => (
                   <Option
-                    key={`${opt.providerID}::${opt.modelID}`}
-                    value={`${opt.providerID}::${opt.modelID}`}
-                    label={opt.modelName}
+                    key={agent.name}
+                    value={agent.name}
+                    sx={{ textTransform: "capitalize" }}
                   >
-                    <ListItemDecorator
-                      sx={{
-                        fontSize: "10px",
-                        color: "text.tertiary",
-                        minWidth: 0,
-                        mr: 1,
-                      }}
-                    >
-                      {opt.providerName}
-                    </ListItemDecorator>
-                    {opt.modelName}
+                    {agent.name}
                   </Option>
                 ))}
               </Select>
-            </Box>
+            )}
 
-            {/* Right side: file upload + send */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,.pdf,.txt,.md,.json,.csv,.xml,.yaml,.yml,.js,.ts,.jsx,.tsx,.py,.java,.go,.rs,.html,.css"
-                style={{ display: "none" }}
-                onChange={handleFileSelect}
-              />
-
-              {/* File attach button */}
-              <IconButton
-                size="sm"
-                variant="plain"
-                color="neutral"
-                disabled={disabled}
-                onClick={() => fileInputRef.current?.click()}
-                sx={{
-                  "--IconButton-size": "32px",
-                }}
-              >
-                <ImageOutlined sx={{ fontSize: 20 }} />
-              </IconButton>
-
-              {/* Voice input button */}
-              {SpeechRecognition && (
-                <IconButton
-                  size="sm"
-                  variant={isListening ? "soft" : "plain"}
-                  color={isListening ? "primary" : "neutral"}
-                  disabled={disabled}
-                  onClick={toggleListening}
-                  sx={{
-                    "--IconButton-size": "32px",
-                    transition: "all 0.2s ease",
-                    ...(isListening && {
-                      animation: "mic-pulse 1.5s ease-in-out infinite",
-                      boxShadow: "0 0 8px 2px rgba(25, 118, 210, 0.5)",
-                    }),
-                  }}
-                  title={isListening ? t("stopListening") : t("voiceInput")}
+            {/* Right side: model selector (plain text style) */}
+            <Select
+              size="sm"
+              variant="plain"
+              placeholder={t("modelPlaceholder")}
+              value={modelSelectValue || null}
+              onChange={handleModelSelect}
+              disabled={disabled || modelOptions.length === 0}
+              indicator={null}
+              sx={{
+                minWidth: 0,
+                maxWidth: 240,
+                fontSize: "12px",
+                "--Select-minHeight": "28px",
+                backgroundColor: "transparent",
+                border: "none",
+                boxShadow: "none",
+                color: "text.tertiary",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                  color: "text.secondary",
+                },
+                "& .MuiSelect-indicator": {
+                  display: "none",
+                },
+              }}
+              slotProps={{
+                button: {
+                  sx: {
+                    px: 1,
+                    py: 0.25,
+                    "&:focus-visible": {
+                      outlineOffset: 0,
+                    },
+                  },
+                },
+                listbox: {
+                  sx: { maxHeight: 300, fontSize: "12px" },
+                },
+              }}
+            >
+              {modelOptions.map((opt) => (
+                <Option
+                  key={`${opt.providerID}::${opt.modelID}`}
+                  value={`${opt.providerID}::${opt.modelID}`}
+                  label={opt.modelName}
                 >
-                  <MicOutlined sx={{ fontSize: 20 }} />
-                </IconButton>
-              )}
+                  <ListItemDecorator
+                    sx={{
+                      fontSize: "10px",
+                      color: "text.tertiary",
+                      minWidth: 0,
+                      mr: 1,
+                    }}
+                  >
+                    {opt.providerName}
+                  </ListItemDecorator>
+                  {opt.modelName}
+                </Option>
+              ))}
+            </Select>
 
-              {/* Send button */}
+            {/* Right side: mic OR send button (mutually exclusive) */}
+            {hasContent || hasUploadedFiles ? (
+              /* Send button - shown when there's content */
               <IconButton
                 size="sm"
                 variant={canSend ? "solid" : "soft"}
-                color={canSend ? "neutral" : "neutral"}
+                color="neutral"
                 disabled={!canSend}
                 onClick={handleSubmit}
                 sx={{
@@ -757,7 +823,42 @@ const MessageInput = forwardRef(
                   <ArrowUpward sx={{ fontSize: 18 }} />
                 )}
               </IconButton>
-            </Box>
+            ) : SpeechRecognition ? (
+              /* Mic button - shown by default when no content */
+              <IconButton
+                size="sm"
+                variant={isListening ? "soft" : "plain"}
+                color={isListening ? "primary" : "neutral"}
+                disabled={disabled}
+                onClick={toggleListening}
+                sx={{
+                  "--IconButton-size": "32px",
+                  transition: "all 0.2s ease",
+                  ...(isListening && {
+                    animation: "mic-pulse 1.5s ease-in-out infinite",
+                    boxShadow: "0 0 8px 2px rgba(25, 118, 210, 0.5)",
+                  }),
+                }}
+                title={isListening ? t("stopListening") : t("voiceInput")}
+              >
+                <MicOutlined sx={{ fontSize: 20 }} />
+              </IconButton>
+            ) : (
+              /* Fallback send button when no speech recognition */
+              <IconButton
+                size="sm"
+                variant="soft"
+                color="neutral"
+                disabled={!canSend}
+                onClick={handleSubmit}
+                sx={{
+                  "--IconButton-size": "32px",
+                  borderRadius: "50%",
+                }}
+              >
+                <ArrowUpward sx={{ fontSize: 18 }} />
+              </IconButton>
+            )}
           </Box>
         </Sheet>
       </Box>
