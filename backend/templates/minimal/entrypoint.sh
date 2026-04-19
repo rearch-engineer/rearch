@@ -72,6 +72,7 @@ echo "=========================================="
 echo "Services:"
 echo "  - Code-server (VS Code): http://localhost:8080"
 echo "  - OpenCode API: http://localhost:4096"
+echo "  - Terminal (ttyd + Oh My Zsh): http://localhost:7681"
 echo "=========================================="
 echo ""
 

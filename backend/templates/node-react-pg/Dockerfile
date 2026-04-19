@@ -9,6 +9,7 @@
 # - Frontend (Vite React dev server) on port 4200
 # - Code-server (VS Code in browser) on port 8080
 # - OpenCode (AI coding assistant) on port 4096
+# - Terminal (ttyd + Oh My Zsh) on port 7681
 #
 # ENVIRONMENT VARIABLES (passed at runtime):
 # - REPOSITORY_URL (optional): Git repository URL (metadata for coding agent)
@@ -45,7 +46,22 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     rsync \
+    zsh \
     && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# 1b. Install ttyd (web-based terminal)
+# =============================================================================
+RUN ARCH=$(dpkg --print-architecture) && \
+    case "$ARCH" in \
+      amd64) TTYD_ARCH="x86_64" ;; \
+      arm64) TTYD_ARCH="aarch64" ;; \
+      armhf) TTYD_ARCH="armhf" ;; \
+      *) TTYD_ARCH="$ARCH" ;; \
+    esac && \
+    wget -qO /usr/local/bin/ttyd \
+      "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" && \
+    chmod +x /usr/local/bin/ttyd
 
 # =============================================================================
 # 2. Install Code-Server
@@ -79,10 +95,17 @@ RUN curl -fsSL https://github.com/sosedoff/pgweb/releases/download/v0.16.2/pgweb
 # =============================================================================
 # 6. Create the "coder" user and setup directories
 # =============================================================================
-RUN useradd -m -s /bin/bash coder && \
+RUN useradd -m -s /bin/zsh coder && \
     mkdir -p /repository && \
     chown -R coder:coder /repository && \
     echo 'root:root' | chpasswd
+
+# =============================================================================
+# 6b. Install Oh My Zsh for the coder user
+# =============================================================================
+USER coder
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+USER root
 
 # =============================================================================
 # 7. Copy repository code
@@ -213,6 +236,17 @@ startretries=999\n\
 priority=25\n\
 stdout_logfile=/var/log/supervisor/frontend.log\n\
 stderr_logfile=/var/log/supervisor/frontend.err\n\
+\n\
+[program:terminal]\n\
+command=ttyd --port 7681 --writable zsh\n\
+user=coder\n\
+environment=HOME="/home/coder",TERM="xterm-256color"\n\
+directory=/repository\n\
+autostart=true\n\
+autorestart=true\n\
+priority=10\n\
+stdout_logfile=/var/log/supervisor/terminal.log\n\
+stderr_logfile=/var/log/supervisor/terminal.err\n\
 ' > /etc/supervisor/conf.d/supervisord.conf
 
 # =============================================================================
@@ -228,8 +262,9 @@ ENV REPOSITORY_BRANCH="main"
 # 8081: pgweb (PostgreSQL web UI)
 # 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
+# 7681: Terminal (ttyd + Oh My Zsh)
 # Note: PostgreSQL (5432) is internal only, accessed via pgweb or container shell
-EXPOSE 3000 4200 8081 8080 4096
+EXPOSE 3000 4200 8081 8080 4096 7681
 
 # =============================================================================
 # 15. Start via Entrypoint

@@ -220,6 +220,7 @@ echo "  - Frontend (Vite):   http://localhost:4200"
 echo "  - pgweb (DB UI):     http://localhost:8081"
 echo "  - Code-server:       http://localhost:8080"
 echo "  - OpenCode API:      http://localhost:4096"
+echo "  - Terminal (ttyd):   http://localhost:7681"
 echo "=========================================="
 echo ""
 

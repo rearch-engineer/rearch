@@ -7,6 +7,7 @@
 # This Dockerfile creates a Node.js development environment with:
 # - Code-server (VS Code in browser) on port 8080
 # - OpenCode (AI coding assistant) on port 4096
+# - Terminal (ttyd + Oh My Zsh) on port 7681
 # - Node.js runtime with npm install and configurable dev server
 #
 # The repository code is copied at build time into /repository.
@@ -38,7 +39,22 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     rsync \
+    zsh \
     && rm -rf /var/lib/apt/lists/*
+
+# =============================================================================
+# 1b. Install ttyd (web-based terminal)
+# =============================================================================
+RUN ARCH=$(dpkg --print-architecture) && \
+    case "$ARCH" in \
+      amd64) TTYD_ARCH="x86_64" ;; \
+      arm64) TTYD_ARCH="aarch64" ;; \
+      armhf) TTYD_ARCH="armhf" ;; \
+      *) TTYD_ARCH="$ARCH" ;; \
+    esac && \
+    wget -qO /usr/local/bin/ttyd \
+      "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" && \
+    chmod +x /usr/local/bin/ttyd
 
 # =============================================================================
 # 2. Install Code-Server
@@ -53,12 +69,19 @@ RUN npm i -g opencode-ai nodemon
 # =============================================================================
 # 4. Create the "coder" user and setup directories
 # =============================================================================
-RUN useradd -m -s /bin/bash coder && \
+RUN useradd -m -s /bin/zsh coder && \
     echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     mkdir -p /repository && \
     chown -R coder:coder /repository && \
     mkdir -p /home/coder/.config/code-server && \
     chown -R coder:coder /home/coder/.config
+
+# =============================================================================
+# 4b. Install Oh My Zsh for the coder user
+# =============================================================================
+USER coder
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+USER root
 
 # =============================================================================
 # 5. Copy repository code
@@ -134,6 +157,17 @@ startretries=999\n\
 priority=20\n\
 stdout_logfile=/var/log/supervisor/app.log\n\
 stderr_logfile=/var/log/supervisor/app.err\n\
+\n\
+[program:terminal]\n\
+command=ttyd --port 7681 --writable zsh\n\
+user=coder\n\
+environment=HOME="/home/coder",TERM="xterm-256color"\n\
+directory=/repository\n\
+autostart=true\n\
+autorestart=true\n\
+priority=10\n\
+stdout_logfile=/var/log/supervisor/terminal.log\n\
+stderr_logfile=/var/log/supervisor/terminal.err\n\
 ' > /etc/supervisor/conf.d/supervisord.conf
 
 # =============================================================================
@@ -149,7 +183,8 @@ ENV APP_PORT="3000"
 # 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
 # 3000: Application dev server (default, configurable via APP_PORT)
-EXPOSE 8080 4096 3000
+# 7681: Terminal (ttyd + Oh My Zsh)
+EXPOSE 8080 4096 3000 7681
 
 # =============================================================================
 # 12. Start via Entrypoint
