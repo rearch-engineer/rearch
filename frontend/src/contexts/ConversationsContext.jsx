@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api/client';
 import socket from '../api/socket';
+import { useWorkspaces } from './WorkspacesContext';
 
 const ConversationsContext = createContext(null);
 
 export function ConversationsProvider({ children }) {
+  const { activeWorkspace } = useWorkspaces();
   const [conversations, setConversations] = useState([]);
   const [busyConversationIds, setBusyConversationIds] = useState(new Set());
   const [unreadConversationIds, setUnreadConversationIds] = useState(new Set());
@@ -15,8 +17,9 @@ export function ConversationsProvider({ children }) {
   }, []);
 
   const loadConversations = useCallback(async () => {
+    if (!activeWorkspace?._id) return;
     try {
-      const data = await api.getConversations();
+      const data = await api.getConversations(activeWorkspace._id);
       setConversations(data);
 
       // Sync busyConversationIds from server response
@@ -35,7 +38,7 @@ export function ConversationsProvider({ children }) {
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
-  }, []);
+  }, [activeWorkspace]);
 
   useEffect(() => {
     loadConversations();
@@ -156,8 +159,9 @@ export function ConversationsProvider({ children }) {
   }, []);
 
   const handleDeleteConversation = useCallback(async (id) => {
+    if (!activeWorkspace?._id) return;
     try {
-      await api.deleteConversation(id);
+      await api.deleteConversation(activeWorkspace._id, id);
       setConversations((prev) => prev.filter((c) => c._id !== id));
       // Clean up status sets
       setBusyConversationIds((prev) => {
@@ -173,18 +177,19 @@ export function ConversationsProvider({ children }) {
     } catch (error) {
       console.error('Error deleting conversation:', error);
     }
-  }, []);
+  }, [activeWorkspace]);
 
   const handleRenameConversation = useCallback(async (id, newTitle) => {
+    if (!activeWorkspace?._id) return;
     try {
-      await api.renameConversation(id, newTitle);
+      await api.renameConversation(activeWorkspace._id, id, newTitle);
       setConversations((prev) =>
         prev.map((c) => (c._id === id ? { ...c, title: newTitle } : c))
       );
     } catch (error) {
       console.error('Error renaming conversation:', error);
     }
-  }, []);
+  }, [activeWorkspace]);
 
   const value = {
     conversations,

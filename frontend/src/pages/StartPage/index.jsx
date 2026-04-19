@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, CircularProgress, Button } from "@mui/joy";
 import { api } from "../../api/client";
 import { useConversations } from "../../contexts/ConversationsContext";
+import { useWorkspaces } from "../../contexts/WorkspacesContext";
 
 /**
  * StartPage: auto-creates a conversation for the repository specified in the URL hash.
@@ -17,6 +18,7 @@ export default function StartPage() {
   const { t } = useTranslation("StartPage");
   const navigate = useNavigate();
   const { handleConversationCreated } = useConversations();
+  const { activeWorkspace } = useWorkspaces();
   const processedRef = useRef(false);
   const [error, setError] = useState(null);
 
@@ -33,7 +35,7 @@ export default function StartPage() {
 
     const createAndRedirect = async () => {
       try {
-        const newConv = await api.createConversationByName(decodeURIComponent(repoName));
+        const newConv = await api.createConversationByName(activeWorkspace?._id, decodeURIComponent(repoName));
         handleConversationCreated(newConv);
         navigate(`/conversations/${newConv._id}`, { replace: true });
       } catch (err) {

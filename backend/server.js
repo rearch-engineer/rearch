@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
 import authRoutes from "./routes/auth.js";
+import workspaceRoutes from "./routes/workspaces.js";
 import Queue from "./queue";
 import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
 import { publicRouter as suggestedPromptsPublicRoutes } from "./routes/suggestedPrompts.js";
@@ -14,6 +15,7 @@ import internalRoutes from "./routes/internal.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
 import User from "./models/User.js";
+import { ensurePersonalWorkspace } from "./utils/workspace.js";
 import {
   privateRouter as fileRoutes,
   publicRouter as publicFileRoutes,
@@ -148,6 +150,7 @@ const app = new Elysia()
   .use(apiRoutes)
   .use(fileRoutes)
   .use(resourceRoutes)
+  .use(workspaceRoutes)
   .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────
@@ -207,7 +210,8 @@ async function bootstrapAdminUser() {
       adminData.auth.password_hash = await bcrypt.hash(adminPassword, 12);
     }
 
-    await User.create(adminData);
+    const adminUser = await User.create(adminData);
+    await ensurePersonalWorkspace(adminUser._id);
     console.log(`Admin user bootstrapped: ${adminEmail}`);
   } catch (err) {
     console.error("Admin bootstrap error:", err);

@@ -11,6 +11,7 @@ import Typography from "@mui/joy/Typography";
 import Input from "@mui/joy/Input";
 import { useToast } from "../../contexts/ToastContext";
 import { useConversations } from "../../contexts/ConversationsContext";
+import { useWorkspaces } from "../../contexts/WorkspacesContext";
 import "./ChatInterface.css";
 
 const STORAGE_KEY_AGENT = "chat_selectedAgent";
@@ -47,6 +48,7 @@ const ChatInterface = ({
   const toast = useToast();
   const { conversations, markBusy, markIdle, markRead, setActiveConversationId } =
     useConversations();
+  const { activeWorkspace } = useWorkspaces();
 
   // Derive environment status from context (kept in sync via WebSocket)
   const conversationEnvStatus = conversations.find(
@@ -172,7 +174,7 @@ const ChatInterface = ({
 
     // Try fetching providers
     try {
-      const providerData = await api.getProviders(conversationId);
+      const providerData = await api.getProviders(activeWorkspace?._id, conversationId);
       setProviders(providerData);
 
       // Set default model from provider defaults if not already selected
@@ -196,7 +198,7 @@ const ChatInterface = ({
 
     // Try fetching agents
     try {
-      const agentData = await api.getAgents(conversationId);
+      const agentData = await api.getAgents(activeWorkspace?._id, conversationId);
       setAgents(agentData);
 
       // Ensure selectedAgent is valid
@@ -209,7 +211,7 @@ const ChatInterface = ({
     } catch (error) {
       console.log("Agents not available yet:", error.message);
     }
-  }, [conversationId, selectedModel, selectedAgent]);
+  }, [conversationId, selectedModel, selectedAgent, activeWorkspace]);
 
   // Retry fetching container data if it wasn't available initially
   useEffect(() => {
@@ -295,8 +297,8 @@ const ChatInterface = ({
     setIsLoadingMessages(true);
     try {
       const [messages, convData] = await Promise.all([
-        api.getMessages(conversationId),
-        api.getConversation(conversationId),
+        api.getMessages(activeWorkspace?._id, conversationId),
+        api.getConversation(activeWorkspace?._id, conversationId),
       ]);
       setMessages(messages);
       if (convData?.subResource) {
@@ -356,7 +358,7 @@ const ChatInterface = ({
   const handleQuestionSubmit = useCallback(
     async (requestId, answers) => {
       try {
-        await api.replyToQuestion(conversationId, requestId, answers);
+        await api.replyToQuestion(activeWorkspace?._id, conversationId, requestId, answers);
         setPendingQuestion(null);
       } catch (err) {
         console.error("Failed to submit question answers:", err);
@@ -369,7 +371,7 @@ const ChatInterface = ({
   const handleQuestionReject = useCallback(
     async (requestId) => {
       try {
-        await api.rejectQuestion(conversationId, requestId);
+        await api.rejectQuestion(activeWorkspace?._id, conversationId, requestId);
         setPendingQuestion(null);
       } catch (err) {
         console.error("Failed to reject question:", err);
@@ -382,7 +384,7 @@ const ChatInterface = ({
   const handlePermissionReply = useCallback(
     async (requestId, reply, message) => {
       try {
-        await api.replyToPermission(conversationId, requestId, reply, message);
+        await api.replyToPermission(activeWorkspace?._id, conversationId, requestId, reply, message);
         setPendingPermission(null);
       } catch (err) {
         console.error("Failed to reply to permission request:", err);
@@ -436,6 +438,7 @@ const ChatInterface = ({
     };
 
     await api.sendMessage(
+      activeWorkspace?._id,
       conversationId,
       content,
       (chunk) => {
@@ -532,6 +535,7 @@ const ChatInterface = ({
     };
 
     await api.editMessage(
+      activeWorkspace?._id,
       conversationId,
       messageId,
       content,
@@ -600,6 +604,7 @@ const ChatInterface = ({
     setIsCreating(true);
     try {
       const newConv = await api.createConversation(
+        activeWorkspace?._id,
         t("newConversation"),
         selectedRepoResourceId,
         selectedSubResource,

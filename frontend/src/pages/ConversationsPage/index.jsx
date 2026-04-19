@@ -6,6 +6,7 @@ import { PanelProvider } from '../../contexts/PanelContext';
 import WindowManager from '../../components/WindowManager';
 import { useConversations } from '../../contexts/ConversationsContext';
 import { api } from '../../api/client';
+import { useWorkspaces } from '../../contexts/WorkspacesContext';
 import '../../App.css';
 
 const SERVICES_POLL_INTERVAL = 30000;
@@ -14,6 +15,7 @@ function ConversationsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { loadConversations, handleConversationCreated, conversations } = useConversations();
+  const { activeWorkspace } = useWorkspaces();
 
   const conversationId = id === 'new' ? 'new' : id || null;
   const [services, setServices] = useState([]);
@@ -30,7 +32,7 @@ function ConversationsPage() {
     let cancelled = false;
     const fetchServices = async () => {
       try {
-        const res = await api.getServices(conversationId);
+        const res = await api.getServices(activeWorkspace?._id, conversationId);
         if (!cancelled) setServices(res.services || []);
       } catch { if (!cancelled) setServices([]); }
     };

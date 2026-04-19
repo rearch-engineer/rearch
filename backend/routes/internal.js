@@ -10,8 +10,10 @@ import { Elysia } from "elysia";
 import Conversation from "../models/Conversation.js";
 import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
+import WorkspaceMember from "../models/WorkspaceMember.js";
 import { createConversation } from "../tools/conversation/create.js";
 import { broadcast } from "../ws.js";
+import { ensurePersonalWorkspace } from "../utils/workspace.js";
 
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
 
@@ -53,7 +55,7 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
    * Returns: { _id, title, link }
    */
   .post("/conversations", async ({ body, set }) => {
-    const { userId, subResourceId, prompt } = body || {};
+    let { userId, subResourceId, prompt, workspaceId } = body || {};
 
     if (!userId || !subResourceId) {
       set.status = 400;
@@ -67,7 +69,26 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
       return { error: "Invalid ID format" };
     }
 
+    if (workspaceId && !OBJECT_ID_RE.test(workspaceId)) {
+      set.status = 400;
+      return { error: "Invalid workspaceId format" };
+    }
+
     try {
+      // Resolve workspace
+      if (workspaceId) {
+        const membership = await WorkspaceMember.findOne({
+          workspace: workspaceId,
+          user: userId,
+        });
+        if (!membership) {
+          set.status = 403;
+          return { error: "User is not a member of the specified workspace" };
+        }
+      } else {
+        const personalWs = await ensurePersonalWorkspace(userId);
+        workspaceId = personalWs._id;
+      }
       // Find the SubResource and its parent Resource
       const subResourceDoc = await SubResource.findById(subResourceId).populate(
         "resource",
@@ -110,6 +131,7 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
         participants: [userId],
         repository: repositoryId,
         subResource: subResourceId,
+        workspace: workspaceId,
         ...(prompt ? { initialPrompt: prompt } : {}),
       });
       await conversation.save();

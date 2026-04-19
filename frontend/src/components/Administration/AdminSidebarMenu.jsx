@@ -14,6 +14,7 @@ import LightbulbIcon from "@mui/icons-material/Lightbulb";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import StorageIcon from "@mui/icons-material/Storage";
 import WorkIcon from "@mui/icons-material/Work";
+import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import { useJobs } from "../../contexts/JobsContext";
 
 const AdminSidebarMenu = () => {
@@ -28,6 +29,7 @@ const AdminSidebarMenu = () => {
       items: [
         { label: t("sidebar.general"), path: "/administration/general", icon: <SettingsOutlined /> },
         { label: t("sidebar.users"), path: "/administration/users", icon: <PeopleIcon /> },
+        { label: t("sidebar.workspaces"), path: "/administration/workspaces", icon: <WorkspacesIcon /> },
         { label: t("sidebar.usage"), path: "/administration/usage", icon: <BarChartIcon /> },
         { label: t("sidebar.jobs"), path: "/administration/jobs", icon: <WorkIcon />, badge: activeCount },
       ],

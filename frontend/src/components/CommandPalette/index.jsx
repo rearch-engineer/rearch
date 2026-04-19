@@ -23,6 +23,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConversations } from "../../contexts/ConversationsContext";
 import { api } from "../../api/client";
+import { useWorkspaces } from "../../contexts/WorkspacesContext";
 import "./CommandPalette.css";
 
 const STORAGE_KEY_MODEL = "chat_selectedModel";
@@ -77,6 +78,7 @@ const CommandPalette = () => {
   const location = useLocation();
   const { logout } = useAuth();
   const { conversations, markRead } = useConversations();
+  const { activeWorkspace } = useWorkspaces();
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,7 +138,7 @@ const CommandPalette = () => {
     }
 
     try {
-      const providerData = await api.getProviders(currentConversationId);
+      const providerData = await api.getProviders(activeWorkspace?._id, currentConversationId);
       const connectedProviders = providerData.connected || [];
       const options = [];
 

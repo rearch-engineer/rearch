@@ -15,7 +15,8 @@
     "resources": "Ressources",
     "groupContainers": "Conteneurs",
     "rebuild": "Reconstruire",
-    "cleanup": "Nettoyer"
+    "cleanup": "Nettoyer",
+    "workspaces": "Espaces de travail"
   },
   "general": {
     "loading": "Chargement...",
@@ -619,5 +620,40 @@
     "importRepository": "Importer le dépôt",
     "importSubresource": "Importer la sous-ressource",
     "notSupported": "Importation non prise en charge pour ce type de ressource"
+  },
+  "workspaces": {
+    "title": "Espaces de travail",
+    "searchPlaceholder": "Rechercher des espaces de travail...",
+    "search": "Rechercher",
+    "name": "Nom",
+    "owner": "Propriétaire",
+    "members": "Membres",
+    "type": "Type",
+    "created": "Créé",
+    "personal": "Personnel",
+    "shared": "Partagé",
+    "noResults": "Aucun espace de travail trouvé",
+    "prev": "Précédent",
+    "next": "Suivant",
+    "notFound": "Espace de travail introuvable",
+    "backToList": "Retour aux espaces de travail",
+    "save": "Enregistrer",
+    "addMember": "Ajouter un Membre",
+    "searchUserPlaceholder": "Rechercher par nom ou email...",
+    "add": "Ajouter",
+    "memberName": "Nom",
+    "memberEmail": "Email",
+    "memberRole": "Rôle",
+    "roleAdmin": "Administrateur",
+    "roleMember": "Membre",
+    "dangerZone": "Zone de Danger",
+    "deleteWorkspace": "Supprimer l'Espace de travail",
+    "deleteConfirmTitle": "Supprimer l'Espace de travail",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ?",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "remove": "Retirer",
+    "removeMemberTitle": "Retirer le Membre",
+    "removeMemberConfirm": "Êtes-vous sûr de vouloir retirer ce membre ?"
   }
 }

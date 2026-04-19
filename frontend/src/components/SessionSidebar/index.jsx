@@ -17,6 +17,7 @@ import GroupOutlined from "@mui/icons-material/GroupOutlined";
 import CommitPushModal from "../CommitPushModal";
 import UserAvatar from "../UserAvatar";
 import { useConversations } from "../../contexts/ConversationsContext";
+import { useWorkspaces } from "../../contexts/WorkspacesContext";
 import { usePanels } from "../../contexts/PanelContext";
 import "./SessionSidebar.css";
 
@@ -44,6 +45,7 @@ const SessionSidebar = ({ conversationId }) => {
   const wrapperRef = useRef(null);
   const { socket } = useSocket();
   const { conversations } = useConversations();
+  const { activeWorkspace } = useWorkspaces();
   const { sidebarCollapsed: collapsed, setSidebarCollapsed: setCollapsed } = usePanels();
 
   const conversationEnvStatus = conversations.find(
@@ -77,15 +79,15 @@ const SessionSidebar = ({ conversationId }) => {
     if (!conversationId || conversationId === "new") return;
     try {
       const [info, status] = await Promise.allSettled([
-        api.getSessionInfo(conversationId),
-        api.getConversation(conversationId),
+        api.getSessionInfo(activeWorkspace?._id, conversationId),
+        api.getConversation(activeWorkspace?._id, conversationId),
       ]);
       if (info.status === "fulfilled") setSessionInfo(info.value);
       if (status.status === "fulfilled") {
         setContainerStatus(status.value?.environment);
         setParticipants(status.value?.participants || []);
         if (status.value?.environment?.status === "running") {
-          const [filesRes] = await Promise.allSettled([api.getGitFiles(conversationId)]);
+          const [filesRes] = await Promise.allSettled([api.getGitFiles(activeWorkspace?._id, conversationId)]);
           setChangedFiles(filesRes.status === "fulfilled" ? (filesRes.value.files || []) : []);
         } else {
           setChangedFiles([]);
@@ -96,7 +98,7 @@ const SessionSidebar = ({ conversationId }) => {
     } finally {
       setLoading(false);
     }
-  }, [conversationId]);
+  }, [conversationId, activeWorkspace]);
 
   useEffect(() => {
     setLoading(true); setSessionInfo(null); setContainerStatus(null); fetchData();

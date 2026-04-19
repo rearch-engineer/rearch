@@ -279,11 +279,12 @@ const handleSSEStream = async (
 export const api = {
   // Conversations
   createConversation: async (
+    workspaceId,
     title = "New Conversation",
     repository,
     subResource,
   ) => {
-    const response = await axios.post(`${API_BASE_URL}/conversations`, {
+    const response = await axios.post(`${API_BASE_URL}/workspaces/${workspaceId}/conversations`, {
       title,
       repository,
       subResource,
@@ -291,9 +292,9 @@ export const api = {
     return response.data;
   },
 
-  createConversationByName: async (repoName) => {
+  createConversationByName: async (workspaceId, repoName) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/start-by-name`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/start-by-name`,
       {
         name: repoName,
       },
@@ -301,67 +302,67 @@ export const api = {
     return response.data;
   },
 
-  getConversations: async () => {
-    const response = await axios.get(`${API_BASE_URL}/conversations`);
+  getConversations: async (workspaceId) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}/conversations`);
     return response.data;
   },
 
-  searchConversations: async (query) => {
-    const response = await axios.get(`${API_BASE_URL}/conversations/search`, {
+  searchConversations: async (workspaceId, query) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}/conversations/search`, {
       params: { q: query },
     });
     return response.data;
   },
 
-  getConversation: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/conversations/${id}`);
+  getConversation: async (workspaceId, id) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/${workspaceId}/conversations/${id}`);
     return response.data;
   },
 
-  getMessages: async (id) => {
+  getMessages: async (workspaceId, id) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${id}/messages`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${id}/messages`,
     );
     return response.data;
   },
 
-  deleteConversation: async (id) => {
-    const response = await axios.delete(`${API_BASE_URL}/conversations/${id}`);
+  deleteConversation: async (workspaceId, id) => {
+    const response = await axios.delete(`${API_BASE_URL}/workspaces/${workspaceId}/conversations/${id}`);
     return response.data;
   },
 
-  renameConversation: async (id, title) => {
-    const response = await axios.patch(`${API_BASE_URL}/conversations/${id}`, {
+  renameConversation: async (workspaceId, id, title) => {
+    const response = await axios.patch(`${API_BASE_URL}/workspaces/${workspaceId}/conversations/${id}`, {
       title,
     });
     return response.data;
   },
 
   // Conversation container data
-  getProviders: async (conversationId) => {
+  getProviders: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/providers`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/providers`,
     );
     return response.data;
   },
 
-  getAgents: async (conversationId) => {
+  getAgents: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/agents`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/agents`,
     );
     return response.data;
   },
 
-  getSessionInfo: async (conversationId) => {
+  getSessionInfo: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/session-info`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/session-info`,
     );
     return response.data;
   },
 
-  getServices: async (conversationId) => {
+  getServices: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/services`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/services`,
     );
     return response.data;
   },
@@ -392,6 +393,7 @@ export const api = {
 
   // Messages
   sendMessage: async (
+    workspaceId,
     conversationId,
     content,
     onChunk,
@@ -407,7 +409,7 @@ export const api = {
       if (files && files.length > 0) body.files = files;
 
       const response = await fetch(
-        `${API_BASE_URL}/conversations/${conversationId}/messages`,
+        `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
         {
           method: "POST",
           headers: getAuthHeaders(),
@@ -431,6 +433,7 @@ export const api = {
   },
 
   editMessage: async (
+    workspaceId,
     conversationId,
     messageId,
     content,
@@ -446,7 +449,7 @@ export const api = {
       if (agent) body.agent = agent;
 
       const response = await fetch(
-        `${API_BASE_URL}/conversations/${conversationId}/messages/${messageId}`,
+        `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/messages/${messageId}`,
         {
           method: "PUT",
           headers: getAuthHeaders(),
@@ -469,79 +472,80 @@ export const api = {
   },
 
   // Question operations (agent asking user questions)
-  replyToQuestion: async (conversationId, requestId, answers) => {
+  replyToQuestion: async (workspaceId, conversationId, requestId, answers) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/question/${requestId}/reply`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/question/${requestId}/reply`,
       { answers },
     );
     return response.data;
   },
 
-  rejectQuestion: async (conversationId, requestId) => {
+  rejectQuestion: async (workspaceId, conversationId, requestId) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/question/${requestId}/reject`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/question/${requestId}/reject`,
     );
     return response.data;
   },
 
   // Permission operations (agent requesting permission for actions)
-  replyToPermission: async (conversationId, requestId, reply, message) => {
+  replyToPermission: async (workspaceId, conversationId, requestId, reply, message) => {
     const body = { reply };
     if (message) body.message = message;
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/permission/${requestId}/reply`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/permission/${requestId}/reply`,
       body,
     );
     return response.data;
   },
 
   // Git operations
-  getGitFiles: async (conversationId) => {
+  getGitFiles: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/git-files`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/git-files`,
     );
     return response.data;
   },
 
-  getGitDiff: async (conversationId) => {
+  getGitDiff: async (workspaceId, conversationId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/git-diff`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/git-diff`,
     );
     return response.data;
   },
 
-  getGitFileDiff: async (conversationId, filename) => {
+  getGitFileDiff: async (workspaceId, conversationId, filename) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/git-diff-file`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/git-diff-file`,
       { filename },
     );
     return response.data;
   },
 
-  commitAndPush: async (conversationId, { branchName, commitMessage }) => {
+  commitAndPush: async (workspaceId, conversationId, { branchName, commitMessage }) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/git-commit-push`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/git-commit-push`,
       { branchName, commitMessage },
     );
     return response.data;
   },
 
   createPullRequest: async (
+    workspaceId,
     conversationId,
     { title, description, sourceBranch, reviewers },
   ) => {
     const response = await axios.post(
-      `${API_BASE_URL}/conversations/${conversationId}/create-pr`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/create-pr`,
       { title, description, sourceBranch, reviewers },
     );
     return response.data;
   },
 
-  getBitbucketMembers: async (conversationId, search = "") => {
+  getBitbucketMembers: async (workspaceId, conversationId, search = "") => {
     const params = {};
     if (search) params.search = search;
     const response = await axios.get(
-      `${API_BASE_URL}/conversations/${conversationId}/bitbucket-members`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/bitbucket-members`,
       { params },
     );
     return response.data;
@@ -1028,6 +1032,110 @@ export const api = {
 
   deleteLlmProvider: async (id) => {
     const response = await axios.delete(`${API_BASE_URL}/admin/llm-providers/${id}`);
+    return response.data;
+  },
+
+  // Workspaces
+  getWorkspaces: async () => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces`);
+    return response.data;
+  },
+
+  createWorkspace: async (name) => {
+    const response = await axios.post(`${API_BASE_URL}/workspaces`, { name });
+    return response.data;
+  },
+
+  getWorkspace: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/${id}`);
+    return response.data;
+  },
+
+  updateWorkspace: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/workspaces/${id}`, data);
+    return response.data;
+  },
+
+  deleteWorkspace: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/workspaces/${id}`);
+    return response.data;
+  },
+
+  getWorkspaceMembers: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/${id}/members`);
+    return response.data;
+  },
+
+  addWorkspaceMember: async (id, userId) => {
+    const response = await axios.post(`${API_BASE_URL}/workspaces/${id}/members`, { userId });
+    return response.data;
+  },
+
+  updateWorkspaceMember: async (id, userId, data) => {
+    const response = await axios.put(`${API_BASE_URL}/workspaces/${id}/members/${userId}`, data);
+    return response.data;
+  },
+
+  removeWorkspaceMember: async (id, userId) => {
+    const response = await axios.delete(`${API_BASE_URL}/workspaces/${id}/members/${userId}`);
+    return response.data;
+  },
+
+  leaveWorkspace: async (id) => {
+    const response = await axios.post(`${API_BASE_URL}/workspaces/${id}/leave`);
+    return response.data;
+  },
+
+  inviteWorkspaceMembersByEmail: async (id, invites) => {
+    const response = await axios.post(`${API_BASE_URL}/workspaces/${id}/invite`, { invites });
+    return response.data;
+  },
+
+  searchUsersForInvite: async (query) => {
+    const response = await axios.get(`${API_BASE_URL}/workspaces/users/search`, {
+      params: { q: query },
+    });
+    return response.data;
+  },
+
+  // Admin Workspaces
+  getAdminWorkspaces: async (params = {}) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/workspaces`, { params });
+    return response.data;
+  },
+
+  getAdminWorkspace: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/workspaces/${id}`);
+    return response.data;
+  },
+
+  updateAdminWorkspace: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/admin/workspaces/${id}`, data);
+    return response.data;
+  },
+
+  deleteAdminWorkspace: async (id) => {
+    const response = await axios.delete(`${API_BASE_URL}/admin/workspaces/${id}`);
+    return response.data;
+  },
+
+  getAdminWorkspaceMembers: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/workspaces/${id}/members`);
+    return response.data;
+  },
+
+  addAdminWorkspaceMember: async (id, userId) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/workspaces/${id}/members`, { userId });
+    return response.data;
+  },
+
+  updateAdminWorkspaceMember: async (id, userId, data) => {
+    const response = await axios.put(`${API_BASE_URL}/admin/workspaces/${id}/members/${userId}`, data);
+    return response.data;
+  },
+
+  removeAdminWorkspaceMember: async (id, userId) => {
+    const response = await axios.delete(`${API_BASE_URL}/admin/workspaces/${id}/members/${userId}`);
     return response.data;
   },
 };

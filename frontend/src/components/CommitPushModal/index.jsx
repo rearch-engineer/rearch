@@ -5,6 +5,7 @@ import { useColorScheme } from "@mui/joy/styles";
 import { api } from "../../api/client";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConversations } from "../../contexts/ConversationsContext";
+import { useWorkspaces } from "../../contexts/WorkspacesContext";
 import Modal from "@mui/joy/Modal";
 import ModalDialog from "@mui/joy/ModalDialog";
 import ModalClose from "@mui/joy/ModalClose";
@@ -114,6 +115,7 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
   const { mode, systemMode } = useColorScheme();
   const { user } = useAuth();
   const { conversations } = useConversations();
+  const { activeWorkspace } = useWorkspaces();
   const monacoTheme =
     (mode === "system" ? systemMode : mode) === "dark" ? "vs-dark" : "vs";
 
@@ -186,7 +188,7 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
       setLoadingFileDiff(true);
       setFileDiff(null);
       try {
-        const data = await api.getGitFileDiff(conversationId, filename);
+        const data = await api.getGitFileDiff(activeWorkspace?._id, conversationId, filename);
         setFileDiff(data);
       } catch (err) {
         console.error("Error loading file diff:", err);
@@ -195,7 +197,7 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
         setLoadingFileDiff(false);
       }
     },
-    [conversationId],
+    [conversationId, activeWorkspace],
   );
 
   const handleSelectFile = useCallback(
@@ -233,15 +235,15 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
     // Fetch workspace members in background (for reviewer dropdown)
     setLoadingMembers(true);
     api
-      .getBitbucketMembers(conversationId)
+      .getBitbucketMembers(activeWorkspace?._id, conversationId)
       .then((data) => setMembers(data.members || []))
       .catch(() => setMembers([]))
       .finally(() => setLoadingMembers(false));
 
     try {
       const [diffData, filesData] = await Promise.all([
-        api.getGitDiff(conversationId),
-        api.getGitFiles(conversationId),
+        api.getGitDiff(activeWorkspace?._id, conversationId),
+        api.getGitFiles(activeWorkspace?._id, conversationId),
       ]);
 
       const fileList = filesData.files || [];
@@ -317,14 +319,14 @@ const CommitPushModal = ({ open, onClose, conversationId }) => {
     setError(null);
 
     try {
-      await api.commitAndPush(conversationId, {
+      await api.commitAndPush(activeWorkspace?._id, conversationId, {
         branchName: branchName.trim(),
         commitMessage: commitMessage.trim(),
       });
 
       setStep(STEP.CREATING_PR);
       try {
-        const pr = await api.createPullRequest(conversationId, {
+        const pr = await api.createPullRequest(activeWorkspace?._id, conversationId, {
           title: commitMessage.trim().split("\n")[0],
           description: `## Changes\n\nCommitted from ReArch conversation.\n\n### Commit message\n${commitMessage.trim()}`,
           sourceBranch: branchName.trim(),

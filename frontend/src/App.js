@@ -25,9 +25,11 @@ import { SkillsProvider } from "./contexts/SkillsContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ConversationsProvider } from "./contexts/ConversationsContext";
+import { WorkspacesProvider } from "./contexts/WorkspacesContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ConfirmProvider } from "./contexts/ConfirmContext";
+import WorkspaceSettingsPage from "./pages/WorkspaceSettingsPage";
 import "./App.css";
 
 /**
@@ -163,6 +165,7 @@ function AuthenticatedApp() {
       <JobsProvider>
         <ResourcesProvider>
             <SkillsProvider>
+              <WorkspacesProvider>
               <ConversationsProvider>
                 <LanguageApplier />
                 <ThemeApplier />
@@ -194,11 +197,13 @@ function AuthenticatedApp() {
                         path="/administration/*"
                         element={<AdministrationPage />}
                       />
+                      <Route path="/workspace/:workspaceId/settings/*" element={<WorkspaceSettingsPage />} />
                       <Route path="/account/*" element={<AccountPage />} />
                     </Routes>
                   </ErrorBoundary>
                 </Box>
               </ConversationsProvider>
+              </WorkspacesProvider>
             </SkillsProvider>
         </ResourcesProvider>
       </JobsProvider>

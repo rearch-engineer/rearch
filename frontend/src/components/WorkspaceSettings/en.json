@@ -1,0 +1,38 @@
+{
+  "sidebar": {
+    "back": "Back",
+    "workspaceSettings": "Workspace Settings",
+    "general": "General",
+    "members": "Members"
+  },
+  "general": {
+    "title": "General Settings",
+    "workspaceName": "Workspace name",
+    "save": "Save",
+    "personalCannotEdit": "Personal workspace name cannot be changed.",
+    "dangerZone": "Danger Zone",
+    "deleteWarning": "Deleting this workspace will remove all members. Conversations will become inaccessible.",
+    "deleteWorkspace": "Delete Workspace",
+    "deleteConfirmTitle": "Delete Workspace",
+    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
+  "members": {
+    "title": "Members",
+    "invite": "Invite",
+    "searchUsers": "Search users to invite",
+    "searchPlaceholder": "Search by name or email...",
+    "search": "Search",
+    "add": "Add",
+    "user": "User",
+    "email": "Email",
+    "role": "Role",
+    "admin": "Admin",
+    "member": "Member",
+    "removeTitle": "Remove Member",
+    "removeConfirm": "Are you sure you want to remove this member from the workspace?",
+    "remove": "Remove",
+    "cancel": "Cancel"
+  }
+}

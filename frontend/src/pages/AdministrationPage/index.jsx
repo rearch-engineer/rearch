@@ -27,6 +27,8 @@ import SubResourceDetailsPage from "../../components/Administration/Resources/Su
 import SubResourcesListPage from "../../components/Administration/Resources/SubResourcesListPage";
 import BitbucketResourceForm from "../../components/Administration/Resources/SubResources/Bitbucket/BitbucketResourceForm";
 import GithubResourceForm from "../../components/Administration/Resources/SubResources/Github/GithubResourceForm";
+import WorkspacesSettings from "../../components/Administration/WorkspacesSettings";
+import WorkspaceEditPage from "../../components/Administration/WorkspaceEditPage";
 
 export default function AdministrationPage() {
   return (
@@ -68,6 +70,8 @@ export default function AdministrationPage() {
         <Route path="/general" element={<GeneralSettings />} />
         <Route path="/llm-providers" element={<LlmProvidersSettings />} />
         <Route path="/users" element={<UsersSettings />} />
+        <Route path="/workspaces" element={<WorkspacesSettings />} />
+        <Route path="/workspaces/:id" element={<WorkspaceEditPage />} />
         <Route path="/skills" element={<SkillsSettings />} />
         <Route path="/skills/:id" element={<SkillEditPage />} />
         <Route path="/jobs" element={<JobsSettings />} />

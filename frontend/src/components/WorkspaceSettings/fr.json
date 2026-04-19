@@ -1,0 +1,38 @@
+{
+  "sidebar": {
+    "back": "Retour",
+    "workspaceSettings": "Paramètres de l'Espace",
+    "general": "Général",
+    "members": "Membres"
+  },
+  "general": {
+    "title": "Paramètres Généraux",
+    "workspaceName": "Nom de l'espace",
+    "save": "Enregistrer",
+    "personalCannotEdit": "Le nom de l'espace personnel ne peut pas être modifié.",
+    "dangerZone": "Zone de Danger",
+    "deleteWarning": "Supprimer cet espace supprimera tous les membres. Les conversations deviendront inaccessibles.",
+    "deleteWorkspace": "Supprimer l'Espace",
+    "deleteConfirmTitle": "Supprimer l'Espace",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer \"{{name}}\" ? Cette action est irréversible.",
+    "delete": "Supprimer",
+    "cancel": "Annuler"
+  },
+  "members": {
+    "title": "Membres",
+    "invite": "Inviter",
+    "searchUsers": "Rechercher des utilisateurs à inviter",
+    "searchPlaceholder": "Rechercher par nom ou email...",
+    "search": "Rechercher",
+    "add": "Ajouter",
+    "user": "Utilisateur",
+    "email": "Email",
+    "role": "Rôle",
+    "admin": "Administrateur",
+    "member": "Membre",
+    "removeTitle": "Retirer le Membre",
+    "removeConfirm": "Êtes-vous sûr de vouloir retirer ce membre de l'espace ?",
+    "remove": "Retirer",
+    "cancel": "Annuler"
+  }
+}

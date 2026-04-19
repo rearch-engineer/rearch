@@ -15,7 +15,8 @@
     "resources": "Bronnen",
     "groupContainers": "Containers",
     "rebuild": "Opnieuw bouwen",
-    "cleanup": "Opruimen"
+    "cleanup": "Opruimen",
+    "workspaces": "Werkruimtes"
   },
   "general": {
     "loading": "Laden...",
@@ -619,5 +620,40 @@
     "importRepository": "Repository importeren",
     "importSubresource": "Subresource importeren",
     "notSupported": "Importeren wordt niet ondersteund voor dit brontype"
+  },
+  "workspaces": {
+    "title": "Werkruimtes",
+    "searchPlaceholder": "Werkruimtes zoeken...",
+    "search": "Zoeken",
+    "name": "Naam",
+    "owner": "Eigenaar",
+    "members": "Leden",
+    "type": "Type",
+    "created": "Aangemaakt",
+    "personal": "Persoonlijk",
+    "shared": "Gedeeld",
+    "noResults": "Geen werkruimtes gevonden",
+    "prev": "Vorige",
+    "next": "Volgende",
+    "notFound": "Werkruimte niet gevonden",
+    "backToList": "Terug naar werkruimtes",
+    "save": "Opslaan",
+    "addMember": "Lid Toevoegen",
+    "searchUserPlaceholder": "Zoek op naam of e-mail...",
+    "add": "Toevoegen",
+    "memberName": "Naam",
+    "memberEmail": "E-mail",
+    "memberRole": "Rol",
+    "roleAdmin": "Beheerder",
+    "roleMember": "Lid",
+    "dangerZone": "Gevarenzone",
+    "deleteWorkspace": "Werkruimte Verwijderen",
+    "deleteConfirmTitle": "Werkruimte Verwijderen",
+    "deleteConfirmMessage": "Weet je zeker dat je \"{{name}}\" wilt verwijderen?",
+    "delete": "Verwijderen",
+    "cancel": "Annuleren",
+    "remove": "Verwijderen",
+    "removeMemberTitle": "Lid Verwijderen",
+    "removeMemberConfirm": "Weet je zeker dat je dit lid wilt verwijderen?"
   }
 }

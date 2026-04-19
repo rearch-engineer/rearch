@@ -1,0 +1,38 @@
+{
+  "sidebar": {
+    "back": "Terug",
+    "workspaceSettings": "Werkruimte-instellingen",
+    "general": "Algemeen",
+    "members": "Leden"
+  },
+  "general": {
+    "title": "Algemene Instellingen",
+    "workspaceName": "Naam werkruimte",
+    "save": "Opslaan",
+    "personalCannotEdit": "De naam van de persoonlijke werkruimte kan niet worden gewijzigd.",
+    "dangerZone": "Gevarenzone",
+    "deleteWarning": "Het verwijderen van deze werkruimte verwijdert alle leden. Gesprekken worden ontoegankelijk.",
+    "deleteWorkspace": "Werkruimte Verwijderen",
+    "deleteConfirmTitle": "Werkruimte Verwijderen",
+    "deleteConfirmMessage": "Weet je zeker dat je \"{{name}}\" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    "delete": "Verwijderen",
+    "cancel": "Annuleren"
+  },
+  "members": {
+    "title": "Leden",
+    "invite": "Uitnodigen",
+    "searchUsers": "Zoek gebruikers om uit te nodigen",
+    "searchPlaceholder": "Zoek op naam of e-mail...",
+    "search": "Zoeken",
+    "add": "Toevoegen",
+    "user": "Gebruiker",
+    "email": "E-mail",
+    "role": "Rol",
+    "admin": "Beheerder",
+    "member": "Lid",
+    "removeTitle": "Lid Verwijderen",
+    "removeConfirm": "Weet je zeker dat je dit lid uit de werkruimte wilt verwijderen?",
+    "remove": "Verwijderen",
+    "cancel": "Annuleren"
+  }
+}

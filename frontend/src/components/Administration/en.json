@@ -15,7 +15,8 @@
     "resources": "Resources",
     "groupContainers": "Containers",
     "rebuild": "Rebuild",
-    "cleanup": "Clean up"
+    "cleanup": "Clean up",
+    "workspaces": "Workspaces"
   },
   "general": {
     "loading": "Loading...",
@@ -672,5 +673,40 @@
     "failedToSearchRepositories": "Failed to search repositories.",
     "failedToImportRepository": "Failed to import repository.",
     "noRepositoriesFound": "No repositories found matching your search."
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "searchPlaceholder": "Search workspaces...",
+    "search": "Search",
+    "name": "Name",
+    "owner": "Owner",
+    "members": "Members",
+    "type": "Type",
+    "created": "Created",
+    "personal": "Personal",
+    "shared": "Shared",
+    "noResults": "No workspaces found",
+    "prev": "Previous",
+    "next": "Next",
+    "notFound": "Workspace not found",
+    "backToList": "Back to workspaces",
+    "save": "Save",
+    "addMember": "Add Member",
+    "searchUserPlaceholder": "Search by name or email...",
+    "add": "Add",
+    "memberName": "Name",
+    "memberEmail": "Email",
+    "memberRole": "Role",
+    "roleAdmin": "Admin",
+    "roleMember": "Member",
+    "dangerZone": "Danger Zone",
+    "deleteWorkspace": "Delete Workspace",
+    "deleteConfirmTitle": "Delete Workspace",
+    "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"?",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "removeMemberTitle": "Remove Member",
+    "removeMemberConfirm": "Are you sure you want to remove this member?"
   }
 }

@@ -15,7 +15,8 @@
     "resources": "Recursos",
     "groupContainers": "Contenedores",
     "rebuild": "Reconstruir",
-    "cleanup": "Limpieza"
+    "cleanup": "Limpieza",
+    "workspaces": "Espacios de Trabajo"
   },
   "general": {
     "loading": "Cargando...",
@@ -619,5 +620,40 @@
     "importRepository": "Importar repositorio",
     "importSubresource": "Importar subrecurso",
     "notSupported": "Importación no compatible para este tipo de recurso"
+  },
+  "workspaces": {
+    "title": "Espacios de Trabajo",
+    "searchPlaceholder": "Buscar espacios de trabajo...",
+    "search": "Buscar",
+    "name": "Nombre",
+    "owner": "Propietario",
+    "members": "Miembros",
+    "type": "Tipo",
+    "created": "Creado",
+    "personal": "Personal",
+    "shared": "Compartido",
+    "noResults": "No se encontraron espacios de trabajo",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "notFound": "Espacio de trabajo no encontrado",
+    "backToList": "Volver a espacios de trabajo",
+    "save": "Guardar",
+    "addMember": "Añadir Miembro",
+    "searchUserPlaceholder": "Buscar por nombre o correo...",
+    "add": "Añadir",
+    "memberName": "Nombre",
+    "memberEmail": "Correo",
+    "memberRole": "Rol",
+    "roleAdmin": "Administrador",
+    "roleMember": "Miembro",
+    "dangerZone": "Zona de Peligro",
+    "deleteWorkspace": "Eliminar Espacio de Trabajo",
+    "deleteConfirmTitle": "Eliminar Espacio de Trabajo",
+    "deleteConfirmMessage": "¿Estás seguro de que deseas eliminar \"{{name}}\"?",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "remove": "Eliminar",
+    "removeMemberTitle": "Eliminar Miembro",
+    "removeMemberConfirm": "¿Estás seguro de que deseas eliminar este miembro?"
   }
 }

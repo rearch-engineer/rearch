@@ -14,6 +14,7 @@ import {
   extractKeycloakRoles,
   extractKeycloakUserInfo,
 } from "../utils/keycloak.js";
+import { ensurePersonalWorkspace } from "../utils/workspace.js";
 
 const router = new Elysia({ prefix: "/api/auth" });
 
@@ -226,6 +227,7 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
         roles: ["user"],
       },
     });
+    await ensurePersonalWorkspace(user._id);
 
     return new Response(
       JSON.stringify({
@@ -287,6 +289,8 @@ rateLimitedAuthRoutes.post("/login", async ({ body, headers, status }) => {
     user.auth.last_login = new Date();
     user.addActivity("login", getClientIp(headers));
     await user.save();
+
+    await ensurePersonalWorkspace(user._id);
 
     const token = signToken(user);
 
@@ -450,6 +454,7 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
             subject: sub,
           },
         });
+        await ensurePersonalWorkspace(user._id);
       }
     }
 
@@ -465,6 +470,8 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
     user.auth.last_login = new Date();
     user.addActivity("login", getClientIp(headers));
     await user.save();
+
+    await ensurePersonalWorkspace(user._id);
 
     const token = signToken(user);
 
@@ -585,6 +592,7 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
             subject: userInfo.sub,
           },
         });
+        await ensurePersonalWorkspace(user._id);
       }
     } else {
       // Sync roles
@@ -603,6 +611,8 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
     user.auth.last_login = new Date();
     user.addActivity("login", getClientIp(headers));
     await user.save();
+
+    await ensurePersonalWorkspace(user._id);
 
     // Issue app JWT for Socket.IO and internal use
     const appToken = signToken(user);

@@ -11,6 +11,11 @@ const conversationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  workspace: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Workspace',
+    default: null
+  },
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -117,6 +122,8 @@ const conversationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+conversationSchema.index({ workspace: 1 });
 
 conversationSchema.plugin(mongoose_delete, {
   deletedAt: true,
