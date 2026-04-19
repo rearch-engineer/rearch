@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicedoc/tauri/next/crates/tauri-utils/schema.json",
+  "productName": "ReArch",
+  "version": "0.1.0",
+  "identifier": "es.lab34.rearch",
+  "build": {
+    "beforeDevCommand": {
+      "script": "npm run dev",
+      "cwd": "../../../frontend"
+    },
+    "devUrl": "http://localhost:4200",
+    "beforeBuildCommand": {
+      "script": "npm run build",
+      "cwd": "../../../frontend"
+    },
+    "frontendDist": "../../../frontend/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ReArch",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src * 'self' 'unsafe-inline' 'unsafe-eval' data: blob: tauri:; connect-src * 'self' ws: wss: http: https: tauri:; img-src * 'self' data: blob: tauri:; style-src * 'self' 'unsafe-inline'; font-src * 'self' data:; script-src * 'self' 'unsafe-inline' 'unsafe-eval';",
+      "dangerousDisableAssetCspModification": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
