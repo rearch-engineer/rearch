@@ -16,5 +16,9 @@
   "switchModel": "Changer de modèle",
   "documentation": "Documentation",
   "website": "Site web",
-  "logout": "Déconnexion"
+  "logout": "Déconnexion",
+  "switchWorkspace": "Changer d'espace de travail",
+  "createWorkspace": "Créer un espace de travail",
+  "inviteMembers": "Inviter des membres",
+  "workspaces": "Espaces de travail"
 }

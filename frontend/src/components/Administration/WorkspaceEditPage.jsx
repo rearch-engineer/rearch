@@ -49,7 +49,7 @@ export default function WorkspaceEditPage() {
         api.getAdminWorkspaceMembers(id),
       ]);
       setWorkspace(wsData);
-      setMembers(membersData);
+      setMembers(membersData.members || []);
       setName(wsData.name);
       setOriginalName(wsData.name);
     } catch (err) {

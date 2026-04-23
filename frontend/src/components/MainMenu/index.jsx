@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import Dropdown from "@mui/joy/Dropdown";
@@ -113,7 +113,7 @@ const MainMenu = () => {
     handleRenameConversation,
     markRead,
   } = useConversations();
-  const { workspaces, activeWorkspace, setActiveWorkspace, createWorkspace, updateWorkspace, deleteWorkspace } = useWorkspaces();
+  const { workspaces, activeWorkspace, setActiveWorkspace, createWorkspace, updateWorkspace, deleteWorkspace, navigateToConversation, conversationPath } = useWorkspaces();
 
   const isOnAdministration = location.pathname.startsWith("/administration");
   const isOnAccount = location.pathname.startsWith("/account");
@@ -148,13 +148,48 @@ const MainMenu = () => {
     window.dispatchEvent(new CustomEvent("open-command-palette"));
   }, []);
 
+  const loadWorkspaceMembers = useCallback(async () => {
+    if (!activeWorkspace) return;
+    setMembersLoading(true);
+    try {
+      const members = await api.getWorkspaceMembers(activeWorkspace._id);
+      setExistingMembers(members);
+    } catch (err) {
+      console.error("Error loading workspace members:", err);
+    } finally {
+      setMembersLoading(false);
+    }
+  }, [activeWorkspace]);
+
+  const openInviteModal = useCallback(() => {
+    setInviteOpen(true);
+    loadWorkspaceMembers();
+  }, [loadWorkspaceMembers]);
+
+  // Listen for custom events from CommandPalette to open modals
+  useEffect(() => {
+    const handleOpenCreateWs = () => {
+      setCreateWsOpen(true);
+      setCreateWsName("");
+    };
+    const handleOpenInvite = () => {
+      openInviteModal();
+    };
+    window.addEventListener("open-create-workspace-modal", handleOpenCreateWs);
+    window.addEventListener("open-invite-modal", handleOpenInvite);
+    return () => {
+      window.removeEventListener("open-create-workspace-modal", handleOpenCreateWs);
+      window.removeEventListener("open-invite-modal", handleOpenInvite);
+    };
+  }, [openInviteModal]);
+
   const onSelectConversation = (id) => {
     markRead(id);
-    navigate(`/conversations/${id}`);
+    navigateToConversation(id);
   };
 
   const onNewConversation = () => {
-    navigate("/conversations/new");
+    navigateToConversation("new");
   };
 
   const onRequestDelete = (id) => {
@@ -164,7 +199,7 @@ const MainMenu = () => {
   const onConfirmDelete = () => {
     if (deleteConfirm) {
       handleDeleteConversation(deleteConfirm);
-      if (location.pathname === `/conversations/${deleteConfirm}`) {
+      if (location.pathname === conversationPath(deleteConfirm)) {
         navigate("/");
       }
     }
@@ -199,6 +234,7 @@ const MainMenu = () => {
     try {
       const newWs = await createWorkspace(trimmed);
       setActiveWorkspace(newWs);
+      navigate(`/workspaces/${newWs._id}/conversations/new`);
       setCreateWsOpen(false);
       setCreateWsName("");
     } catch (err) {
@@ -207,24 +243,6 @@ const MainMenu = () => {
       setCreateWsLoading(false);
     }
   };
-
-  const loadWorkspaceMembers = useCallback(async () => {
-    if (!activeWorkspace) return;
-    setMembersLoading(true);
-    try {
-      const members = await api.getWorkspaceMembers(activeWorkspace._id);
-      setExistingMembers(members);
-    } catch (err) {
-      console.error("Error loading workspace members:", err);
-    } finally {
-      setMembersLoading(false);
-    }
-  }, [activeWorkspace]);
-
-  const openInviteModal = useCallback(() => {
-    setInviteOpen(true);
-    loadWorkspaceMembers();
-  }, [loadWorkspaceMembers]);
 
   const onAddInviteEmail = () => {
     const trimmed = inviteEmail.trim().toLowerCase();
@@ -422,7 +440,7 @@ const MainMenu = () => {
             onMouseLeave={closeConvPopover}
           >
             <div
-              className={`main-menu-nav-item${location.pathname.startsWith("/conversations") ? " active" : ""}`}
+              className={`main-menu-nav-item${location.pathname.includes("/conversations") ? " active" : ""}`}
               title={t("conversations")}
             >
               <ChatBubbleOutlineIcon
@@ -458,7 +476,7 @@ const MainMenu = () => {
                     conversations.map((conv) => (
                       <div
                         key={conv._id}
-                        className={`collapsed-conv-popover-item${location.pathname === `/conversations/${conv._id}` ? " active" : ""}`}
+                        className={`collapsed-conv-popover-item${location.pathname === conversationPath(conv._id) ? " active" : ""}`}
                         onClick={() => {
                           onSelectConversation(conv._id);
                           setConvPopoverOpen(false);
@@ -530,7 +548,10 @@ const MainMenu = () => {
                   <MenuItem
                     key={ws._id}
                     selected={ws._id === activeWorkspace?._id}
-                    onClick={() => setActiveWorkspace(ws)}
+                    onClick={() => {
+                      setActiveWorkspace(ws);
+                      navigate(`/workspaces/${ws._id}/conversations/new`);
+                    }}
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
@@ -619,7 +640,7 @@ const MainMenu = () => {
             conversations.map((conv) => (
               <div
                 key={conv._id}
-                className={`conversation-item ${location.pathname === `/conversations/${conv._id}` ? "active" : ""}`}
+                className={`conversation-item ${location.pathname === conversationPath(conv._id) ? "active" : ""}`}
                 onClick={() => {
                   if (renamingId !== conv._id) onSelectConversation(conv._id);
                 }}

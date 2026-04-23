@@ -6,6 +6,7 @@ import {
   Route,
   Navigate,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import config, { isTauri, applyTauriConfig } from "./config";
 import ServerSetupPage from "./pages/ServerSetupPage";
@@ -25,7 +26,7 @@ import { SkillsProvider } from "./contexts/SkillsContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { ConversationsProvider } from "./contexts/ConversationsContext";
-import { WorkspacesProvider } from "./contexts/WorkspacesContext";
+import { WorkspacesProvider, useWorkspaces } from "./contexts/WorkspacesContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ConfirmProvider } from "./contexts/ConfirmContext";
@@ -157,6 +158,32 @@ function StartRedirectHandler() {
 }
 
 /**
+ * Redirects from / to the personal workspace's new conversation page.
+ * Waits for workspaces to load before redirecting.
+ */
+function DefaultRedirect() {
+  const { workspaces, loading } = useWorkspaces();
+
+  if (loading || workspaces.length === 0) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        {i18n.t('loading', { ns: 'App' })}
+      </Box>
+    );
+  }
+
+  const personal = workspaces.find(w => w.isPersonal) || workspaces[0];
+  return <Navigate to={`/workspaces/${personal._id}/conversations/new`} replace />;
+}
+
+/**
  * The authenticated app layout with navigation, providers, and protected routes.
  */
 function AuthenticatedApp() {
@@ -186,11 +213,11 @@ function AuthenticatedApp() {
                     <Routes>
                       <Route
                         path="/"
-                        element={<Navigate to="/conversations/new" replace />}
+                        element={<DefaultRedirect />}
                       />
                       <Route path="/start" element={<StartPage />} />
                       <Route
-                        path="/conversations/:id"
+                        path="/workspaces/:wid/conversations/:id"
                         element={<ConversationsPage />}
                       />
                       <Route

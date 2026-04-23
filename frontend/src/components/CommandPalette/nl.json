@@ -16,5 +16,9 @@
   "switchModel": "Model wisselen",
   "documentation": "Documentatie",
   "website": "Website",
-  "logout": "Uitloggen"
+  "logout": "Uitloggen",
+  "switchWorkspace": "Werkruimte wisselen",
+  "createWorkspace": "Werkruimte aanmaken",
+  "inviteMembers": "Leden uitnodigen",
+  "workspaces": "Werkruimten"
 }

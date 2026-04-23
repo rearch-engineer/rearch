@@ -18,7 +18,7 @@ export default function StartPage() {
   const { t } = useTranslation("StartPage");
   const navigate = useNavigate();
   const { handleConversationCreated } = useConversations();
-  const { activeWorkspace } = useWorkspaces();
+  const { activeWorkspace, navigateToConversation } = useWorkspaces();
   const processedRef = useRef(false);
   const [error, setError] = useState(null);
 
@@ -37,7 +37,7 @@ export default function StartPage() {
       try {
         const newConv = await api.createConversationByName(activeWorkspace?._id, decodeURIComponent(repoName));
         handleConversationCreated(newConv);
-        navigate(`/conversations/${newConv._id}`, { replace: true });
+        navigateToConversation(newConv._id, { replace: true });
       } catch (err) {
         const status = err.response?.status;
         const message = err.response?.data?.error || err.message;
@@ -56,7 +56,7 @@ export default function StartPage() {
     sessionStorage.removeItem("start_redirect");
 
     createAndRedirect();
-  }, [navigate, handleConversationCreated]);
+  }, [navigate, handleConversationCreated, navigateToConversation]);
 
   if (error) {
     return (
@@ -82,7 +82,7 @@ export default function StartPage() {
         </Typography>
         <Button
           variant="outlined"
-          onClick={() => navigate("/conversations/new", { replace: true })}
+          onClick={() => navigateToConversation("new", { replace: true })}
         >
           {t("goToNewConversation")}
         </Button>

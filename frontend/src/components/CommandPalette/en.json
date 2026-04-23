@@ -16,5 +16,9 @@
   "switchModel": "Switch model",
   "documentation": "Documentation",
   "website": "Website",
-  "logout": "Logout"
+  "logout": "Logout",
+  "switchWorkspace": "Switch workspace",
+  "createWorkspace": "Create workspace",
+  "inviteMembers": "Invite members",
+  "workspaces": "Workspaces"
 }

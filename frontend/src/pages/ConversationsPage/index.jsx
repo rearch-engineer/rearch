@@ -15,7 +15,7 @@ function ConversationsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { loadConversations, handleConversationCreated, conversations } = useConversations();
-  const { activeWorkspace } = useWorkspaces();
+  const { activeWorkspace, navigateToConversation } = useWorkspaces();
 
   const conversationId = id === 'new' ? 'new' : id || null;
   const [services, setServices] = useState([]);
@@ -39,14 +39,14 @@ function ConversationsPage() {
     fetchServices();
     const interval = setInterval(fetchServices, SERVICES_POLL_INTERVAL);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [conversationId, conversationEnvStatus]);
+  }, [conversationId, conversationEnvStatus, activeWorkspace?._id]);
 
   const handleConversationUpdate = () => loadConversations();
 
   const onConversationCreated = useCallback((newConv) => {
     handleConversationCreated(newConv);
-    navigate(`/conversations/${newConv._id}`);
-  }, [handleConversationCreated, navigate]);
+    navigateToConversation(newConv._id);
+  }, [handleConversationCreated, navigateToConversation]);
 
   const handleSessionInfoUpdate = useCallback(() => {
     if (window.__sessionSidebarRefresh) window.__sessionSidebarRefresh();

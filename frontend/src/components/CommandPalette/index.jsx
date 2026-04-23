@@ -20,6 +20,8 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import LanguageIcon from "@mui/icons-material/Language";
 import TuneIcon from "@mui/icons-material/Tune";
+import WorkspacesIcon from "@mui/icons-material/Workspaces";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useAuth } from "../../contexts/AuthContext";
 import { useConversations } from "../../contexts/ConversationsContext";
 import { api } from "../../api/client";
@@ -78,7 +80,7 @@ const CommandPalette = () => {
   const location = useLocation();
   const { logout } = useAuth();
   const { conversations, markRead } = useConversations();
-  const { activeWorkspace } = useWorkspaces();
+  const { workspaces, activeWorkspace, setActiveWorkspace, navigateToConversation, conversationPath } = useWorkspaces();
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,7 +91,7 @@ const CommandPalette = () => {
   const [loadingRepos, setLoadingRepos] = useState(false);
 
   // Model sub-view state
-  const [view, setView] = useState("main"); // 'main' | 'models'
+  const [view, setView] = useState("main"); // 'main' | 'models' | 'workspaces'
   const [modelOptions, setModelOptions] = useState([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const [currentModel, setCurrentModel] = useState(null);
@@ -99,7 +101,7 @@ const CommandPalette = () => {
 
   // Extract the current conversation ID from the URL
   const currentConversationId = useMemo(() => {
-    const match = location.pathname.match(/^\/conversations\/(.+)$/);
+    const match = location.pathname.match(/\/conversations\/(.+)$/);
     if (match && match[1] !== "new") return match[1];
     return null;
   }, [location.pathname]);
@@ -214,6 +216,28 @@ const CommandPalette = () => {
         }));
     }
 
+    if (view === "workspaces") {
+      return workspaces
+        .map((ws) => {
+          const bestScore = fuzzyScore(ws.name, query);
+          return { ws, score: bestScore };
+        })
+        .filter((s) => s.score >= 0)
+        .sort((a, b) => b.score - a.score)
+        .map(({ ws }) => ({
+          type: "item",
+          category: "workspace",
+          label: ws.name,
+          icon: "workspace",
+          id: ws._id,
+          isActive: activeWorkspace && activeWorkspace._id === ws._id,
+          action: () => {
+            setActiveWorkspace(ws);
+            navigate(`/workspaces/${ws._id}/conversations/new`);
+          },
+        }));
+    }
+
     // ── Main view: Repositories ─────────────────────────────────────────
 
     const repoItems = repositories
@@ -245,7 +269,7 @@ const CommandPalette = () => {
           } catch {
             // ignore
           }
-          navigate("/conversations/new");
+          navigateToConversation("new");
           // Dispatch event so ChatInterface picks it up immediately
           window.dispatchEvent(new CustomEvent("repo-preselected"));
         },
@@ -280,7 +304,7 @@ const CommandPalette = () => {
         id: conv._id,
         action: () => {
           markRead(conv._id);
-          navigate(`/conversations/${conv._id}`);
+          navigateToConversation(conv._id);
         },
       }));
 
@@ -296,7 +320,7 @@ const CommandPalette = () => {
         label: t('newConversation'),
         synonyms: ["new chat", "create conversation", "start"],
         icon: "add",
-        action: () => navigate("/conversations/new"),
+        action: () => navigateToConversation("new"),
       },
     ];
 
@@ -306,6 +330,40 @@ const CommandPalette = () => {
         synonyms: ["change model", "select model", "pick model"],
         icon: "tune",
         action: () => openModelsView(),
+      });
+    }
+
+    // Workspace actions
+    if (workspaces.length > 1) {
+      actions.push({
+        label: t('switchWorkspace'),
+        synonyms: ["change workspace", "select workspace", "pick workspace"],
+        icon: "workspace",
+        action: () => {
+          setView("workspaces");
+          setSearchQuery("");
+          setSelectedIndex(0);
+        },
+      });
+    }
+
+    actions.push({
+      label: t('createWorkspace'),
+      synonyms: ["new workspace", "add workspace"],
+      icon: "add",
+      action: () => {
+        window.dispatchEvent(new CustomEvent("open-create-workspace-modal"));
+      },
+    });
+
+    if (!activeWorkspace?.isPersonal) {
+      actions.push({
+        label: t('inviteMembers'),
+        synonyms: ["add members", "invite people", "invite users", "share workspace"],
+        icon: "personAdd",
+        action: () => {
+          window.dispatchEvent(new CustomEvent("open-invite-modal"));
+        },
       });
     }
 
@@ -375,10 +433,15 @@ const CommandPalette = () => {
     modelOptions,
     currentModel,
     isOnActiveConversation,
+    workspaces,
+    activeWorkspace,
+    setActiveWorkspace,
     navigate,
     markRead,
     logout,
     openModelsView,
+    navigateToConversation,
+    conversationPath,
   ]);
 
   // Only selectable items (skip section headers)
@@ -504,7 +567,7 @@ const CommandPalette = () => {
         if (item?.action) {
           item.action();
           // Don't close if entering a sub-view
-          if (item.label !== t('switchModel')) {
+          if (item.label !== t('switchModel') && item.label !== t('switchWorkspace')) {
             close();
           }
         }
@@ -534,6 +597,10 @@ const CommandPalette = () => {
         return <LanguageIcon {...iconProps} />;
       case "logout":
         return <LogoutIcon {...iconProps} />;
+      case "workspace":
+        return <WorkspacesIcon {...iconProps} />;
+      case "personAdd":
+        return <PersonAddIcon {...iconProps} />;
       default:
         return null;
     }
@@ -590,7 +657,7 @@ const CommandPalette = () => {
         </div>
 
         {/* View title for sub-views */}
-        {view === "models" && (
+        {(view === "models" || view === "workspaces") && (
           <div style={{ padding: "12px 20px 0" }}>
             <Typography
               level="body-xs"
@@ -683,7 +750,7 @@ const CommandPalette = () => {
                 className={`command-palette-item${currentSelectableIdx === selectedIndex ? " selected" : ""}`}
                 onClick={() => {
                   item.action();
-                  if (item.label !== t('switchModel')) close();
+                  if (item.label !== t('switchModel') && item.label !== t('switchWorkspace')) close();
                 }}
                 onMouseEnter={() => setSelectedIndex(currentSelectableIdx)}
               >

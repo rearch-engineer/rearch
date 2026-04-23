@@ -16,5 +16,9 @@
   "switchModel": "Cambiar modelo",
   "documentation": "Documentación",
   "website": "Sitio web",
-  "logout": "Cerrar sesión"
+  "logout": "Cerrar sesión",
+  "switchWorkspace": "Cambiar espacio de trabajo",
+  "createWorkspace": "Crear espacio de trabajo",
+  "inviteMembers": "Invitar miembros",
+  "workspaces": "Espacios de trabajo"
 }

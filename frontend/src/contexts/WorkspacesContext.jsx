@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 
 const WorkspacesContext = createContext(null);
@@ -9,19 +10,30 @@ export function WorkspacesProvider({ children }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspace, setActiveWorkspaceState] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract :wid from the current URL if present
+  const getWidFromUrl = useCallback(() => {
+    const match = location.pathname.match(/^\/workspaces\/([a-f0-9]+)\//);
+    return match ? match[1] : null;
+  }, [location.pathname]);
 
   const loadWorkspaces = useCallback(async () => {
     try {
       const data = await api.getWorkspaces();
       setWorkspaces(data);
 
-      // Restore active workspace from localStorage, or use first workspace
-      const savedId = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
-      const saved = data.find(w => w._id === savedId);
-      if (saved) {
-        setActiveWorkspaceState(saved);
+      // Check if URL contains a workspace ID
+      const urlWid = location.pathname.match(/^\/workspaces\/([a-f0-9]+)\//)?.[1];
+      const urlWs = urlWid ? data.find(w => w._id === urlWid) : null;
+
+      if (urlWs) {
+        // URL is source of truth
+        setActiveWorkspaceState(urlWs);
+        localStorage.setItem(ACTIVE_WORKSPACE_KEY, urlWs._id);
       } else if (data.length > 0) {
-        // Default to personal workspace, or first
+        // No workspace in URL — default to personal workspace
         const personal = data.find(w => w.isPersonal);
         const defaultWs = personal || data[0];
         setActiveWorkspaceState(defaultWs);
@@ -38,12 +50,44 @@ export function WorkspacesProvider({ children }) {
     loadWorkspaces();
   }, [loadWorkspaces]);
 
+  // Sync active workspace when URL :wid changes
+  useEffect(() => {
+    if (workspaces.length === 0) return;
+    const urlWid = getWidFromUrl();
+    if (urlWid && activeWorkspace?._id !== urlWid) {
+      const ws = workspaces.find(w => w._id === urlWid);
+      if (ws) {
+        setActiveWorkspaceState(ws);
+        localStorage.setItem(ACTIVE_WORKSPACE_KEY, ws._id);
+      }
+    }
+  }, [location.pathname, workspaces, getWidFromUrl]);
+
   const setActiveWorkspace = useCallback((workspace) => {
     setActiveWorkspaceState(workspace);
     if (workspace?._id) {
       localStorage.setItem(ACTIVE_WORKSPACE_KEY, workspace._id);
     }
   }, []);
+
+  // Navigate to a workspace-scoped conversation URL
+  const navigateToConversation = useCallback((conversationId, options) => {
+    const wid = activeWorkspace?._id;
+    if (!wid) return;
+    navigate(`/workspaces/${wid}/conversations/${conversationId}`, options);
+  }, [activeWorkspace, navigate]);
+
+  // Build a workspace-scoped conversation path (without navigating)
+  const conversationPath = useCallback((conversationId, wsId) => {
+    const wid = wsId || activeWorkspace?._id;
+    if (!wid) return `/conversations/${conversationId}`;
+    return `/workspaces/${wid}/conversations/${conversationId}`;
+  }, [activeWorkspace]);
+
+  // Get the personal workspace
+  const getPersonalWorkspace = useCallback(() => {
+    return workspaces.find(w => w.isPersonal) || workspaces[0] || null;
+  }, [workspaces]);
 
   const createWorkspace = useCallback(async (name) => {
     const newWs = await api.createWorkspace(name);
@@ -81,6 +125,9 @@ export function WorkspacesProvider({ children }) {
     createWorkspace,
     updateWorkspace,
     deleteWorkspace,
+    navigateToConversation,
+    conversationPath,
+    getPersonalWorkspace,
   };
 
   return (

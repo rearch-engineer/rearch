@@ -143,6 +143,8 @@ const ChatInterface = ({
     );
 
     if (conversationId && conversationId !== "new") {
+      // Wait for activeWorkspace to be available before loading
+      if (!activeWorkspace?._id) return;
       isNearBottomRef.current = true;
       loadConversation();
       fetchContainerData();
@@ -166,7 +168,7 @@ const ChatInterface = ({
       setActiveConversationId(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
+  }, [conversationId, activeWorkspace?._id]);
 
   // Fetch providers and agents from the container
   const fetchContainerData = useCallback(async () => {
