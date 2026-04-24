@@ -348,10 +348,12 @@ const router = new Elysia({ prefix: "/api" })
     }
 
     try {
-      let conversation = await Conversation.findById(params.id).populate(
-        "participants",
-        "profile.display_name profile.avatar_fileId account.username account.email",
-      );
+      let conversation = await Conversation.findById(params.id)
+        .populate(
+          "participants",
+          "profile.display_name profile.avatar_fileId account.username account.email",
+        )
+        .populate("subResource", "name");
       if (!conversation) {
         set.status = 404;
         return { error: "Conversation not found" };
@@ -364,10 +366,12 @@ const router = new Elysia({ prefix: "/api" })
 
         if (reconciledStatus.containerStatus !== "running") {
           // Status was corrected in MongoDB by getContainerStatus — reload
-          conversation = await Conversation.findById(params.id).populate(
-            "participants",
-            "profile.display_name profile.avatar_fileId account.username account.email",
-          );
+          conversation = await Conversation.findById(params.id)
+            .populate(
+              "participants",
+              "profile.display_name profile.avatar_fileId account.username account.email",
+            )
+            .populate("subResource", "name");
         }
       }
 

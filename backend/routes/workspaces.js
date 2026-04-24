@@ -771,10 +771,12 @@ const router = new Elysia({ prefix: "/api/workspaces" })
     if (!conversation) return { error: "Not found" };
 
     try {
-      let conv = await Conversation.findById(params.id).populate(
-        "participants",
-        "profile.display_name profile.avatar_fileId account.username account.email",
-      );
+      let conv = await Conversation.findById(params.id)
+        .populate(
+          "participants",
+          "profile.display_name profile.avatar_fileId account.username account.email",
+        )
+        .populate("subResource", "name");
       if (!conv) {
         set.status = 404;
         return { error: "Conversation not found" };
@@ -787,10 +789,12 @@ const router = new Elysia({ prefix: "/api/workspaces" })
 
         if (reconciledStatus.containerStatus !== "running") {
           // Status was corrected in MongoDB by getContainerStatus — reload
-          conv = await Conversation.findById(params.id).populate(
-            "participants",
-            "profile.display_name profile.avatar_fileId account.username account.email",
-          );
+          conv = await Conversation.findById(params.id)
+            .populate(
+              "participants",
+              "profile.display_name profile.avatar_fileId account.username account.email",
+            )
+            .populate("subResource", "name");
         }
       }
 

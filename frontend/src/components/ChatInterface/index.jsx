@@ -68,6 +68,7 @@ const ChatInterface = ({
   const [pendingQuestion, setPendingQuestion] = useState(null);
   const [pendingPermission, setPendingPermission] = useState(null);
   const [conversationSubResourceId, setConversationSubResourceId] = useState(null);
+  const [conversationRepoName, setConversationRepoName] = useState(null);
 
   // Model and agent state
   const [providers, setProviders] = useState(null);
@@ -161,6 +162,7 @@ const ChatInterface = ({
       setSelectedModel(getSavedModel());
       setSelectedAgent(getSavedAgent());
       setConversationSubResourceId(null);
+      setConversationRepoName(null);
     }
 
     return () => {
@@ -304,11 +306,13 @@ const ChatInterface = ({
       ]);
       setMessages(messages);
       if (convData?.subResource) {
+        const isPopulated = typeof convData.subResource === "object";
         setConversationSubResourceId(
-          typeof convData.subResource === "object"
-            ? convData.subResource._id
-            : convData.subResource,
+          isPopulated ? convData.subResource._id : convData.subResource,
         );
+        if (isPopulated && convData.subResource.name) {
+          setConversationRepoName(convData.subResource.name);
+        }
       }
     } catch (error) {
       console.error("Error loading conversation:", error);
@@ -801,7 +805,7 @@ const ChatInterface = ({
       <div className="chat-interface">
         <WelcomeScreen
           subResourceId={conversationSubResourceId}
-          repoName={allRepositories.find((r) => r._id === conversationSubResourceId)?.name}
+          repoName={conversationRepoName || allRepositories.find((r) => r._id === conversationSubResourceId)?.name}
           onPromptClick={(promptText) => {
             handleSendMessage(promptText);
           }}
