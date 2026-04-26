@@ -21,5 +21,6 @@
   "passwordPlaceholder": "Your password",
   "usernamePlaceholder": "your_username",
   "displayNamePlaceholder": "Your Name",
-  "passwordMinLengthPlaceholder": "Min. 8 characters"
+  "passwordMinLengthPlaceholder": "Min. 8 characters",
+  "signingIn": "Signing in..."
 }

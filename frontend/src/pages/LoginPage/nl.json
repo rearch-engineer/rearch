@@ -21,5 +21,6 @@
   "passwordPlaceholder": "Uw wachtwoord",
   "usernamePlaceholder": "uw_gebruikersnaam",
   "displayNamePlaceholder": "Uw naam",
-  "passwordMinLengthPlaceholder": "Min. 8 tekens"
+  "passwordMinLengthPlaceholder": "Min. 8 tekens",
+  "signingIn": "Aanmelden..."
 }

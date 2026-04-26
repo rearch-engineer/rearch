@@ -83,16 +83,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await register(email, username, password, displayName);
-      toast.success(
-        result.message ||
-          t("registrationSuccess"),
-      );
+      toast.success(result.message || t("registrationSuccess"));
       setMode("login");
       setPassword("");
     } catch (err) {
-      toast.error(
-        err.response?.data?.error || t("registrationFailed"),
-      );
+      toast.error(err.response?.data?.error || t("registrationFailed"));
     } finally {
       setLoading(false);
     }
@@ -145,6 +140,28 @@ export default function LoginPage() {
         <CircularProgress />
         <Typography level="body-md" sx={{ color: "text.secondary" }}>
           {t("redirectingToProvider")}
+        </Typography>
+      </Box>
+    );
+  }
+
+  // ─── NONE mode ─────────────────────────────────────────────────────────────
+  // Auto-login is handled in AuthContext. Show a spinner while it completes.
+  if (authMode === "NONE") {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        <CircularProgress />
+        <Typography level="body-md" sx={{ color: "text.secondary" }}>
+          {t("signingIn")}
         </Typography>
       </Box>
     );
@@ -215,7 +232,13 @@ export default function LoginPage() {
                     required
                   />
                 </FormControl>
-                <Button data-testid="login-submit" type="submit" fullWidth size="lg" loading={loading}>
+                <Button
+                  data-testid="login-submit"
+                  type="submit"
+                  fullWidth
+                  size="lg"
+                  loading={loading}
+                >
                   {t("signIn")}
                 </Button>
                 {canRegister && (
@@ -253,7 +276,9 @@ export default function LoginPage() {
                   />
                   {allowedDomains.length > 0 && (
                     <FormHelperText>
-                      {t("allowedDomains", { domains: allowedDomains.join(", ") })}
+                      {t("allowedDomains", {
+                        domains: allowedDomains.join(", "),
+                      })}
                     </FormHelperText>
                   )}
                 </FormControl>

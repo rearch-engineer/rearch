@@ -1,17 +1,24 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
-import Keycloak from 'keycloak-js';
-import config from '../config';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
+import Keycloak from "keycloak-js";
+import config from "../config";
 
 const AuthContext = createContext(null);
 const API_BASE_URL = config.API_BASE_URL;
-const TOKEN_KEY = 'auth_token';
+const TOKEN_KEY = "auth_token";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -19,7 +26,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [authMode, setAuthMode] = useState(null); // 'LOCAL' | 'OAUTH' | 'KEYCLOAK_FIREWALL'
+  const [authMode, setAuthMode] = useState(null); // 'LOCAL' | 'OAUTH' | 'KEYCLOAK_FIREWALL' | 'NONE'
   const [loading, setLoading] = useState(true);
   const keycloakRef = useRef(null);
   const keycloakInitialized = useRef(false);
@@ -30,8 +37,8 @@ export const AuthProvider = ({ children }) => {
       const res = await axios.get(`${API_BASE_URL}/auth/mode`);
       return res.data.mode;
     } catch (err) {
-      console.error('Failed to fetch auth mode:', err);
-      return 'LOCAL';
+      console.error("Failed to fetch auth mode:", err);
+      return "LOCAL";
     }
   }, []);
 
@@ -59,7 +66,7 @@ export const AuthProvider = ({ children }) => {
       setUser({
         userId: decoded.userId,
         email: decoded.email,
-        roles: decoded.roles || []
+        roles: decoded.roles || [],
       });
     } catch {
       localStorage.removeItem(TOKEN_KEY);
@@ -69,24 +76,27 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Fetch the full user profile from /auth/me
-  const fetchUserProfile = useCallback(async (jwt) => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${jwt}` }
-      });
-      setUser(prev => ({
-        ...prev,
-        ...res.data.account,
-        profile: res.data.profile,
-        roles: res.data.auth?.roles || prev?.roles || []
-      }));
-    } catch (err) {
-      // If the token is invalid (401), clear the session
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        setSession(null);
+  const fetchUserProfile = useCallback(
+    async (jwt) => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${jwt}` },
+        });
+        setUser((prev) => ({
+          ...prev,
+          ...res.data.account,
+          profile: res.data.profile,
+          roles: res.data.auth?.roles || prev?.roles || [],
+        }));
+      } catch (err) {
+        // If the token is invalid (401), clear the session
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setSession(null);
+        }
       }
-    }
-  }, [setSession]);
+    },
+    [setSession],
+  );
 
   // ─── Keycloak initialization ───────────────────────────────────────────────
 
@@ -106,14 +116,14 @@ export const AuthProvider = ({ children }) => {
           kcRealm = kcRealm || res.data.realm;
           kcClientId = kcClientId || res.data.clientId;
         } catch (err) {
-          console.error('Failed to fetch Keycloak config:', err);
+          console.error("Failed to fetch Keycloak config:", err);
           setLoading(false);
           return;
         }
       }
 
       if (!kcUrl || !kcRealm || !kcClientId) {
-        console.error('Keycloak configuration is incomplete');
+        console.error("Keycloak configuration is incomplete");
         setLoading(false);
         return;
       }
@@ -127,9 +137,9 @@ export const AuthProvider = ({ children }) => {
       keycloakRef.current = kc;
 
       const authenticated = await kc.init({
-        onLoad: 'login-required',
+        onLoad: "login-required",
         checkLoginIframe: false,
-        pkceMethod: 'S256',
+        pkceMethod: "S256",
       });
 
       if (authenticated) {
@@ -143,7 +153,7 @@ export const AuthProvider = ({ children }) => {
               await performKeycloakTokenExchange(kc);
             }
           } catch (err) {
-            console.error('Failed to refresh Keycloak token:', err);
+            console.error("Failed to refresh Keycloak token:", err);
             kc.login();
           }
         }, 30000); // check every 30 seconds
@@ -151,7 +161,7 @@ export const AuthProvider = ({ children }) => {
 
       setLoading(false);
     } catch (err) {
-      console.error('Keycloak init error:', err);
+      console.error("Keycloak init error:", err);
       setLoading(false);
     }
   }, []);
@@ -162,9 +172,12 @@ export const AuthProvider = ({ children }) => {
    */
   const performKeycloakTokenExchange = useCallback(async (kc) => {
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/keycloak/token-exchange`, {
-        keycloakToken: kc.token,
-      });
+      const res = await axios.post(
+        `${API_BASE_URL}/auth/keycloak/token-exchange`,
+        {
+          keycloakToken: kc.token,
+        },
+      );
 
       const appJwt = res.data.token;
       const userData = res.data.user;
@@ -172,7 +185,7 @@ export const AuthProvider = ({ children }) => {
       // Store the Keycloak token as the primary auth token (for API calls)
       // and the app JWT in a separate key (for Socket.IO)
       localStorage.setItem(TOKEN_KEY, kc.token);
-      localStorage.setItem('app_jwt', appJwt);
+      localStorage.setItem("app_jwt", appJwt);
       setToken(kc.token);
 
       setUser({
@@ -180,10 +193,10 @@ export const AuthProvider = ({ children }) => {
         email: userData.account?.email,
         username: userData.account?.username,
         profile: userData.profile,
-        roles: userData.auth?.roles || ['user'],
+        roles: userData.auth?.roles || ["user"],
       });
     } catch (err) {
-      console.error('Keycloak token exchange failed:', err);
+      console.error("Keycloak token exchange failed:", err);
       if (err.response?.status === 403) {
         // Account suspended/pending - show error but don't redirect
         setUser(null);
@@ -201,16 +214,31 @@ export const AuthProvider = ({ children }) => {
       const mode = await fetchAuthMode();
       setAuthMode(mode);
 
-      if (mode === 'KEYCLOAK_FIREWALL') {
+      if (mode === "KEYCLOAK_FIREWALL") {
         // Before Keycloak redirects to the IdP, save the current URL
         // (including hash fragment) so we can restore it after login.
         // The hash is not preserved through Keycloak's redirect flow.
         // Only save /start paths — other pages don't need redirect preservation.
         const intended = window.location.pathname + window.location.hash;
-        if (intended && intended.startsWith('/start')) {
-          sessionStorage.setItem('start_redirect', intended);
+        if (intended && intended.startsWith("/start")) {
+          sessionStorage.setItem("start_redirect", intended);
         }
         await initKeycloak();
+      } else if (mode === "NONE") {
+        // NONE mode: auto-login without credentials
+        try {
+          const res = await axios.post(`${API_BASE_URL}/auth/none-login`);
+          setSession(res.data.token);
+          setUser((prev) => ({
+            ...prev,
+            ...res.data.user?.account,
+            profile: res.data.user?.profile,
+            roles: res.data.user?.auth?.roles || prev?.roles || [],
+          }));
+        } catch (err) {
+          console.error("NONE mode auto-login failed:", err);
+        }
+        setLoading(false);
       } else {
         // LOCAL or OAUTH mode: use existing token flow
         const savedToken = localStorage.getItem(TOKEN_KEY);
@@ -226,24 +254,36 @@ export const AuthProvider = ({ children }) => {
 
   // ─── LOCAL auth actions ─────────────────────────────────────────────────────
 
-  const login = useCallback(async (email, password) => {
-    const res = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
-    setSession(res.data.token);
-    setUser(prev => ({
-      ...prev,
-      ...res.data.user?.account,
-      profile: res.data.user?.profile,
-      roles: res.data.user?.auth?.roles || prev?.roles || []
-    }));
-    return res.data;
-  }, [setSession]);
+  const login = useCallback(
+    async (email, password) => {
+      const res = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email,
+        password,
+      });
+      setSession(res.data.token);
+      setUser((prev) => ({
+        ...prev,
+        ...res.data.user?.account,
+        profile: res.data.user?.profile,
+        roles: res.data.user?.auth?.roles || prev?.roles || [],
+      }));
+      return res.data;
+    },
+    [setSession],
+  );
 
-  const register = useCallback(async (email, username, password, display_name) => {
-    const res = await axios.post(`${API_BASE_URL}/auth/register`, {
-      email, username, password, display_name
-    });
-    return res.data;
-  }, []);
+  const register = useCallback(
+    async (email, username, password, display_name) => {
+      const res = await axios.post(`${API_BASE_URL}/auth/register`, {
+        email,
+        username,
+        password,
+        display_name,
+      });
+      return res.data;
+    },
+    [],
+  );
 
   // ─── OAUTH actions ─────────────────────────────────────────────────────────
 
@@ -252,44 +292,52 @@ export const AuthProvider = ({ children }) => {
     return res.data; // { url, stateToken }
   }, []);
 
-  const handleOAuthCallback = useCallback(async (code, state, stateToken) => {
-    const res = await axios.post(`${API_BASE_URL}/auth/oauth/callback`, {
-      code, state, stateToken
-    });
-    if (res.data.token) {
-      setSession(res.data.token);
-      setUser(prev => ({
-        ...prev,
-        ...res.data.user?.account,
-        profile: res.data.user?.profile,
-        roles: res.data.user?.auth?.roles || prev?.roles || []
-      }));
-    }
-    return res.data;
-  }, [setSession]);
+  const handleOAuthCallback = useCallback(
+    async (code, state, stateToken) => {
+      const res = await axios.post(`${API_BASE_URL}/auth/oauth/callback`, {
+        code,
+        state,
+        stateToken,
+      });
+      if (res.data.token) {
+        setSession(res.data.token);
+        setUser((prev) => ({
+          ...prev,
+          ...res.data.user?.account,
+          profile: res.data.user?.profile,
+          roles: res.data.user?.auth?.roles || prev?.roles || [],
+        }));
+      }
+      return res.data;
+    },
+    [setSession],
+  );
 
   // ─── Logout ─────────────────────────────────────────────────────────────────
 
   const logout = useCallback(() => {
     setSession(null);
-    localStorage.removeItem('app_jwt');
+    localStorage.removeItem("app_jwt");
 
     // In Keycloak mode, also log out of Keycloak
     if (keycloakRef.current) {
       keycloakRef.current.logout({
-        redirectUri: window.location.origin + '/login',
+        redirectUri: window.location.origin + "/login",
       });
     }
   }, [setSession]);
 
   // ─── Role helpers ───────────────────────────────────────────────────────────
 
-  const hasRole = useCallback((role) => {
-    return user?.roles?.includes(role) || false;
-  }, [user]);
+  const hasRole = useCallback(
+    (role) => {
+      return user?.roles?.includes(role) || false;
+    },
+    [user],
+  );
 
   const isAdmin = useCallback(() => {
-    return hasRole('admin');
+    return hasRole("admin");
   }, [hasRole]);
 
   // Refresh user profile from the server (e.g. after updating preferences)
@@ -306,8 +354,8 @@ export const AuthProvider = ({ children }) => {
    * In other modes, returns the regular auth token.
    */
   const getSocketToken = useCallback(() => {
-    if (authMode === 'KEYCLOAK_FIREWALL') {
-      return localStorage.getItem('app_jwt') || localStorage.getItem(TOKEN_KEY);
+    if (authMode === "KEYCLOAK_FIREWALL") {
+      return localStorage.getItem("app_jwt") || localStorage.getItem(TOKEN_KEY);
     }
     return localStorage.getItem(TOKEN_KEY);
   }, [authMode]);
@@ -329,9 +377,5 @@ export const AuthProvider = ({ children }) => {
     getSocketToken,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

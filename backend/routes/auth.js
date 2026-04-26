@@ -26,33 +26,33 @@ const BCRYPT_ROUNDS = 12;
 // ─── Rate Limiting (login & register) ─────────────────────────────────────────
 
 const RATE_LIMIT_AUTH_MAX = parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) || 10;
-const RATE_LIMIT_AUTH_WINDOW_MS = parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10) || 900_000; // 15 min
+const RATE_LIMIT_AUTH_WINDOW_MS =
+  parseInt(process.env.RATE_LIMIT_AUTH_WINDOW_MS, 10) || 900_000; // 15 min
 
 /**
  * Rate-limited sub-router for login and register endpoints.
  * Limits requests per IP to prevent brute-force and registration abuse.
  */
-const rateLimitedAuthRoutes = new Elysia()
-  .use(
-    rateLimit({
-      duration: RATE_LIMIT_AUTH_WINDOW_MS,
-      max: RATE_LIMIT_AUTH_MAX,
-      scoping: "scoped",
-      generator: (req, server) =>
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        server?.requestIP(req)?.address ||
-        "unknown",
-      errorResponse: new Response(
-        JSON.stringify({
-          error: "Too many requests. Please try again later.",
-        }),
-        {
-          status: 429,
-          headers: { "Content-Type": "application/json" },
-        },
-      ),
-    }),
-  );
+const rateLimitedAuthRoutes = new Elysia().use(
+  rateLimit({
+    duration: RATE_LIMIT_AUTH_WINDOW_MS,
+    max: RATE_LIMIT_AUTH_MAX,
+    scoping: "scoped",
+    generator: (req, server) =>
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      server?.requestIP(req)?.address ||
+      "unknown",
+    errorResponse: new Response(
+      JSON.stringify({
+        error: "Too many requests. Please try again later.",
+      }),
+      {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      },
+    ),
+  }),
+);
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
@@ -95,14 +95,23 @@ const profileBodySchema = z.object({
     .optional(),
   voice_language: z
     .string()
-    .regex(/^$|^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/, "voice_language must be a valid BCP-47 language tag (e.g. en-US, es, pt-BR).")
+    .regex(
+      /^$|^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/,
+      "voice_language must be a valid BCP-47 language tag (e.g. en-US, es, pt-BR).",
+    )
     .optional(),
-  theme: z.enum(["light", "dark", "system"], {
-    errorMap: () => ({ message: "theme must be one of: light, dark, system." }),
-  }).optional(),
-  language: z.enum(["en", "es", "fr", "nl"], {
-    errorMap: () => ({ message: "language must be one of: en, es, fr, nl." }),
-  }).optional(),
+  theme: z
+    .enum(["light", "dark", "system"], {
+      errorMap: () => ({
+        message: "theme must be one of: light, dark, system.",
+      }),
+    })
+    .optional(),
+  language: z
+    .enum(["en", "es", "fr", "nl"], {
+      errorMap: () => ({ message: "language must be one of: en, es, fr, nl." }),
+    })
+    .optional(),
 });
 
 const oauthCallbackBodySchema = z.object({
@@ -159,6 +168,42 @@ router.get("/mode", () => {
   return { mode: AUTH_MODE() };
 });
 
+/**
+ * POST /api/auth/none-login
+ * Auto-login endpoint for NONE auth mode.
+ * Finds or creates a default guest user and returns a JWT — no credentials required.
+ */
+router.post("/none-login", async ({ status }) => {
+  if (AUTH_MODE() !== "NONE") {
+    return status(400, {
+      error: "none-login is only available in NONE auth mode.",
+    });
+  }
+
+  try {
+    const guestEmail = process.env.ADMIN_EMAIL.toLowerCase();
+
+    let user = await User.findOne({ "account.email": guestEmail });
+
+    if (!user) {
+      return status(400, {
+        error: "User not found",
+      });
+    } else {
+      user.auth.last_login = new Date();
+      await user.save();
+    }
+
+    await ensurePersonalWorkspace(user._id);
+
+    const token = signToken(user);
+    return { token, user: user.toSafeJSON() };
+  } catch (err) {
+    console.error("POST /auth/none-login error:", err);
+    return status(500, { error: "Auto-login failed." });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOCAL AUTH ROUTES (public, rate-limited)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -170,7 +215,9 @@ router.get("/mode", () => {
  */
 rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
   if (AUTH_MODE() !== "LOCAL") {
-    return status(400, { error: "Registration is only available in LOCAL auth mode." });
+    return status(400, {
+      error: "Registration is only available in LOCAL auth mode.",
+    });
   }
 
   const parsed = registerBodySchema.safeParse(body);
@@ -183,16 +230,23 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
 
     // ── Check signup restriction settings ──────────────────────────────
     const signupSetting = await Setting.findOne({ key: "signup" });
-    const signupConfig = signupSetting?.value || { restrictSignups: false, allowedDomains: [] };
+    const signupConfig = signupSetting?.value || {
+      restrictSignups: false,
+      allowedDomains: [],
+    };
 
     if (signupConfig.restrictSignups) {
-      return status(403, { error: "New registrations are currently disabled." });
+      return status(403, {
+        error: "New registrations are currently disabled.",
+      });
     }
 
     if (signupConfig.allowedDomains && signupConfig.allowedDomains.length > 0) {
       const emailDomain = email.toLowerCase().split("@")[1];
       if (!signupConfig.allowedDomains.includes(emailDomain)) {
-        return status(403, { error: "Registration is not allowed for this email domain." });
+        return status(403, {
+          error: "Registration is not allowed for this email domain.",
+        });
       }
     }
 
@@ -208,7 +262,9 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
         existingUser.account.email === email.toLowerCase()
           ? "email"
           : "username";
-      return status(409, { error: `A user with this ${field} already exists.` });
+      return status(409, {
+        error: `A user with this ${field} already exists.`,
+      });
     }
 
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -249,7 +305,9 @@ rateLimitedAuthRoutes.post("/register", async ({ body, status }) => {
  */
 rateLimitedAuthRoutes.post("/login", async ({ body, headers, status }) => {
   if (AUTH_MODE() !== "LOCAL") {
-    return status(400, { error: "Local login is only available in LOCAL auth mode." });
+    return status(400, {
+      error: "Local login is only available in LOCAL auth mode.",
+    });
   }
 
   const parsed = loginBodySchema.safeParse(body);
@@ -317,7 +375,9 @@ router.use(rateLimitedAuthRoutes);
  */
 router.get("/oauth/authorize", async ({ status }) => {
   if (AUTH_MODE() !== "OAUTH") {
-    return status(400, { error: "OAuth is only available in OAUTH auth mode." });
+    return status(400, {
+      error: "OAuth is only available in OAUTH auth mode.",
+    });
   }
 
   try {
@@ -360,7 +420,9 @@ router.get("/oauth/authorize", async ({ status }) => {
  */
 router.post("/oauth/callback", async ({ body, headers, status }) => {
   if (AUTH_MODE() !== "OAUTH") {
-    return status(400, { error: "OAuth is only available in OAUTH auth mode." });
+    return status(400, {
+      error: "OAuth is only available in OAUTH auth mode.",
+    });
   }
 
   const parsed = oauthCallbackBodySchema.safeParse(body);
@@ -496,7 +558,10 @@ router.post("/oauth/callback", async ({ body, headers, status }) => {
  */
 router.get("/keycloak/config", ({ status }) => {
   if (AUTH_MODE() !== "KEYCLOAK_FIREWALL") {
-    return status(400, { error: "Keycloak config is only available in KEYCLOAK_FIREWALL auth mode." });
+    return status(400, {
+      error:
+        "Keycloak config is only available in KEYCLOAK_FIREWALL auth mode.",
+    });
   }
 
   const realmUrl = process.env.KEYCLOAK_REALM_URL;
@@ -512,8 +577,8 @@ router.get("/keycloak/config", ({ status }) => {
   }
 
   return {
-    url: urlParts[1],           // e.g. https://auth.rearch.engineer
-    realm: urlParts[2],         // e.g. rearch
+    url: urlParts[1], // e.g. https://auth.rearch.engineer
+    realm: urlParts[2], // e.g. rearch
     clientId: process.env.KEYCLOAK_CLIENT_ID || "rearch-app",
   };
 });
@@ -527,7 +592,9 @@ router.get("/keycloak/config", ({ status }) => {
  */
 router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
   if (AUTH_MODE() !== "KEYCLOAK_FIREWALL") {
-    return status(400, { error: "Token exchange is only available in KEYCLOAK_FIREWALL auth mode." });
+    return status(400, {
+      error: "Token exchange is only available in KEYCLOAK_FIREWALL auth mode.",
+    });
   }
 
   const parsed = keycloakTokenExchangeBodySchema.safeParse(body);
@@ -562,12 +629,15 @@ router.post("/keycloak/token-exchange", async ({ body, headers, status }) => {
     });
 
     if (!user) {
-      user = await User.findOne({ "account.email": userInfo.email?.toLowerCase() });
+      user = await User.findOne({
+        "account.email": userInfo.email?.toLowerCase(),
+      });
 
       if (user) {
         user.oauth = { provider: "keycloak", subject: userInfo.sub };
         user.auth.roles = keycloakRoles;
-        user.profile.display_name = user.profile.display_name || userInfo.displayName;
+        user.profile.display_name =
+          user.profile.display_name || userInfo.displayName;
       } else {
         let uniqueUsername = userInfo.username;
         let counter = 1;
@@ -659,7 +729,9 @@ router.get("/me", async ({ user, status }) => {
  */
 router.post("/change-password", async ({ body, user, status }) => {
   if (AUTH_MODE() !== "LOCAL") {
-    return status(400, { error: "Password changes are only available in LOCAL auth mode." });
+    return status(400, {
+      error: "Password changes are only available in LOCAL auth mode.",
+    });
   }
 
   const parsed = changePasswordBodySchema.safeParse(body);
@@ -679,7 +751,10 @@ router.post("/change-password", async ({ body, user, status }) => {
       return status(400, { error: "No password set for this account." });
     }
 
-    const isValid = await bcrypt.compare(currentPassword, dbUser.auth.password_hash);
+    const isValid = await bcrypt.compare(
+      currentPassword,
+      dbUser.auth.password_hash,
+    );
     if (!isValid) {
       return status(401, { error: "Current password is incorrect." });
     }
