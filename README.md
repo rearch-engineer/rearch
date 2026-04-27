@@ -13,6 +13,35 @@ ReArch provides a familiar user interface where users can have AI-assisted conve
 - Background job processing with BullMQ and Redis
 - Flexible authentication: local email/password, OpenID Connect, or Keycloak
 
+## Quick start (no setup)
+
+If you just want to try ReArch on your machine, you can launch the full stack with a single command — no cloning, no env files, no auth setup:
+
+```bash
+npx rearch-cli
+```
+
+Then open [http://localhost:3000](http://localhost:3000). Authentication is forced to `AUTH_MODE=NONE`, so you land directly into the app as a guest user.
+
+Requirements: Docker must be installed and running.
+
+Other commands:
+
+```bash
+npx rearch-cli stop                  # stop and remove containers
+npx rearch-cli status                # show container status
+npx rearch-cli logs [service]        # tail logs (frontend, backend, mcp-proxy, mongodb, redis)
+npx rearch-cli --port 4000           # custom frontend port (default 3000)
+npx rearch-cli --api-port 5555       # custom API port (default 5050)
+npx rearch-cli --no-pull             # don't pull the latest images
+npx rearch-cli --dev                 # use the 'dev' image tag (latest main build)
+npx rearch-cli --image-tag sha-abc1  # pin to a specific image tag
+```
+
+Persistent state (Mongo data, Redis AOF, generated secrets) lives under `~/.rearch/`. Delete that directory for a clean slate.
+
+See [`packages/cli/README.md`](./packages/cli/README.md) for full details.
+
 ## Architecture
 
 ```

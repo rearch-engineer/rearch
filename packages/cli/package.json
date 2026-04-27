@@ -1,0 +1,41 @@
+{
+  "name": "rearch-cli",
+  "version": "0.1.0",
+  "description": "ReArch CLI - Run ReArch with a single command (no auth)",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "rearch": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "bun run src/index.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "rearch",
+    "ai",
+    "agents",
+    "opencode",
+    "cli",
+    "docker",
+    "automation"
+  ],
+  "author": "ReArch",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.1",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
