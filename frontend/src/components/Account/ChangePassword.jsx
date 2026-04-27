@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -8,50 +8,49 @@ import {
   Button,
   Alert,
   Card,
-} from '@mui/joy';
+} from "@mui/joy";
 
-import InfoIcon from '@mui/icons-material/Info';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../contexts/AuthContext';
-import { api } from '../../api/client';
-import { useToast } from '../../contexts/ToastContext';
+import InfoIcon from "@mui/icons-material/Info";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../../contexts/AuthContext";
+import { api } from "../../api/client";
+import { useToast } from "../../contexts/ToastContext";
 
 export default function ChangePassword() {
   const { authMode } = useAuth();
   const toast = useToast();
-  const { t } = useTranslation('Account');
+  const { t } = useTranslation("Account");
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (authMode === 'OAUTH') {
+  if (authMode === "OAUTH") {
     return (
       <Box
         sx={{
           flex: 1,
           p: { xs: 2, sm: 3, md: 4 },
-          bgcolor: 'var(--bg-primary)',
-          color: 'var(--text-primary)',
-          overflow: 'auto',
+          overflow: "auto",
         }}
       >
-        <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 960, mx: "auto" }}>
           <Box sx={{ mb: 4 }}>
             <Typography
               level="h2"
-              sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
+              sx={{
+                mb: 1,
+                color: "var(--text-primary)",
+                fontWeight: 700,
+                fontSize: { xs: "1.5rem", md: "1.75rem" },
+              }}
             >
-              {t('security')}
+              {t("security")}
             </Typography>
           </Box>
-          <Alert
-            variant="soft"
-            color="neutral"
-            startDecorator={<InfoIcon />}
-          >
-            {t('oauthPasswordMessage')}
+          <Alert variant="soft" color="neutral" startDecorator={<InfoIcon />}>
+            {t("oauthPasswordMessage")}
           </Alert>
         </Box>
       </Box>
@@ -62,26 +61,24 @@ export default function ChangePassword() {
     e.preventDefault();
 
     if (newPassword.length < 8) {
-      toast.error(t('passwordMinLength'));
+      toast.error(t("passwordMinLength"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error(t('passwordMismatch'));
+      toast.error(t("passwordMismatch"));
       return;
     }
 
     setLoading(true);
     try {
       const result = await api.changePassword(currentPassword, newPassword);
-      toast.success(result.message || t('passwordChangeSuccess'));
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      toast.success(result.message || t("passwordChangeSuccess"));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err) {
-      toast.error(
-        err.response?.data?.error || t('passwordChangeFailed')
-      );
+      toast.error(err.response?.data?.error || t("passwordChangeFailed"));
     } finally {
       setLoading(false);
     }
@@ -92,64 +89,67 @@ export default function ChangePassword() {
       sx={{
         flex: 1,
         p: { xs: 2, sm: 3, md: 4 },
-        bgcolor: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        overflow: 'auto',
+        overflow: "auto",
       }}
     >
-      <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 960, mx: "auto" }}>
         <Box sx={{ mb: 4 }}>
           <Typography
             level="h2"
-            sx={{ mb: 1, color: 'var(--text-primary)', fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' } }}
+            sx={{
+              mb: 1,
+              color: "var(--text-primary)",
+              fontWeight: 700,
+              fontSize: { xs: "1.5rem", md: "1.75rem" },
+            }}
           >
-            {t('security')}
+            {t("security")}
           </Typography>
         </Box>
 
-        <Card variant="outlined" sx={{ width: '100%' }}>
+        <Card variant="outlined" sx={{ width: "100%" }}>
           <Typography level="title-md" sx={{ mb: 2 }}>
-            {t('changePassword')}
+            {t("changePassword")}
           </Typography>
 
           <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <FormControl required>
-                <FormLabel>{t('currentPassword')}</FormLabel>
+                <FormLabel>{t("currentPassword")}</FormLabel>
                 <Input
                   type="password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder={t('currentPasswordPlaceholder')}
+                  placeholder={t("currentPasswordPlaceholder")}
                 />
               </FormControl>
 
               <FormControl required>
-                <FormLabel>{t('newPassword')}</FormLabel>
+                <FormLabel>{t("newPassword")}</FormLabel>
                 <Input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder={t('newPasswordPlaceholder')}
+                  placeholder={t("newPasswordPlaceholder")}
                 />
               </FormControl>
 
               <FormControl required>
-                <FormLabel>{t('confirmNewPassword')}</FormLabel>
+                <FormLabel>{t("confirmNewPassword")}</FormLabel>
                 <Input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('confirmNewPasswordPlaceholder')}
+                  placeholder={t("confirmNewPasswordPlaceholder")}
                 />
               </FormControl>
 
               <Button
                 type="submit"
                 loading={loading}
-                sx={{ alignSelf: 'flex-start', mt: 1 }}
+                sx={{ alignSelf: "flex-start", mt: 1 }}
               >
-                {t('updatePassword')}
+                {t("updatePassword")}
               </Button>
             </Box>
           </form>

@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Box } from "@mui/joy";
 import ChangePassword from "../../components/Account/ChangePassword";
 import Preferences from "../../components/Account/Preferences";
@@ -14,7 +10,11 @@ export default function AccountPage() {
       sx={{
         width: "100%",
         height: "100%",
+        display: "flex",
+        flexDirection: "column",
         overflow: "auto",
+        bgcolor: "var(--bg-primary)",
+        color: "var(--text-primary)",
       }}
     >
       <Routes>
