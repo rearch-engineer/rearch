@@ -95,7 +95,13 @@ RUN mkdir -p /var/log/supervisor
 # =============================================================================
 # 8. Create Supervisor base configuration
 # =============================================================================
-# Main supervisord settings
+# Main supervisord settings.
+#
+# IMPORTANT: this file lives at /etc/supervisor/supervisord.conf (NOT inside
+# conf.d/) and explicitly includes every *.conf file under conf.d/.  Templates
+# that extend this image add their own program configs into
+# /etc/supervisor/conf.d/ and rely on the [include] glob below to be picked
+# up at launch.
 RUN echo '[unix_http_server]\n\
 file=/var/run/supervisor.sock\n\
 chmod=0700\n\
@@ -109,7 +115,10 @@ serverurl=unix:///var/run/supervisor.sock\n\
 [supervisord]\n\
 nodaemon=true\n\
 user=root\n\
-' > /etc/supervisor/conf.d/supervisord.conf
+\n\
+[include]\n\
+files = /etc/supervisor/conf.d/*.conf\n\
+' > /etc/supervisor/supervisord.conf
 
 # VS Code (code-server) on port 8080
 RUN echo '[program:vscode]\n\
