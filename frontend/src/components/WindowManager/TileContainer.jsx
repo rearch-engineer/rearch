@@ -306,13 +306,28 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
         </div>
       </div>
 
-      {/* All tabs stay mounted; only active one visible */}
+      {/* All tabs stay mounted; only active one visible (use visibility instead of display to preserve iframes) */}
       <div ref={setContentRef} className="tile-content">
-        {tabs.map((panelId) => (
-          <div key={panelId} className="tile-content-panel" style={{ display: panelId === activeTab ? "contents" : "none" }}>
-            {renderPanelContent(panelId)}
-          </div>
-        ))}
+        {tabs.map((panelId) => {
+          const isActive = panelId === activeTab;
+          return (
+            <div
+              key={panelId}
+              className="tile-content-panel"
+              style={{
+                visibility: isActive ? "visible" : "hidden",
+                position: isActive ? "relative" : "absolute",
+                width: "100%",
+                height: "100%",
+                top: 0,
+                left: 0,
+                zIndex: isActive ? 1 : 0,
+              }}
+            >
+              {renderPanelContent(panelId)}
+            </div>
+          );
+        })}
 
         {/* Drop zone overlay */}
         {dropZone && (

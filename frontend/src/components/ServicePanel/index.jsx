@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { usePanels } from "../../contexts/PanelContext";
 import "./ServicePanel.css";
 
-const ServicePanel = ({ service, panelId }) => {
+const ServicePanel = React.memo(({ service, panelId }) => {
   const { t } = useTranslation("ServicePanel");
   const iframeRef = useRef(null);
   const [loading, setLoading] = useState(true);
@@ -41,6 +41,8 @@ const ServicePanel = ({ service, panelId }) => {
       </div>
     </div>
   );
-};
+});
+
+ServicePanel.displayName = "ServicePanel";
 
 export default ServicePanel;
