@@ -86,5 +86,19 @@
   "logout": "Cerrar sesión",
   "help": "Ayuda",
   "loadingHelp": "Cargando contenido de ayuda...",
-  "helpLoadFailed": "Error al cargar el contenido de ayuda."
+  "helpLoadFailed": "Error al cargar el contenido de ayuda.",
+  "tools": "Herramientas",
+  "toolsDescription": "Conecta herramientas y licencias externas para usar con tu cuenta.",
+  "githubCopilot": "GitHub Copilot",
+  "githubCopilotConnectDescription": "Pega tu token de GitHub Copilot para usar tu propia licencia. El token se almacena cifrado.",
+  "githubCopilotTokenPlaceholder": "Pega tu token de GitHub Copilot",
+  "githubCopilotConnect": "Conectar",
+  "githubCopilotDisconnect": "Desconectar",
+  "githubCopilotConnected": "Tu licencia de GitHub Copilot está conectada.",
+  "githubCopilotConnectedAt": "Conectado el {{date}}",
+  "githubCopilotConnectedToast": "Licencia de GitHub Copilot conectada.",
+  "githubCopilotDisconnectedToast": "Licencia de GitHub Copilot desconectada.",
+  "githubCopilotConnectFailed": "Error al conectar la licencia de GitHub Copilot: {{message}}",
+  "githubCopilotDisconnectFailed": "Error al desconectar la licencia de GitHub Copilot: {{message}}",
+  "githubCopilotNotEnabled": "La integración de GitHub Copilot no ha sido habilitada por tu administrador."
 }

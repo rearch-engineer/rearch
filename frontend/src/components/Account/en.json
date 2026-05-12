@@ -86,5 +86,19 @@
   "logout": "Logout",
   "help": "Help",
   "loadingHelp": "Loading help content...",
-  "helpLoadFailed": "Failed to load help content."
+  "helpLoadFailed": "Failed to load help content.",
+  "tools": "Tools",
+  "toolsDescription": "Connect external tools and licenses to use with your account.",
+  "githubCopilot": "GitHub Copilot",
+  "githubCopilotConnectDescription": "Paste your GitHub Copilot token to use your own license. The token is stored encrypted.",
+  "githubCopilotTokenPlaceholder": "Paste your GitHub Copilot token",
+  "githubCopilotConnect": "Connect",
+  "githubCopilotDisconnect": "Disconnect",
+  "githubCopilotConnected": "Your GitHub Copilot license is connected.",
+  "githubCopilotConnectedAt": "Connected on {{date}}",
+  "githubCopilotConnectedToast": "GitHub Copilot license connected.",
+  "githubCopilotDisconnectedToast": "GitHub Copilot license disconnected.",
+  "githubCopilotConnectFailed": "Failed to connect GitHub Copilot license: {{message}}",
+  "githubCopilotDisconnectFailed": "Failed to disconnect GitHub Copilot license: {{message}}",
+  "githubCopilotNotEnabled": "GitHub Copilot integration has not been enabled by your administrator."
 }

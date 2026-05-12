@@ -86,5 +86,19 @@
   "logout": "Uitloggen",
   "help": "Help",
   "loadingHelp": "Help-inhoud laden...",
-  "helpLoadFailed": "Kan help-inhoud niet laden."
+  "helpLoadFailed": "Kan help-inhoud niet laden.",
+  "tools": "Hulpmiddelen",
+  "toolsDescription": "Verbind externe hulpmiddelen en licenties om te gebruiken met uw account.",
+  "githubCopilot": "GitHub Copilot",
+  "githubCopilotConnectDescription": "Plak uw GitHub Copilot-token om uw eigen licentie te gebruiken. Het token wordt versleuteld opgeslagen.",
+  "githubCopilotTokenPlaceholder": "Plak uw GitHub Copilot-token",
+  "githubCopilotConnect": "Verbinden",
+  "githubCopilotDisconnect": "Verbinding verbreken",
+  "githubCopilotConnected": "Uw GitHub Copilot-licentie is verbonden.",
+  "githubCopilotConnectedAt": "Verbonden op {{date}}",
+  "githubCopilotConnectedToast": "GitHub Copilot-licentie verbonden.",
+  "githubCopilotDisconnectedToast": "GitHub Copilot-licentie ontkoppeld.",
+  "githubCopilotConnectFailed": "Kan GitHub Copilot-licentie niet verbinden: {{message}}",
+  "githubCopilotDisconnectFailed": "Kan GitHub Copilot-licentie niet ontkoppelen: {{message}}",
+  "githubCopilotNotEnabled": "GitHub Copilot-integratie is niet ingeschakeld door uw beheerder."
 }

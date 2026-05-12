@@ -86,5 +86,19 @@
   "logout": "Déconnexion",
   "help": "Aide",
   "loadingHelp": "Chargement du contenu d'aide...",
-  "helpLoadFailed": "Échec du chargement du contenu d'aide."
+  "helpLoadFailed": "Échec du chargement du contenu d'aide.",
+  "tools": "Outils",
+  "toolsDescription": "Connectez des outils et licences externes à utiliser avec votre compte.",
+  "githubCopilot": "GitHub Copilot",
+  "githubCopilotConnectDescription": "Collez votre jeton GitHub Copilot pour utiliser votre propre licence. Le jeton est stocké chiffré.",
+  "githubCopilotTokenPlaceholder": "Collez votre jeton GitHub Copilot",
+  "githubCopilotConnect": "Connecter",
+  "githubCopilotDisconnect": "Déconnecter",
+  "githubCopilotConnected": "Votre licence GitHub Copilot est connectée.",
+  "githubCopilotConnectedAt": "Connecté le {{date}}",
+  "githubCopilotConnectedToast": "Licence GitHub Copilot connectée.",
+  "githubCopilotDisconnectedToast": "Licence GitHub Copilot déconnectée.",
+  "githubCopilotConnectFailed": "Échec de la connexion de la licence GitHub Copilot : {{message}}",
+  "githubCopilotDisconnectFailed": "Échec de la déconnexion de la licence GitHub Copilot : {{message}}",
+  "githubCopilotNotEnabled": "L'intégration GitHub Copilot n'a pas été activée par votre administrateur."
 }
