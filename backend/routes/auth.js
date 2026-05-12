@@ -15,7 +15,7 @@ import {
   extractKeycloakUserInfo,
 } from "../utils/keycloak.js";
 import { ensurePersonalWorkspace } from "../utils/workspace.js";
-import { encrypt } from "../utils/encryption.js";
+import { encrypt, decrypt } from "../utils/encryption.js";
 
 const router = new Elysia({ prefix: "/api/auth" });
 
@@ -125,9 +125,15 @@ const keycloakTokenExchangeBodySchema = z.object({
   keycloakToken: z.string().min(1, "keycloakToken is required."),
 });
 
-const githubCopilotBodySchema = z.object({
-  token: z.string().min(1, "Token is required."),
+const pollDeviceCodeBodySchema = z.object({
+  device_code_token: z.string().min(1, "device_code_token is required."),
 });
+
+// GitHub OAuth client ID used by OpenCode for its Copilot device flow.
+// Reusing it means the access tokens we obtain are accepted by OpenCode's
+// built-in Copilot provider plugin running inside dev containers.
+const COPILOT_CLIENT_ID = "Ov23li8tweQw6odWQebz";
+const COPILOT_SCOPE = "read:user";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -921,36 +927,173 @@ router.delete("/avatar", async ({ user, status }) => {
 // ─── Self-service: GitHub Copilot integration ─────────────────────────────────
 
 /**
- * POST /api/auth/tools/github-copilot
- * Stores the user's GitHub Copilot token (encrypted at rest).
- * Only available when an admin has enabled the integration.
- * Body: { token }
+ * Helper — ensure the admin has enabled the Copilot integration.
+ * Returns null when allowed, or a status() response object to be returned
+ * directly by the caller when not.
  */
-router.post("/tools/github-copilot", async ({ body, user, status }) => {
-  const parsed = githubCopilotBodySchema.safeParse(body);
+async function assertCopilotEnabled(status) {
+  const setting = await Setting.findOne({ key: "integrations" });
+  const value = setting?.value || { githubCopilotEnabled: false };
+  if (!value.githubCopilotEnabled) {
+    return status(403, {
+      error:
+        "GitHub Copilot integration is not enabled by your administrator.",
+    });
+  }
+  return null;
+}
+
+/**
+ * POST /api/auth/tools/github-copilot/device-code
+ * Starts GitHub's OAuth device-flow.  Returns the user-facing code and
+ * verification URL plus an opaque encrypted token that the client must
+ * send back to the poll endpoint.
+ */
+router.post("/tools/github-copilot/device-code", async ({ user, status }) => {
+  const blocked = await assertCopilotEnabled(status);
+  if (blocked) return blocked;
+
+  try {
+    const ghResp = await fetch("https://github.com/login/device/code", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: COPILOT_CLIENT_ID,
+        scope: COPILOT_SCOPE,
+      }).toString(),
+    });
+
+    if (!ghResp.ok) {
+      const text = await ghResp.text().catch(() => "");
+      console.error(
+        `GitHub /login/device/code failed: ${ghResp.status} — ${text}`,
+      );
+      return status(502, {
+        error: "Failed to start GitHub device flow.",
+      });
+    }
+
+    const data = await ghResp.json();
+    // data: { device_code, user_code, verification_uri, expires_in, interval }
+
+    // Build an opaque envelope so the client cannot tamper with the raw
+    // device_code and so we can enforce expiry server-side.
+    const envelope = JSON.stringify({
+      device_code: data.device_code,
+      expires_at: Date.now() + (data.expires_in || 900) * 1000,
+      userId: user.userId,
+    });
+    const enc = encrypt(envelope);
+    const device_code_token = `${enc.ciphertext}.${enc.iv}.${enc.tag}`;
+
+    return {
+      user_code: data.user_code,
+      verification_uri: data.verification_uri,
+      expires_in: data.expires_in,
+      interval: data.interval || 5,
+      device_code_token,
+    };
+  } catch (err) {
+    console.error("POST /auth/tools/github-copilot/device-code error:", err);
+    return status(500, { error: "Failed to start GitHub device flow." });
+  }
+});
+
+/**
+ * POST /api/auth/tools/github-copilot/poll
+ * Body: { device_code_token }
+ * Returns one of:
+ *   { status: "pending" } | { status: "pending", interval }
+ *   { status: "authorized" }
+ *   { status: "expired" }
+ *   { status: "denied" }
+ *   { status: "error", message }
+ */
+router.post("/tools/github-copilot/poll", async ({ body, user, status }) => {
+  const blocked = await assertCopilotEnabled(status);
+  if (blocked) return blocked;
+
+  const parsed = pollDeviceCodeBodySchema.safeParse(body);
   if (!parsed.success) {
     return status(400, { error: parsed.error.errors[0].message });
   }
 
+  // Decode the envelope
+  let envelope;
   try {
-    // Verify the integration is enabled by an administrator
-    const setting = await Setting.findOne({ key: "integrations" });
-    const value = setting?.value || { githubCopilotEnabled: false };
-    if (!value.githubCopilotEnabled) {
-      return status(403, {
-        error:
-          "GitHub Copilot integration is not enabled by your administrator.",
+    const [ciphertext, iv, tag] = parsed.data.device_code_token.split(".");
+    if (!ciphertext || !iv || !tag) throw new Error("malformed token");
+    const plain = decrypt(ciphertext, iv, tag);
+    envelope = JSON.parse(plain);
+  } catch (err) {
+    return { status: "expired" };
+  }
+
+  // Enforce binding to the same user and expiry
+  if (envelope.userId !== user.userId) {
+    return status(403, { error: "device_code_token does not match user." });
+  }
+  if (!envelope.expires_at || Date.now() > envelope.expires_at) {
+    return { status: "expired" };
+  }
+
+  try {
+    const ghResp = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id: COPILOT_CLIENT_ID,
+          device_code: envelope.device_code,
+          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+        }).toString(),
+      },
+    );
+
+    const data = await ghResp.json().catch(() => ({}));
+
+    if (data.error) {
+      switch (data.error) {
+        case "authorization_pending":
+          return { status: "pending" };
+        case "slow_down":
+          return { status: "pending", interval: data.interval || 10 };
+        case "expired_token":
+          return { status: "expired" };
+        case "access_denied":
+          return { status: "denied" };
+        default:
+          console.error(
+            `GitHub /login/oauth/access_token error: ${data.error} — ${data.error_description || ""}`,
+          );
+          return status(500, {
+            status: "error",
+            message: data.error_description || data.error,
+          });
+      }
+    }
+
+    if (!data.access_token) {
+      return status(500, {
+        status: "error",
+        message: "GitHub did not return an access token.",
       });
     }
 
+    // Persist the OAuth access token (encrypted at rest).
     const dbUser = await User.findById(user.userId);
     if (!dbUser) {
       return status(404, { error: "User not found." });
     }
 
-    const { token } = parsed.data;
-    const { ciphertext, iv, tag } = encrypt(token);
-
+    const { ciphertext, iv, tag } = encrypt(data.access_token);
     dbUser.tools = dbUser.tools || {};
     dbUser.tools.github_copilot = {
       token: { ciphertext, iv, tag },
@@ -958,11 +1101,12 @@ router.post("/tools/github-copilot", async ({ body, user, status }) => {
     };
     await dbUser.save();
 
-    return dbUser.toSafeJSON();
+    return { status: "authorized" };
   } catch (err) {
-    console.error("POST /auth/tools/github-copilot error:", err);
+    console.error("POST /auth/tools/github-copilot/poll error:", err);
     return status(500, {
-      error: "Failed to save GitHub Copilot token.",
+      status: "error",
+      message: "Failed to contact GitHub.",
     });
   }
 });

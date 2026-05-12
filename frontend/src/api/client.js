@@ -939,11 +939,18 @@ export const api = {
     return response.data;
   },
 
-  // User tools: GitHub Copilot
-  connectGithubCopilot: async (token) => {
+  // User tools: GitHub Copilot OAuth device flow
+  startGithubCopilotDeviceFlow: async () => {
     const response = await axios.post(
-      `${API_BASE_URL}/auth/tools/github-copilot`,
-      { token },
+      `${API_BASE_URL}/auth/tools/github-copilot/device-code`,
+    );
+    return response.data;
+  },
+
+  pollGithubCopilotDeviceFlow: async (deviceCodeToken) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/auth/tools/github-copilot/poll`,
+      { device_code_token: deviceCodeToken },
     );
     return response.data;
   },

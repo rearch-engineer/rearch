@@ -6,6 +6,8 @@
  * into the OPENCODE_CONFIG_CONTENT environment variable.
  */
 import LlmProvider from "../models/LlmProvider.js";
+import User from "../models/User.js";
+import Setting from "../models/Setting.js";
 import { decrypt } from "./encryption.js";
 
 /**
@@ -97,5 +99,58 @@ export async function getDefaultModel() {
   }
 
   return null;
+}
+
+/**
+ * Build the OpenCode auth.json content for GitHub Copilot.
+ *
+ * OpenCode stores provider credentials in `~/.local/share/opencode/auth.json`,
+ * separate from the provider configuration in `opencode.json`.  GitHub Copilot
+ * uses OAuth-style authentication with the provider ID `"github-copilot"`.
+ *
+ * Returns an object suitable for writing to auth.json, e.g.:
+ * ```json
+ * { "github-copilot": { "type": "oauth", "refresh": "gho_...", "access": "gho_...", "expires": 0 } }
+ * ```
+ * Returns an empty object if:
+ * - The GitHub Copilot integration is disabled by the admin
+ * - The user has not connected their Copilot token
+ * - The token cannot be decrypted
+ *
+ * @param {string} userId - The ID of the user (conversation creator)
+ * @returns {Promise<Object>} Auth config fragment for auth.json (may be empty)
+ */
+export async function buildCopilotAuthConfig(userId) {
+  if (!userId) return {};
+
+  // Check if the admin has enabled the GitHub Copilot integration
+  const integrationsSetting = await Setting.findOne({ key: "integrations" });
+  if (!integrationsSetting?.value?.githubCopilotEnabled) return {};
+
+  // Load the user's Copilot token
+  const user = await User.findById(userId);
+  if (!user?.tools?.github_copilot?.token?.ciphertext) return {};
+
+  // Decrypt the token
+  const { ciphertext, iv, tag } = user.tools.github_copilot.token;
+  let plainToken;
+  try {
+    plainToken = decrypt(ciphertext, iv, tag);
+  } catch (err) {
+    console.error(
+      `Failed to decrypt GitHub Copilot token for user ${userId}:`,
+      err.message,
+    );
+    return {};
+  }
+
+  return {
+    "github-copilot": {
+      type: "oauth",
+      refresh: plainToken,
+      access: plainToken,
+      expires: 0,
+    },
+  };
 }
 

@@ -31,6 +31,7 @@ const docker = new Docker();
  * @param {string} params.repoUrl - Repository clone URL (can be empty)
  * @param {string} params.repoBranch - Branch name (default: "main")
  * @param {Object} [params.providerConfig={}] - OpenCode provider config (from buildProviderConfig)
+ * @param {Object} [params.authConfig={}] - OpenCode auth config for auth.json (e.g. GitHub Copilot OAuth tokens)
  * @param {string} [params.appPort="3000"] - Application port
  * @param {string} [params.appStartCommand="npm run dev"] - Application start command
  * @param {string} [params.gitEmail=""] - Git provider email
@@ -50,6 +51,7 @@ export async function createConversationContainer({
   repoUrl = "",
   repoBranch = "main",
   providerConfig = {},
+  authConfig = {},
   appPort = "3000",
   appStartCommand = "npm run dev",
   gitEmail = "",
@@ -165,6 +167,12 @@ export async function createConversationContainer({
       `BITBUCKET_TOKEN=${gitToken}`,
       // GIT_TOKEN used by entrypoint.sh to configure git push authentication
       `GIT_TOKEN=${gitToken}`,
+      // OpenCode auth JSON — written by entrypoint.sh to auth.json before
+      // supervisord starts.  Contains provider credentials (e.g. GitHub Copilot
+      // OAuth tokens) that OpenCode stores separately from its config.
+      ...(Object.keys(authConfig).length > 0
+        ? [`OPENCODE_AUTH_CONTENT=${JSON.stringify(authConfig)}`]
+        : []),
       // OpenCode config JSON — written by entrypoint.sh before supervisord
       // starts, so OpenCode has MCP tools and LLM provider credentials
       // available at launch time. Provider config comes from the admin-managed

@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Typography,
   Card,
   Button,
-  Input,
-  FormControl,
-  FormLabel,
   Alert,
   CircularProgress,
   Divider,
 } from "@mui/joy";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -26,9 +25,13 @@ export default function Tools() {
 
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
-  const [token, setToken] = useState("");
-  const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+
+  // Device-flow state machine: idle | started | polling | error
+  const [flowState, setFlowState] = useState("idle");
+  const [deviceCode, setDeviceCode] = useState(null);
+  const [errorMsg, setErrorMsg] = useState("");
+  const pollIntervalRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +51,16 @@ export default function Tools() {
     };
   }, []);
 
+  // Ensure any active polling is cleared when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const copilot = user?.tools?.github_copilot;
   const isConnected = copilot?.connected === true;
 
@@ -60,21 +73,108 @@ export default function Tools() {
     }
   };
 
-  const handleConnect = async (e) => {
-    e?.preventDefault?.();
-    if (!token.trim()) return;
-    setConnecting(true);
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const handleCancel = () => {
+    stopPolling();
+    setDeviceCode(null);
+    setErrorMsg("");
+    setFlowState("idle");
+  };
+
+  const handleCopyCode = async (code) => {
     try {
-      await api.connectGithubCopilot(token.trim());
-      await refreshUser();
-      setToken("");
-      toast.success(t("githubCopilotConnectedToast"));
+      await navigator.clipboard.writeText(code);
+      toast.success(t("githubCopilotCodeCopied"));
+    } catch {
+      // Ignore — non-fatal
+    }
+  };
+
+  const startPolling = (codeData) => {
+    stopPolling();
+    const intervalMs = Math.max(1, codeData.interval || 5) * 1000;
+
+    const tick = async () => {
+      try {
+        const result = await api.pollGithubCopilotDeviceFlow(
+          codeData.device_code_token,
+        );
+
+        if (result.status === "authorized") {
+          stopPolling();
+          await refreshUser();
+          setDeviceCode(null);
+          setFlowState("idle");
+          toast.success(t("githubCopilotConnectedToast"));
+          return;
+        }
+
+        if (result.status === "expired") {
+          stopPolling();
+          setErrorMsg(t("githubCopilotExpired"));
+          setFlowState("error");
+          return;
+        }
+
+        if (result.status === "denied") {
+          stopPolling();
+          setErrorMsg(t("githubCopilotDenied"));
+          setFlowState("error");
+          return;
+        }
+
+        if (result.status === "pending") {
+          // Update interval if GitHub asked us to slow down
+          if (result.interval && pollIntervalRef.current) {
+            const newMs = Math.max(1, result.interval) * 1000;
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = setInterval(tick, newMs);
+          }
+          return;
+        }
+
+        // Unknown status — surface as error
+        stopPolling();
+        setErrorMsg(
+          t("githubCopilotFlowFailed", {
+            message: result.message || "unknown",
+          }),
+        );
+        setFlowState("error");
+      } catch (err) {
+        stopPolling();
+        const message =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Unknown error";
+        setErrorMsg(t("githubCopilotFlowFailed", { message }));
+        setFlowState("error");
+      }
+    };
+
+    pollIntervalRef.current = setInterval(tick, intervalMs);
+  };
+
+  const handleStart = async () => {
+    setErrorMsg("");
+    setFlowState("started");
+    try {
+      const data = await api.startGithubCopilotDeviceFlow();
+      setDeviceCode(data);
+      setFlowState("polling");
+      startPolling(data);
     } catch (err) {
       const message =
         err?.response?.data?.error || err?.message || "Unknown error";
-      toast.error(t("githubCopilotConnectFailed", { message }));
-    } finally {
-      setConnecting(false);
+      setErrorMsg(t("githubCopilotFlowFailed", { message }));
+      setFlowState("error");
     }
   };
 
@@ -190,37 +290,108 @@ export default function Tools() {
                 {t("githubCopilotDisconnect")}
               </Button>
             </Box>
-          ) : (
-            <form onSubmit={handleConnect}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          ) : flowState === "polling" && deviceCode ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Typography
+                level="body-sm"
+                sx={{ color: "var(--text-secondary)" }}
+              >
+                {t("githubCopilotEnterCode", {
+                  url: deviceCode.verification_uri,
+                })}
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  p: 2,
+                  bgcolor: "var(--bg-secondary)",
+                  borderRadius: "var(--radius-md, 8px)",
+                  border: "1px solid var(--border-color)",
+                  alignSelf: "flex-start",
+                }}
+              >
                 <Typography
-                  level="body-sm"
-                  sx={{ color: "var(--text-secondary)" }}
+                  level="h3"
+                  sx={{
+                    fontFamily: "monospace",
+                    letterSpacing: "0.15em",
+                    color: "var(--text-primary)",
+                  }}
                 >
-                  {t("githubCopilotConnectDescription")}
+                  {deviceCode.user_code}
                 </Typography>
-
-                <FormControl>
-                  <FormLabel>{t("githubCopilot")}</FormLabel>
-                  <Input
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder={t("githubCopilotTokenPlaceholder")}
-                    autoComplete="off"
-                  />
-                </FormControl>
-
                 <Button
-                  type="submit"
-                  loading={connecting}
-                  disabled={!token.trim()}
-                  sx={{ alignSelf: "flex-start" }}
+                  variant="plain"
+                  size="sm"
+                  onClick={() => handleCopyCode(deviceCode.user_code)}
+                  startDecorator={<ContentCopyOutlinedIcon fontSize="small" />}
                 >
-                  {t("githubCopilotConnect")}
+                  {t("githubCopilotCopy")}
                 </Button>
               </Box>
-            </form>
+
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Button
+                  component="a"
+                  href={deviceCode.verification_uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  startDecorator={<OpenInNewOutlinedIcon />}
+                >
+                  {t("githubCopilotOpenGitHub")}
+                </Button>
+                <Button variant="outlined" onClick={handleCancel}>
+                  {t("githubCopilotCancel")}
+                </Button>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  mt: 1,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <CircularProgress size="sm" />
+                <Typography level="body-sm">
+                  {t("githubCopilotWaitingAuth")}
+                </Typography>
+              </Box>
+            </Box>
+          ) : flowState === "error" ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Alert color="danger" variant="soft">
+                {errorMsg}
+              </Alert>
+              <Button
+                onClick={handleStart}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                {t("githubCopilotTryAgain")}
+              </Button>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Typography
+                level="body-sm"
+                sx={{ color: "var(--text-secondary)" }}
+              >
+                {t("githubCopilotStartFlow")}
+              </Typography>
+
+              <Button
+                onClick={handleStart}
+                loading={flowState === "started"}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                {t("githubCopilotConnect")}
+              </Button>
+            </Box>
           )}
         </Card>
       </Box>

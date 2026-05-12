@@ -270,4 +270,40 @@ async function injectSkillsIntoContainer(containerId, subResourceId, log) {
   await log("Skills injection: complete");
 }
 
-export { waitForOpencodeReady, toSkillName, injectSkillsIntoContainer };
+/**
+ * Write OpenCode auth credentials (e.g. GitHub Copilot OAuth tokens) into
+ * the container's auth.json.  This is done via `docker exec` so it works
+ * with existing container images that don't have the entrypoint.sh change.
+ *
+ * The auth.json file is placed at ~/.local/share/opencode/auth.json which
+ * is where OpenCode reads provider credentials from.
+ *
+ * @param {string} containerId - Running Docker container ID
+ * @param {Object} authConfig - Auth config object (e.g. { "github-copilot": { ... } })
+ * @param {Function} log - Logging callback
+ */
+async function injectAuthIntoContainer(containerId, authConfig, log) {
+  if (!authConfig || Object.keys(authConfig).length === 0) {
+    return;
+  }
+
+  const authDir = "/home/coder/.local/share/opencode";
+  const authFile = `${authDir}/auth.json`;
+  const authJson = JSON.stringify(authConfig);
+
+  try {
+    // Create directory and write auth.json in a single exec call.
+    // Use printf instead of echo to avoid any shell interpretation issues.
+    const cmd = `mkdir -p ${authDir} && printf '%s' '${authJson.replace(/'/g, "'\\''")}' > ${authFile} && chown -R coder:coder /home/coder/.local/share/opencode`;
+    await execInContainer(containerId, cmd, {
+      user: "root",
+      workingDir: "/home/coder",
+      timeout: 10000,
+    });
+    await log("Auth injection: auth.json written successfully");
+  } catch (err) {
+    await log(`Auth injection: failed to write auth.json — ${err.message}`);
+  }
+}
+
+export { waitForOpencodeReady, toSkillName, injectSkillsIntoContainer, injectAuthIntoContainer };

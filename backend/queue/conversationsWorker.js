@@ -9,10 +9,10 @@ import { clearClientCache, sendPrompt } from "../utils/opencodeContainer.js";
 import { redisConfig, docker } from "./config.js";
 import { broadcast } from "../ws.js";
 import { emitJobEvent, jobLog } from "./events.js";
-import { waitForOpencodeReady, injectSkillsIntoContainer } from "./helpers.js";
+import { waitForOpencodeReady, injectSkillsIntoContainer, injectAuthIntoContainer } from "./helpers.js";
 import { createConversationContainer } from "./createConversationContainer.js";
 import { CLEANUP_JOB_NAME, triggerContainerCleanup } from "./scheduler.js";
-import { buildProviderConfig } from "../utils/llmProviderConfig.js";
+import { buildProviderConfig, buildCopilotAuthConfig } from "../utils/llmProviderConfig.js";
 
 /** CONVERSATIONS WORKER */
 const conversationsWorker = new Worker(
@@ -310,6 +310,15 @@ const conversationsWorker = new Worker(
         `✅ ${enabledProviderCount} LLM provider(s) configured: ${Object.keys(providerConfig).join(", ")}`,
       );
 
+      // Build GitHub Copilot auth credentials for the conversation creator.
+      // These go into OpenCode's auth.json (separate from provider config).
+      const authConfig = await buildCopilotAuthConfig(conversation.createdBy);
+      if (Object.keys(authConfig).length > 0) {
+        console.log(
+          `✅ GitHub Copilot auth injected for user ${conversation.createdBy}`,
+        );
+      }
+
       await jobLog(
         job,
         "conversations",
@@ -372,6 +381,7 @@ const conversationsWorker = new Worker(
         repoUrl,
         repoBranch,
         providerConfig,
+        authConfig,
         appPort,
         appStartCommand,
         gitEmail,
@@ -381,6 +391,13 @@ const conversationsWorker = new Worker(
         resourceConstraints: subResource.rearch?.resources || {},
         log: (msg) => jobLog(job, "conversations", msg),
       });
+
+      // Inject auth credentials (e.g. GitHub Copilot) into the container
+      // before OpenCode finishes starting, so the provider plugin picks them
+      // up during its initialization.
+      await injectAuthIntoContainer(containerId, authConfig, (msg) =>
+        jobLog(job, "conversations", msg),
+      );
 
       // Wait for OpenCode server to be ready
       await jobLog(
