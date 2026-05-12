@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Box } from "@mui/joy";
 import ChangePassword from "../../components/Account/ChangePassword";
 import Preferences from "../../components/Account/Preferences";
+import Tools from "../../components/Account/Tools";
 
 export default function AccountPage() {
   return (
@@ -24,6 +25,7 @@ export default function AccountPage() {
         />
         <Route path="/preferences" element={<Preferences />} />
         <Route path="/security" element={<ChangePassword />} />
+        <Route path="/tools" element={<Tools />} />
       </Routes>
     </Box>
   );
