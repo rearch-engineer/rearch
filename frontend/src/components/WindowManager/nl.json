@@ -5,5 +5,6 @@
   "showSidebar": "Zijbalk tonen",
   "hideSidebar": "Zijbalk verbergen",
   "refresh": "Vernieuwen",
-  "openInNewTab": "Openen in een nieuw tabblad"
+  "openInNewTab": "Openen in een nieuw tabblad",
+  "closeTab": "Sluiten"
 }
