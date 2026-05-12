@@ -77,8 +77,10 @@ RUN useradd -m -s /bin/zsh coder && \
     echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     mkdir -p /repository && \
     chown -R coder:coder /repository && \
-    mkdir -p /home/coder/.config/code-server && \
-    chown -R coder:coder /home/coder/.config
+    mkdir -p /home/coder/.config/code-server \
+             /home/coder/.local/share \
+             /home/coder/.local/state && \
+    chown -R coder:coder /home/coder/.config /home/coder/.local
 
 # =============================================================================
 # 6. Install Oh My Zsh for the coder user

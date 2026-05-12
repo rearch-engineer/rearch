@@ -197,10 +197,19 @@ echo "[5/6] Configuring OpenCode..."
 if [ -n "$OPENCODE_CONFIG_CONTENT" ]; then
     mkdir -p /home/coder/.config/opencode
     echo "$OPENCODE_CONFIG_CONTENT" > /home/coder/.config/opencode/opencode.json
-    chown -R coder:coder /home/coder/.config/opencode
+    chown -R coder:coder /home/coder/.config
     echo "  -> OpenCode config written"
 else
     echo "  -> OPENCODE_CONFIG_CONTENT not set, skipping"
+fi
+
+if [ -n "$OPENCODE_AUTH_CONTENT" ]; then
+    mkdir -p /home/coder/.local/share/opencode
+    echo "$OPENCODE_AUTH_CONTENT" > /home/coder/.local/share/opencode/auth.json
+    chown -R coder:coder /home/coder/.local
+    echo "  -> OpenCode auth written"
+else
+    echo "  -> OPENCODE_AUTH_CONTENT not set, skipping"
 fi
 
 # =============================================================================
@@ -225,4 +234,4 @@ echo "=========================================="
 echo ""
 
 # Start supervisor (it will manage all services)
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
