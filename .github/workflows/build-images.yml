@@ -1,14 +1,17 @@
 # ============================================================================
 # ReArch CI/CD Pipeline - GitHub Actions
 # ============================================================================
-# Builds and pushes Docker images for frontend, backend, and mcp-proxy
-# to GitHub Container Registry (ghcr.io).
+# Builds and pushes Docker images to GitHub Container Registry (ghcr.io):
+#   - rearch-agent-base: Base image for all dev container templates
+#   - rearch-frontend:   React SPA served via nginx
+#   - rearch-backend:    Elysia.js API server
+#   - rearch-mcp-proxy:  MCP proxy service
 #
 # Tagging strategy:
 #   Push to main  → "dev"    + "sha-<short-sha>"
 #   Release        → "latest" + "<version>" (e.g. 1.2.3)
 #
-# All three images always receive the same tags, ensuring version parity.
+# All images always receive the same tags, ensuring version parity.
 #
 # Required permissions:
 #   - contents: read   (checkout)
@@ -62,6 +65,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - image: rearch-agent-base
+            context: ./agent-image
           - image: rearch-frontend
             context: ./frontend
           - image: rearch-backend

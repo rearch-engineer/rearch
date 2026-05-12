@@ -14,138 +14,45 @@
 # npm install is run automatically. A dev server can be started via
 # the APP_START_COMMAND environment variable (default: npm run dev).
 #
+# Extends: ghcr.io/rearch-engineer/rearch-agent-base
+# Supervisor programs inherited: vscode, opencode, terminal
+# Supervisor programs added: app
+#
 # =============================================================================
 
-FROM node:22
+FROM ghcr.io/rearch-engineer/rearch-agent-base:latest
 
 # =============================================================================
-# 1. Install System Dependencies
+# 1. Install Nodemon globally
 # =============================================================================
-RUN apt-get update && apt-get install -y \
-    supervisor \
-    build-essential \
-    python3 \
-    git \
-    curl \
-    iputils-ping \
-    ca-certificates \
-    sudo \
-    vim \
-    nano \
-    wget \
-    jq \
-    htop \
-    zip \
-    unzip \
-    tar \
-    rsync \
-    zsh \
-    && rm -rf /var/lib/apt/lists/*
+RUN npm i -g nodemon
 
 # =============================================================================
-# 1b. Install ttyd (web-based terminal)
-# =============================================================================
-RUN ARCH=$(dpkg --print-architecture) && \
-    case "$ARCH" in \
-      amd64) TTYD_ARCH="x86_64" ;; \
-      arm64) TTYD_ARCH="aarch64" ;; \
-      armhf) TTYD_ARCH="armhf" ;; \
-      *) TTYD_ARCH="$ARCH" ;; \
-    esac && \
-    wget -qO /usr/local/bin/ttyd \
-      "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" && \
-    chmod +x /usr/local/bin/ttyd
-
-# =============================================================================
-# 2. Install Code-Server
-# =============================================================================
-RUN curl -fsSL https://code-server.dev/install.sh | sh
-
-# =============================================================================
-# 3. Install OpenCode and Nodemon globally
-# =============================================================================
-RUN npm i -g opencode-ai nodemon
-
-# =============================================================================
-# 4. Create the "coder" user and setup directories
-# =============================================================================
-RUN useradd -m -s /bin/zsh coder && \
-    echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    mkdir -p /repository && \
-    chown -R coder:coder /repository && \
-    mkdir -p /home/coder/.config/code-server && \
-    chown -R coder:coder /home/coder/.config
-
-# =============================================================================
-# 4b. Install Oh My Zsh for the coder user
-# =============================================================================
-USER coder
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-USER root
-
-# =============================================================================
-# 5. Copy repository code
+# 2. Copy repository code
 # =============================================================================
 COPY --chown=coder:coder . /repository
 
 # =============================================================================
-# 6. Install project dependencies
+# 3. Install project dependencies
 # =============================================================================
 WORKDIR /repository
 RUN if [ -f package.json ]; then su - coder -c "cd /repository && npm install"; fi
 
 # =============================================================================
-# 7. Ensure proper HOME directory permissions
+# 4. Ensure proper HOME directory permissions
 # =============================================================================
 RUN chown -R coder:coder /home/coder
 
 # =============================================================================
-# 8. Copy and setup entrypoint script
+# 5. Copy and setup entrypoint script
 # =============================================================================
 COPY .rearch/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # =============================================================================
-# 9. Create Supervisor Configuration
+# 6. Add Supervisor program: app (configurable dev server)
 # =============================================================================
-RUN mkdir -p /var/log/supervisor
-RUN echo '[unix_http_server]\n\
-file=/var/run/supervisor.sock\n\
-chmod=0700\n\
-\n\
-[rpcinterface:supervisor]\n\
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface\n\
-\n\
-[supervisorctl]\n\
-serverurl=unix:///var/run/supervisor.sock\n\
-\n\
-[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-\n\
-[program:vscode]\n\
-command=code-server --bind-addr 0.0.0.0:8080 --auth none /repository\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/vscode.log\n\
-stderr_logfile=/var/log/supervisor/vscode.err\n\
-\n\
-[program:opencode]\n\
-command=opencode serve --hostname 0.0.0.0 --port 4096\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/opencode.log\n\
-stderr_logfile=/var/log/supervisor/opencode.err\n\
-\n\
-[program:app]\n\
+RUN echo '[program:app]\n\
 command=/bin/bash -c "%(ENV_APP_START_COMMAND)s"\n\
 user=coder\n\
 environment=HOME="/home/coder",NODE_ENV="development"\n\
@@ -157,28 +64,16 @@ startretries=999\n\
 priority=20\n\
 stdout_logfile=/var/log/supervisor/app.log\n\
 stderr_logfile=/var/log/supervisor/app.err\n\
-\n\
-[program:terminal]\n\
-command=ttyd --port 7681 --writable zsh\n\
-user=coder\n\
-environment=HOME="/home/coder",TERM="xterm-256color"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/terminal.log\n\
-stderr_logfile=/var/log/supervisor/terminal.err\n\
-' > /etc/supervisor/conf.d/supervisord.conf
+' > /etc/supervisor/conf.d/app.conf
 
 # =============================================================================
-# 10. Environment Variables with Defaults
+# 7. Environment Variables with Defaults
 # =============================================================================
-ENV REPOSITORY_BRANCH="main"
 ENV APP_START_COMMAND="npm run dev"
 ENV APP_PORT="3000"
 
 # =============================================================================
-# 11. Expose Ports
+# 8. Expose Ports
 # =============================================================================
 # 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
@@ -187,7 +82,7 @@ ENV APP_PORT="3000"
 EXPOSE 8080 4096 3000 7681
 
 # =============================================================================
-# 12. Start via Entrypoint
+# 9. Start via Entrypoint
 # =============================================================================
 WORKDIR /repository
 ENTRYPOINT ["/entrypoint.sh"]

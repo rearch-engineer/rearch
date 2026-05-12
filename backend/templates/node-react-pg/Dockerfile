@@ -22,66 +22,36 @@
 # BUILD FROM REPOSITORY ROOT:
 #   docker build -f .rearch/Dockerfile -t projects .
 #
+# Extends: ghcr.io/rearch-engineer/rearch-agent-base
+# Supervisor programs inherited: vscode, opencode (overridden), terminal
+# Supervisor programs added: postgres, pgweb, backend, frontend
+#
 # =============================================================================
 
-FROM node:22
+FROM ghcr.io/rearch-engineer/rearch-agent-base:latest
 
 # =============================================================================
-# 1. Install System Dependencies
+# 1. Install PostgreSQL and additional dependencies
 # =============================================================================
 RUN apt-get update && apt-get install -y \
-    supervisor \
-    build-essential \
-    python3 \
-    git \
-    curl \
     postgresql \
     postgresql-client \
-    vim \
-    nano \
-    wget \
-    jq \
-    htop \
-    zip \
-    unzip \
-    tar \
-    rsync \
-    zsh \
     && rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# 1b. Install ttyd (web-based terminal)
-# =============================================================================
-RUN ARCH=$(dpkg --print-architecture) && \
-    case "$ARCH" in \
-      amd64) TTYD_ARCH="x86_64" ;; \
-      arm64) TTYD_ARCH="aarch64" ;; \
-      armhf) TTYD_ARCH="armhf" ;; \
-      *) TTYD_ARCH="$ARCH" ;; \
-    esac && \
-    wget -qO /usr/local/bin/ttyd \
-      "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" && \
-    chmod +x /usr/local/bin/ttyd
-
-# =============================================================================
-# 2. Install Code-Server
-# =============================================================================
-RUN curl -fsSL https://code-server.dev/install.sh | sh
-
-# =============================================================================
-# 3. Install Playwright (Chromium only) for browser automation tools
+# 2. Install Playwright (Chromium only) for browser automation tools
 # =============================================================================
 ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
 RUN npx playwright install --with-deps chromium && \
     chmod -R 755 /opt/playwright-browsers
 
 # =============================================================================
-# 4. Install OpenCode and Nodemon globally
+# 3. Install Nodemon globally
 # =============================================================================
-RUN npm i -g opencode-ai nodemon
+RUN npm i -g nodemon
 
 # =============================================================================
-# 5. Install pgweb (PostgreSQL web UI)
+# 4. Install pgweb (PostgreSQL web UI)
 # =============================================================================
 RUN curl -fsSL https://github.com/sosedoff/pgweb/releases/download/v0.16.2/pgweb_linux_amd64.zip -o /tmp/pgweb.zip && \
     apt-get update && apt-get install -y unzip && \
@@ -93,39 +63,24 @@ RUN curl -fsSL https://github.com/sosedoff/pgweb/releases/download/v0.16.2/pgweb
     rm -rf /var/lib/apt/lists/*
 
 # =============================================================================
-# 6. Create the "coder" user and setup directories
-# =============================================================================
-RUN useradd -m -s /bin/zsh coder && \
-    mkdir -p /repository && \
-    chown -R coder:coder /repository && \
-    echo 'root:root' | chpasswd
-
-# =============================================================================
-# 6b. Install Oh My Zsh for the coder user
-# =============================================================================
-USER coder
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-USER root
-
-# =============================================================================
-# 7. Copy repository code
+# 5. Copy repository code
 # =============================================================================
 COPY --chown=coder:coder . /repository
 
 # =============================================================================
-# 8. Install backend dependencies
+# 6. Install backend dependencies
 # =============================================================================
 WORKDIR /repository/backend
 RUN su - coder -c "cd /repository/backend && npm install"
 
 # =============================================================================
-# 9. Install frontend dependencies
+# 7. Install frontend dependencies
 # =============================================================================
 WORKDIR /repository/frontend
 RUN su - coder -c "cd /repository/frontend && npm install"
 
 # =============================================================================
-# 10. Copy custom OpenCode tools (browser automation suite)
+# 8. Copy custom OpenCode tools (browser automation suite)
 # =============================================================================
 # These tools provide Playwright-based browser automation capabilities:
 # - browser_screenshot: Take screenshots of running web pages
@@ -139,55 +94,20 @@ COPY --chown=coder:coder .rearch/agent-tools/ /home/coder/.config/opencode/tools
 COPY --chown=coder:coder .rearch/opencode-package.json /home/coder/.config/opencode/package.json
 
 # =============================================================================
-# 10.1. Ensure proper HOME directory permissions
+# 9. Ensure proper HOME directory permissions
 # =============================================================================
 RUN chown -R coder:coder /home/coder
 
 # =============================================================================
-# 11. Copy and setup entrypoint script
+# 10. Copy and setup entrypoint script
 # =============================================================================
 COPY .rearch/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # =============================================================================
-# 12. Create Supervisor Configuration
+# 11. Override Supervisor program: opencode (add PLAYWRIGHT_BROWSERS_PATH)
 # =============================================================================
-RUN mkdir -p /var/log/supervisor
-RUN echo '[unix_http_server]\n\
-file=/var/run/supervisor.sock\n\
-chmod=0700\n\
-\n\
-[rpcinterface:supervisor]\n\
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface\n\
-\n\
-[supervisorctl]\n\
-serverurl=unix:///var/run/supervisor.sock\n\
-\n\
-[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-\n\
-[program:postgres]\n\
-command=/usr/lib/postgresql/15/bin/postgres -D /var/lib/postgresql/15/main -c config_file=/etc/postgresql/15/main/postgresql.conf\n\
-user=postgres\n\
-autostart=true\n\
-autorestart=true\n\
-priority=5\n\
-stdout_logfile=/var/log/supervisor/postgres.log\n\
-stderr_logfile=/var/log/supervisor/postgres.err\n\
-\n\
-[program:vscode]\n\
-command=code-server --bind-addr 0.0.0.0:8080 --auth none /repository\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/vscode.log\n\
-stderr_logfile=/var/log/supervisor/vscode.err\n\
-\n\
-[program:opencode]\n\
+RUN echo '[program:opencode]\n\
 command=opencode serve --hostname 0.0.0.0 --port 4096\n\
 user=coder\n\
 environment=HOME="/home/coder",PLAYWRIGHT_BROWSERS_PATH="/opt/playwright-browsers"\n\
@@ -197,8 +117,22 @@ autorestart=true\n\
 priority=10\n\
 stdout_logfile=/var/log/supervisor/opencode.log\n\
 stderr_logfile=/var/log/supervisor/opencode.err\n\
-\n\
-[program:pgweb]\n\
+' > /etc/supervisor/conf.d/opencode.conf
+
+# =============================================================================
+# 12. Add Supervisor programs: postgres, pgweb, backend, frontend
+# =============================================================================
+RUN echo '[program:postgres]\n\
+command=/usr/lib/postgresql/15/bin/postgres -D /var/lib/postgresql/15/main -c config_file=/etc/postgresql/15/main/postgresql.conf\n\
+user=postgres\n\
+autostart=true\n\
+autorestart=true\n\
+priority=5\n\
+stdout_logfile=/var/log/supervisor/postgres.log\n\
+stderr_logfile=/var/log/supervisor/postgres.err\n\
+' > /etc/supervisor/conf.d/postgres.conf
+
+RUN echo '[program:pgweb]\n\
 command=pgweb --bind=0.0.0.0 --listen=8081 --url postgresql://postgres:postgres@localhost:5432/main_database\n\
 user=coder\n\
 environment=HOME="/home/coder"\n\
@@ -210,8 +144,9 @@ startretries=999\n\
 priority=15\n\
 stdout_logfile=/var/log/supervisor/pgweb.log\n\
 stderr_logfile=/var/log/supervisor/pgweb.err\n\
-\n\
-[program:backend]\n\
+' > /etc/supervisor/conf.d/pgweb.conf
+
+RUN echo '[program:backend]\n\
 command=/bin/bash -c "npm run dev"\n\
 user=coder\n\
 environment=HOME="/home/coder",NODE_ENV="development"\n\
@@ -223,8 +158,9 @@ startretries=999\n\
 priority=20\n\
 stdout_logfile=/var/log/supervisor/backend.log\n\
 stderr_logfile=/var/log/supervisor/backend.err\n\
-\n\
-[program:frontend]\n\
+' > /etc/supervisor/conf.d/backend.conf
+
+RUN echo '[program:frontend]\n\
 command=/bin/bash -c "npm run dev -- --host 0.0.0.0"\n\
 user=coder\n\
 environment=HOME="/home/coder",NODE_ENV="development"\n\
@@ -236,26 +172,10 @@ startretries=999\n\
 priority=25\n\
 stdout_logfile=/var/log/supervisor/frontend.log\n\
 stderr_logfile=/var/log/supervisor/frontend.err\n\
-\n\
-[program:terminal]\n\
-command=ttyd --port 7681 --writable zsh\n\
-user=coder\n\
-environment=HOME="/home/coder",TERM="xterm-256color"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/terminal.log\n\
-stderr_logfile=/var/log/supervisor/terminal.err\n\
-' > /etc/supervisor/conf.d/supervisord.conf
+' > /etc/supervisor/conf.d/frontend.conf
 
 # =============================================================================
-# 13. Environment Variables with Defaults
-# =============================================================================
-ENV REPOSITORY_BRANCH="main"
-
-# =============================================================================
-# 14. Expose Ports
+# 13. Expose Ports
 # =============================================================================
 # 3000: Backend API (Express)
 # 4200: Frontend (Vite dev server)
@@ -267,7 +187,7 @@ ENV REPOSITORY_BRANCH="main"
 EXPOSE 3000 4200 8081 8080 4096 7681
 
 # =============================================================================
-# 15. Start via Entrypoint
+# 14. Start via Entrypoint
 # =============================================================================
 WORKDIR /repository
 ENTRYPOINT ["/entrypoint.sh"]

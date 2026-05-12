@@ -12,150 +12,31 @@
 # The repository code is copied at build time into /repository.
 # No language-specific tooling or dependency installation is performed.
 #
+# Extends: ghcr.io/rearch-engineer/rearch-agent-base
+# Supervisor programs inherited: vscode, opencode, terminal
+#
 # =============================================================================
 
-FROM node:22
+FROM ghcr.io/rearch-engineer/rearch-agent-base:latest
 
 # =============================================================================
-# 1. Install System Dependencies
-# =============================================================================
-RUN apt-get update && apt-get install -y \
-    supervisor \
-    build-essential \
-    python3 \
-    git \
-    curl \
-    iputils-ping \
-    ca-certificates \
-    sudo \
-    vim \
-    nano \
-    wget \
-    jq \
-    htop \
-    zip \
-    unzip \
-    tar \
-    rsync \
-    zsh \
-    && rm -rf /var/lib/apt/lists/*
-
-# =============================================================================
-# 1b. Install ttyd (web-based terminal)
-# =============================================================================
-RUN ARCH=$(dpkg --print-architecture) && \
-    case "$ARCH" in \
-      amd64) TTYD_ARCH="x86_64" ;; \
-      arm64) TTYD_ARCH="aarch64" ;; \
-      armhf) TTYD_ARCH="armhf" ;; \
-      *) TTYD_ARCH="$ARCH" ;; \
-    esac && \
-    wget -qO /usr/local/bin/ttyd \
-      "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" && \
-    chmod +x /usr/local/bin/ttyd
-
-# =============================================================================
-# 2. Install Code-Server
-# =============================================================================
-RUN curl -fsSL https://code-server.dev/install.sh | sh
-
-# =============================================================================
-# 3. Install OpenCode globally
-# =============================================================================
-RUN npm i -g opencode-ai
-
-# =============================================================================
-# 4. Create the "coder" user and setup directories
-# =============================================================================
-RUN useradd -m -s /bin/zsh coder && \
-    echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    mkdir -p /repository && \
-    chown -R coder:coder /repository && \
-    mkdir -p /home/coder/.config/code-server && \
-    chown -R coder:coder /home/coder/.config
-
-# =============================================================================
-# 4b. Install Oh My Zsh for the coder user
-# =============================================================================
-USER coder
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-USER root
-
-# =============================================================================
-# 5. Copy repository code
+# 1. Copy repository code
 # =============================================================================
 COPY --chown=coder:coder . /repository
 
 # =============================================================================
-# 6. Ensure proper HOME directory permissions
+# 2. Ensure proper HOME directory permissions
 # =============================================================================
 RUN chown -R coder:coder /home/coder
 
 # =============================================================================
-# 7. Copy and setup entrypoint script
+# 3. Copy and setup entrypoint script
 # =============================================================================
 COPY .rearch/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # =============================================================================
-# 8. Create Supervisor Configuration
-# =============================================================================
-RUN mkdir -p /var/log/supervisor
-RUN echo '[unix_http_server]\n\
-file=/var/run/supervisor.sock\n\
-chmod=0700\n\
-\n\
-[rpcinterface:supervisor]\n\
-supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface\n\
-\n\
-[supervisorctl]\n\
-serverurl=unix:///var/run/supervisor.sock\n\
-\n\
-[supervisord]\n\
-nodaemon=true\n\
-user=root\n\
-\n\
-[program:vscode]\n\
-command=code-server --bind-addr 0.0.0.0:8080 --auth none /repository\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/vscode.log\n\
-stderr_logfile=/var/log/supervisor/vscode.err\n\
-\n\
-[program:opencode]\n\
-command=opencode serve --hostname 0.0.0.0 --port 4096\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/opencode.log\n\
-stderr_logfile=/var/log/supervisor/opencode.err\n\
-\n\
-[program:terminal]\n\
-command=ttyd --port 7681 --writable zsh\n\
-user=coder\n\
-environment=HOME="/home/coder",TERM="xterm-256color"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/terminal.log\n\
-stderr_logfile=/var/log/supervisor/terminal.err\n\
-' > /etc/supervisor/conf.d/supervisord.conf
-
-# =============================================================================
-# 9. Environment Variables with Defaults
-# =============================================================================
-ENV REPOSITORY_BRANCH="main"
-
-# =============================================================================
-# 10. Expose Ports
+# 4. Expose Ports
 # =============================================================================
 # 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
@@ -163,7 +44,7 @@ ENV REPOSITORY_BRANCH="main"
 EXPOSE 8080 4096 7681
 
 # =============================================================================
-# 11. Start via Entrypoint
+# 5. Start via Entrypoint
 # =============================================================================
 WORKDIR /repository
 ENTRYPOINT ["/entrypoint.sh"]
