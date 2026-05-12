@@ -42,6 +42,24 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 4px;
+}
+
+.session-sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: background 0.12s, color 0.12s;
+}
+
+.session-sidebar-toggle-btn:hover {
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
 }
 
 /* ── Floating collapse button (outside sidebar, to the left) ── */
@@ -181,6 +199,8 @@
 
 .session-collapsed-topbar {
   margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
 }
 
 /* Reuse the same toggle pattern from MainMenu */
@@ -188,6 +208,7 @@
   position: relative;
   width: 30px;
   height: 30px;
+  cursor: pointer;
 }
 
 .session-sidebar-collapsed .collapsed-topbar-brand,

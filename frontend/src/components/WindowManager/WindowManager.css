@@ -69,15 +69,6 @@
   z-index: 2;
 }
 
-/* Sidebar toggle */
-.tile-tab-sidebar-toggle {
-  display: flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 4px; cursor: pointer;
-  color: var(--text-tertiary); transition: background 0.12s, color 0.12s;
-  flex-shrink: 0; margin-left: 2px; margin-right: 2px;
-}
-.tile-tab-sidebar-toggle:hover { background: var(--bg-hover, rgba(255, 255, 255, 0.06)); color: var(--text-primary); }
-
 /* Tile content */
 .tile-content { flex: 1; overflow: hidden; position: relative; }
 .wm-panel-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary); font-size: 0.85rem; }
@@ -125,4 +116,20 @@
 /* Center drop zone (merge into tile) */
 .drop-zone-center {
   inset: 10%;
+}
+
+/* ── Iframe drag blocker ── */
+/* Prevents iframes from stealing drag events during tab rearrangement */
+body.dragging-tab iframe {
+  pointer-events: none !important;
+}
+
+/* Drop indicator after the last tab */
+.tile-tab-drop-end {
+  width: 2px;
+  height: 22px;
+  background: var(--joy-palette-primary-400, #096bde);
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-left: -1px;
 }

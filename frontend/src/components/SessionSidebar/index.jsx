@@ -14,6 +14,8 @@ import AttachMoneyOutlined from "@mui/icons-material/AttachMoneyOutlined";
 import TerminalOutlined from "@mui/icons-material/TerminalOutlined";
 import PublishOutlined from "@mui/icons-material/PublishOutlined";
 import GroupOutlined from "@mui/icons-material/GroupOutlined";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CommitPushModal from "../CommitPushModal";
 import UserAvatar from "../UserAvatar";
 import { useConversations } from "../../contexts/ConversationsContext";
@@ -150,6 +152,11 @@ const SessionSidebar = ({ conversationId }) => {
       return (
         <div className="session-sidebar-wrapper collapsed" ref={wrapperRef}>
           <div className="session-sidebar-collapsed">
+            <div className="session-collapsed-topbar">
+              <div className="session-collapsed-icon-btn" onClick={() => setCollapsed(false)} style={{ cursor: "pointer" }} title={t('expandSidebar', 'Expand sidebar')}>
+                <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+              </div>
+            </div>
             <div className="session-collapsed-nav">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="session-collapsed-icon-btn">
@@ -211,6 +218,13 @@ const SessionSidebar = ({ conversationId }) => {
     return (
       <div className="session-sidebar-wrapper collapsed" ref={wrapperRef}>
         <div className="session-sidebar-collapsed">
+          <div className="session-collapsed-topbar">
+            <Tooltip title={t('expandSidebar', 'Expand sidebar')} placement="left">
+              <div className="session-collapsed-icon-btn" onClick={() => setCollapsed(false)} style={{ cursor: "pointer" }}>
+                <ChevronLeftIcon sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+              </div>
+            </Tooltip>
+          </div>
           <div className="session-collapsed-nav">
             <Tooltip title={t('sessionStatus', { status: envStatus })} placement="left">
               <div className="session-collapsed-icon-btn">
@@ -307,6 +321,12 @@ const SessionSidebar = ({ conversationId }) => {
     <div className="session-sidebar-wrapper" ref={wrapperRef} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
       <div className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`} onMouseDown={() => setIsResizing(true)} />
       <div className="session-sidebar">
+        <div className="session-sidebar-header">
+          <Typography level="body-xs" sx={{ fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t('session')}</Typography>
+          <div className="session-sidebar-toggle-btn" onClick={() => setCollapsed(true)} title={t('collapseSidebar', 'Collapse sidebar')}>
+            <ChevronRightIcon sx={{ fontSize: 18 }} />
+          </div>
+        </div>
         <div className="session-sidebar-section">
           <Tooltip title={t('session')} placement="left"><TerminalOutlined sx={{ fontSize: 18, color: "text.tertiary" }} /></Tooltip>
           <Typography level="body-sm" sx={{ fontWeight: 500, wordBreak: "break-word" }}>{envStatus}</Typography>

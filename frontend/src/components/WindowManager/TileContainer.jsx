@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { useTranslation } from "react-i18next";
-import Tooltip from "@mui/joy/Tooltip";
 import Menu from "@mui/joy/Menu";
 import MenuItem from "@mui/joy/MenuItem";
 import ListItemDecorator from "@mui/joy/ListItemDecorator";
@@ -16,8 +16,6 @@ import TerminalOutlined from "@mui/icons-material/TerminalOutlined";
 import WidgetsOutlined from "@mui/icons-material/WidgetsOutlined";
 import OpenInNewOutlined from "@mui/icons-material/OpenInNewOutlined";
 import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { usePanels } from "../../contexts/PanelContext";
 
 const SERVICE_ICON_MAP = {
@@ -26,7 +24,8 @@ const SERVICE_ICON_MAP = {
   Terminal: TerminalOutlined, Widgets: WidgetsOutlined,
 };
 
-const DRAG_MIME = "application/panel-tab";
+/** Custom drag type -- must NOT collide with MosaicDragType.WINDOW ("MosaicWindow") */
+const PANEL_TAB_TYPE = "PANEL_TAB";
 
 function getPanelMeta(panelId, services) {
   if (panelId === "conversation") return { label: "Conversation", Icon: ChatOutlined };
@@ -41,13 +40,12 @@ function getPanelMeta(panelId, services) {
 }
 
 /**
- * Determine which edge zone the cursor is in relative to an element.
+ * Determine which edge zone a point is in relative to a rect.
  * Returns "left" | "right" | "top" | "bottom" | "center"
  */
-function getDropZone(e, element) {
-  const rect = element.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
+function getDropZoneFromOffset(clientOffset, rect) {
+  const x = (clientOffset.x - rect.left) / rect.width;
+  const y = (clientOffset.y - rect.top) / rect.height;
   const edgeThreshold = 0.22;
 
   if (x < edgeThreshold) return "left";
@@ -57,21 +55,94 @@ function getDropZone(e, element) {
   return "center";
 }
 
+/* ─────────────────────────────────────────────────────────
+ * DraggableTab -- individual tab with useDrag + useDrop
+ * ───────────────────────────────────────────────────────── */
+const DraggableTab = ({
+  panelId, index, tileId, isActive, label, Icon,
+  tabDropIndex, setTabDropIndex,
+  onActivate, onContextMenu,
+  onReorder, onMoveBetweenTiles,
+}) => {
+  const ref = useRef(null);
+
+  const [{ isDragging }, drag] = useDrag({
+    type: PANEL_TAB_TYPE,
+    item: () => {
+      document.body.classList.add("dragging-tab");
+      return { panelId, fromTileId: tileId, fromIndex: index };
+    },
+    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+    end() {
+      document.body.classList.remove("dragging-tab");
+      setTabDropIndex(null);
+    },
+  });
+
+  const [, drop] = useDrop({
+    accept: PANEL_TAB_TYPE,
+    hover(item, monitor) {
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset || !ref.current) return;
+      const rect = ref.current.getBoundingClientRect();
+      const midX = rect.left + rect.width / 2;
+      const dropIdx = clientOffset.x > midX ? index + 1 : index;
+      setTabDropIndex(dropIdx);
+    },
+    drop(item, monitor) {
+      if (monitor.didDrop()) return; // already handled by a nested target
+      const clientOffset = monitor.getClientOffset();
+      let toIndex = index;
+      if (clientOffset && ref.current) {
+        const rect = ref.current.getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        toIndex = clientOffset.x > midX ? index + 1 : index;
+      }
+      if (item.fromTileId === tileId) {
+        let adjustedTo = toIndex;
+        if (item.fromIndex < toIndex) adjustedTo -= 1;
+        if (item.fromIndex !== adjustedTo) onReorder(tileId, item.fromIndex, adjustedTo);
+      } else {
+        onMoveBetweenTiles(item.panelId, item.fromTileId, tileId);
+      }
+      setTabDropIndex(null);
+    },
+  });
+
+  // Compose refs
+  drag(drop(ref));
+
+  const showDropIndicator = tabDropIndex === index;
+
+  return (
+    <div
+      ref={ref}
+      className={`tile-tab${isActive ? " active" : ""}${showDropIndicator ? " drop-before" : ""}${isDragging ? " dragging" : ""}`}
+      onClick={onActivate}
+      onContextMenu={onContextMenu}
+    >
+      <Icon sx={{ fontSize: 14 }} />
+      <span className="tile-tab-label">{label}</span>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────
+ * TileContainer -- main tile wrapper with tab bar + content
+ * ───────────────────────────────────────────────────────── */
 const TileContainer = ({ tileId, renderPanelContent }) => {
   const { t } = useTranslation("WindowManager");
   const {
     layout, services, setActiveTab, moveTab, reorderTabs, splitFromTab,
-    getPanelActions, sidebarCollapsed, toggleSidebar,
+    getPanelActions,
   } = usePanels();
   const [ctxMenu, setCtxMenu] = useState(null);
   const ctxAnchorRef = useRef(null);
 
   // Drop zone state for edge-based splitting
-  const [dropZone, setDropZone] = useState(null); // "left"|"right"|"top"|"bottom"|"center"|null
-  const contentRef = useRef(null);
-  const dragCounterRef = useRef(0);
+  const [dropZone, setDropZone] = useState(null);
 
-  // Tab reorder state
+  // Tab reorder drop indicator index
   const [tabDropIndex, setTabDropIndex] = useState(null);
 
   const tile = layout.tiles[tileId];
@@ -127,139 +198,116 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
     closeCtxMenu();
   };
 
-  /* ── Tab drag (reorder within tile + move between tiles) ── */
-  const handleTabDragStart = (e, panelId, index) => {
-    e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ panelId, fromTileId: tileId, fromIndex: index }));
-    e.dataTransfer.effectAllowed = "move";
-    // Add a drag class after a tick for styling
-    requestAnimationFrame(() => e.target.classList.add("dragging"));
-  };
-
-  const handleTabDragEnd = (e) => {
-    e.target.classList.remove("dragging");
-    setTabDropIndex(null);
-  };
-
-  const handleTabDragOver = (e, index) => {
-    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setTabDropIndex(index);
-  };
-
-  const handleTabDrop = (e, toIndex) => {
-    const raw = e.dataTransfer.getData(DRAG_MIME);
-    if (!raw) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setTabDropIndex(null);
-    try {
-      const { panelId, fromTileId, fromIndex } = JSON.parse(raw);
-      if (fromTileId === tileId && fromIndex !== undefined) {
-        // Reorder within same tile
-        if (fromIndex !== toIndex) reorderTabs(tileId, fromIndex, toIndex);
-      } else if (fromTileId !== tileId) {
-        // Move from another tile into this tile's tab bar (merge)
-        moveTab(panelId, fromTileId, tileId);
+  /* ── Tab bar end-of-bar drop zone (react-dnd) ── */
+  const [, tabBarDrop] = useDrop({
+    accept: PANEL_TAB_TYPE,
+    hover(item, monitor) {
+      // Only show end-of-bar indicator when hovering the bar background itself
+      // (individual tabs handle their own hover via DraggableTab)
+      const isOverCurrent = monitor.isOver({ shallow: true });
+      if (isOverCurrent) {
+        setTabDropIndex(tabs.length);
       }
-    } catch { /* ignore */ }
-  };
+    },
+    drop(item, monitor) {
+      if (monitor.didDrop()) return; // handled by a child tab
+      const toIndex = tabs.length;
+      if (item.fromTileId === tileId) {
+        let adjustedTo = toIndex;
+        if (item.fromIndex < toIndex) adjustedTo -= 1;
+        if (item.fromIndex !== adjustedTo) reorderTabs(tileId, item.fromIndex, adjustedTo);
+      } else {
+        moveTab(item.panelId, item.fromTileId, tileId);
+      }
+      setTabDropIndex(null);
+    },
+    collect(monitor) {
+      // Clear indicator when drag leaves the bar entirely
+      if (!monitor.isOver()) {
+        // Use a microtask to avoid clearing during child transitions
+        queueMicrotask(() => setTabDropIndex((prev) => prev));
+      }
+      return {};
+    },
+  });
 
-  const handleTabBarDragLeave = () => {
-    setTabDropIndex(null);
-  };
-
-  /* ── Content area drop zones (edge-based split) ── */
-  const handleContentDragOver = useCallback((e) => {
-    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (contentRef.current) {
-      setDropZone(getDropZone(e, contentRef.current));
-    }
-  }, []);
-
-  const handleContentDragEnter = useCallback((e) => {
-    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
-    dragCounterRef.current++;
-  }, []);
-
-  const handleContentDragLeave = useCallback(() => {
-    dragCounterRef.current--;
-    if (dragCounterRef.current <= 0) {
-      dragCounterRef.current = 0;
+  /* ── Content area drop zone (edge-based split / center merge) ── */
+  const [{ isOverContent }, contentDrop] = useDrop({
+    accept: PANEL_TAB_TYPE,
+    hover(item, monitor) {
+      const clientOffset = monitor.getClientOffset();
+      const el = contentRef.current;
+      if (!clientOffset || !el) return;
+      const rect = el.getBoundingClientRect();
+      setDropZone(getDropZoneFromOffset(clientOffset, rect));
+    },
+    drop(item, monitor) {
+      if (monitor.didDrop()) return;
+      const clientOffset = monitor.getClientOffset();
+      const el = contentRef.current;
+      const zone = (clientOffset && el)
+        ? getDropZoneFromOffset(clientOffset, el.getBoundingClientRect())
+        : "center";
       setDropZone(null);
-    }
-  }, []);
 
-  const handleContentDrop = useCallback((e) => {
-    const raw = e.dataTransfer.getData(DRAG_MIME);
-    if (!raw) return;
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounterRef.current = 0;
-
-    const zone = contentRef.current ? getDropZone(e, contentRef.current) : "center";
-    setDropZone(null);
-
-    try {
-      const { panelId, fromTileId } = JSON.parse(raw);
       if (zone === "center") {
-        // Merge: move tab into this tile
-        if (fromTileId !== tileId) {
-          moveTab(panelId, fromTileId, tileId);
+        if (item.fromTileId !== tileId) {
+          moveTab(item.panelId, item.fromTileId, tileId);
         }
       } else {
-        // Edge drop: split the target tile
-        splitFromTab(panelId, fromTileId, tileId, zone);
+        splitFromTab(item.panelId, item.fromTileId, tileId, zone);
       }
-    } catch { /* ignore */ }
-  }, [tileId, moveTab, splitFromTab]);
+    },
+    collect(monitor) {
+      const over = monitor.isOver({ shallow: true });
+      if (!over) {
+        // Clear drop zone when cursor leaves
+        queueMicrotask(() => setDropZone(null));
+      }
+      return { isOverContent: over };
+    },
+  });
+
+  const contentRef = useRef(null);
+  const setContentRef = useCallback((node) => {
+    contentRef.current = node;
+    contentDrop(node);
+  }, [contentDrop]);
 
   return (
     <div className="tile-container">
-      <div className="tile-tab-bar" onDragLeave={handleTabBarDragLeave}>
+      <div className="tile-tab-bar" ref={tabBarDrop}>
         <div className="tile-tabs">
           {tabs.map((panelId, index) => {
             const { label, Icon } = getPanelMeta(panelId, services);
             const isActive = panelId === activeTab;
-            const showDropIndicator = tabDropIndex === index;
             return (
-              <div
+              <DraggableTab
                 key={panelId}
-                className={`tile-tab${isActive ? " active" : ""}${showDropIndicator ? " drop-before" : ""}`}
-                onClick={() => setActiveTab(tileId, panelId)}
+                panelId={panelId}
+                index={index}
+                tileId={tileId}
+                isActive={isActive}
+                label={label}
+                Icon={Icon}
+                tabDropIndex={tabDropIndex}
+                setTabDropIndex={setTabDropIndex}
+                onActivate={() => setActiveTab(tileId, panelId)}
                 onContextMenu={(e) => handleContextMenu(e, panelId)}
-                draggable
-                onDragStart={(e) => handleTabDragStart(e, panelId, index)}
-                onDragEnd={handleTabDragEnd}
-                onDragOver={(e) => handleTabDragOver(e, index)}
-                onDrop={(e) => handleTabDrop(e, index)}
-              >
-                <Icon sx={{ fontSize: 14 }} />
-                <span className="tile-tab-label">{label}</span>
-              </div>
+                onReorder={reorderTabs}
+                onMoveBetweenTiles={moveTab}
+              />
             );
           })}
+          {/* Drop indicator after the last tab */}
+          {tabDropIndex === tabs.length && (
+            <div className="tile-tab-drop-end" />
+          )}
         </div>
-
-        {/* Sidebar toggle */}
-        <Tooltip title={sidebarCollapsed ? t("showSidebar") : t("hideSidebar")} placement="bottom">
-          <div className="tile-tab-sidebar-toggle" onClick={toggleSidebar}>
-            {sidebarCollapsed ? <ChevronLeftIcon sx={{ fontSize: 16 }} /> : <ChevronRightIcon sx={{ fontSize: 16 }} />}
-          </div>
-        </Tooltip>
       </div>
 
       {/* All tabs stay mounted; only active one visible */}
-      <div
-        ref={contentRef}
-        className="tile-content"
-        onDragOver={handleContentDragOver}
-        onDragEnter={handleContentDragEnter}
-        onDragLeave={handleContentDragLeave}
-        onDrop={handleContentDrop}
-      >
+      <div ref={setContentRef} className="tile-content">
         {tabs.map((panelId) => (
           <div key={panelId} className="tile-content-panel" style={{ display: panelId === activeTab ? "contents" : "none" }}>
             {renderPanelContent(panelId)}
