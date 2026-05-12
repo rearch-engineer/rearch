@@ -18,6 +18,15 @@
     "cleanup": "Opruimen",
     "workspaces": "Werkruimtes"
   },
+  "integrations": {
+    "title": "Integraties",
+    "description": "Schakel integraties van derden in of uit die beschikbaar zijn voor gebruikers.",
+    "githubCopilot": "GitHub Copilot",
+    "githubCopilotDescription": "Sta gebruikers toe om hun eigen GitHub Copilot-licentie te verbinden vanuit hun accountinstellingen.",
+    "failedToLoad": "Kan integratie-instellingen niet laden: {{message}}",
+    "settingsSaved": "Integratie-instellingen opgeslagen.",
+    "failedToSave": "Kan integratie-instellingen niet opslaan: {{message}}"
+  },
   "general": {
     "loading": "Laden...",
     "title": "Algemeen",

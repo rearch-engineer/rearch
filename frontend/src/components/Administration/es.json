@@ -18,6 +18,15 @@
     "cleanup": "Limpieza",
     "workspaces": "Espacios de Trabajo"
   },
+  "integrations": {
+    "title": "Integraciones",
+    "description": "Activa o desactiva integraciones de terceros disponibles para los usuarios.",
+    "githubCopilot": "GitHub Copilot",
+    "githubCopilotDescription": "Permite a los usuarios conectar su propia licencia de GitHub Copilot desde la configuración de su cuenta.",
+    "failedToLoad": "No se pudieron cargar las opciones de integraciones: {{message}}",
+    "settingsSaved": "Opciones de integraciones guardadas.",
+    "failedToSave": "No se pudieron guardar las opciones de integraciones: {{message}}"
+  },
   "general": {
     "loading": "Cargando...",
     "title": "General",

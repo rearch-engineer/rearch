@@ -18,6 +18,15 @@
     "cleanup": "Clean up",
     "workspaces": "Workspaces"
   },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Enable or disable third-party integrations available to users.",
+    "githubCopilot": "GitHub Copilot",
+    "githubCopilotDescription": "Allow users to connect their own GitHub Copilot license from their account settings.",
+    "failedToLoad": "Failed to load integrations settings: {{message}}",
+    "settingsSaved": "Integrations settings saved.",
+    "failedToSave": "Failed to save integrations settings: {{message}}"
+  },
   "general": {
     "loading": "Loading...",
     "title": "General",

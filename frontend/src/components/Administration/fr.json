@@ -18,6 +18,15 @@
     "cleanup": "Nettoyer",
     "workspaces": "Espaces de travail"
   },
+  "integrations": {
+    "title": "Intégrations",
+    "description": "Activez ou désactivez les intégrations tierces disponibles pour les utilisateurs.",
+    "githubCopilot": "GitHub Copilot",
+    "githubCopilotDescription": "Permettre aux utilisateurs de connecter leur propre licence GitHub Copilot depuis les paramètres de leur compte.",
+    "failedToLoad": "Échec du chargement des paramètres d'intégrations : {{message}}",
+    "settingsSaved": "Paramètres d'intégrations enregistrés.",
+    "failedToSave": "Échec de l'enregistrement des paramètres d'intégrations : {{message}}"
+  },
   "general": {
     "loading": "Chargement...",
     "title": "Général",
