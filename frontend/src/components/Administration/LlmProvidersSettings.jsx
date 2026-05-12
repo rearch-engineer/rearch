@@ -5,6 +5,7 @@ import {
   Button,
   Typography,
   Card,
+  CardContent,
   Stack,
   IconButton,
   Table,
@@ -42,6 +43,8 @@ export default function LlmProvidersSettings() {
   const [editingProvider, setEditingProvider] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [githubCopilotEnabled, setGithubCopilotEnabled] = useState(false);
+  const [savingIntegrations, setSavingIntegrations] = useState(false);
 
   // Form state
   const [formProviderId, setFormProviderId] = useState("");
@@ -58,7 +61,9 @@ export default function LlmProvidersSettings() {
       const data = await api.getLlmProviders();
       setProviders(data || []);
     } catch (err) {
-      toast.error(t("llmProviders.failedToLoadProviders", { message: err.message }));
+      toast.error(
+        t("llmProviders.failedToLoadProviders", { message: err.message }),
+      );
     } finally {
       setLoading(false);
     }
@@ -73,10 +78,40 @@ export default function LlmProvidersSettings() {
     }
   }, []);
 
+  const loadIntegrations = useCallback(async () => {
+    try {
+      const data = await api.getIntegrationsSettings();
+      setGithubCopilotEnabled(!!data?.githubCopilotEnabled);
+    } catch (err) {
+      toast.error(t("integrations.failedToLoad", { message: err.message }));
+    }
+  }, [toast, t]);
+
+  const handleToggleGithubCopilot = async (e) => {
+    const value = e.target.checked;
+    setGithubCopilotEnabled(value);
+    try {
+      setSavingIntegrations(true);
+      await api.updateIntegrationsSettings({ githubCopilotEnabled: value });
+      toast.success(t("integrations.settingsSaved"));
+    } catch (err) {
+      // Revert UI on failure
+      setGithubCopilotEnabled(!value);
+      toast.error(
+        t("integrations.failedToSave", {
+          message: err?.response?.data?.error || err.message,
+        }),
+      );
+    } finally {
+      setSavingIntegrations(false);
+    }
+  };
+
   useEffect(() => {
     loadProviders();
     loadRegistry();
-  }, [loadProviders, loadRegistry]);
+    loadIntegrations();
+  }, [loadProviders, loadRegistry, loadIntegrations]);
 
   const openAddModal = () => {
     setEditingProvider(null);
@@ -199,7 +234,11 @@ export default function LlmProvidersSettings() {
       setModalOpen(false);
       loadProviders();
     } catch (err) {
-      toast.error(t("llmProviders.failedToSaveProvider", { message: err.response?.data?.error || err.message }));
+      toast.error(
+        t("llmProviders.failedToSaveProvider", {
+          message: err.response?.data?.error || err.message,
+        }),
+      );
     } finally {
       setSaving(false);
     }
@@ -209,7 +248,9 @@ export default function LlmProvidersSettings() {
     if (
       !(await confirm({
         title: t("llmProviders.deleteProvider"),
-        message: t("llmProviders.deleteProviderConfirm", { name: provider.name }),
+        message: t("llmProviders.deleteProviderConfirm", {
+          name: provider.name,
+        }),
         confirmText: t("llmProviders.delete"),
         confirmColor: "danger",
       }))
@@ -220,7 +261,11 @@ export default function LlmProvidersSettings() {
       toast.success(t("llmProviders.providerDeleted"));
       loadProviders();
     } catch (err) {
-      toast.error(t("llmProviders.failedToDeleteProvider", { message: err.response?.data?.error || err.message }));
+      toast.error(
+        t("llmProviders.failedToDeleteProvider", {
+          message: err.response?.data?.error || err.message,
+        }),
+      );
     }
   };
 
@@ -231,7 +276,9 @@ export default function LlmProvidersSettings() {
       });
       loadProviders();
     } catch (err) {
-      toast.error(t("llmProviders.failedToUpdateProvider", { message: err.message }));
+      toast.error(
+        t("llmProviders.failedToUpdateProvider", { message: err.message }),
+      );
     }
   };
 
@@ -273,6 +320,46 @@ export default function LlmProvidersSettings() {
             {t("llmProviders.title")}
           </Typography>
         </Box>
+
+        {/* Integrations */}
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography level="title-md" sx={{ mb: 0.5 }}>
+              {t("integrations.title")}
+            </Typography>
+            <Typography
+              level="body-sm"
+              sx={{ color: "var(--text-secondary)", mb: 2 }}
+            >
+              {t("integrations.description")}
+            </Typography>
+
+            <FormControl
+              orientation="horizontal"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Box>
+                <FormLabel sx={{ mb: 0 }}>
+                  {t("integrations.githubCopilot")}
+                </FormLabel>
+                <Typography
+                  level="body-xs"
+                  sx={{ color: "var(--text-secondary)" }}
+                >
+                  {t("integrations.githubCopilotDescription")}
+                </Typography>
+              </Box>
+              <Switch
+                checked={githubCopilotEnabled}
+                onChange={handleToggleGithubCopilot}
+                disabled={savingIntegrations}
+              />
+            </FormControl>
+          </CardContent>
+        </Card>
 
         {/* Search & actions */}
         <Stack
@@ -440,7 +527,9 @@ export default function LlmProvidersSettings() {
                             ))}
                             {enabledModels.length > 3 && (
                               <Chip size="sm" variant="soft" color="neutral">
-                                {t("llmProviders.moreModels", { count: enabledModels.length - 3 })}
+                                {t("llmProviders.moreModels", {
+                                  count: enabledModels.length - 3,
+                                })}
                               </Chip>
                             )}
                           </Stack>
@@ -453,7 +542,9 @@ export default function LlmProvidersSettings() {
                             onClick={() => handleToggleEnabled(provider)}
                             sx={{ cursor: "pointer" }}
                           >
-                            {provider.enabled ? t("llmProviders.active") : t("llmProviders.disabled")}
+                            {provider.enabled
+                              ? t("llmProviders.active")
+                              : t("llmProviders.disabled")}
                           </Chip>
                         </td>
                         <td>
@@ -497,7 +588,9 @@ export default function LlmProvidersSettings() {
         >
           <ModalClose />
           <Typography level="h4" sx={{ mb: 2 }}>
-            {editingProvider ? t("llmProviders.editProvider") : t("llmProviders.addLlmProvider")}
+            {editingProvider
+              ? t("llmProviders.editProvider")
+              : t("llmProviders.addLlmProvider")}
           </Typography>
 
           <Stack spacing={2.5}>
@@ -608,7 +701,9 @@ export default function LlmProvidersSettings() {
                   level="body-xs"
                   sx={{ mt: 0.5, color: "var(--text-tertiary)" }}
                 >
-                  {t("llmProviders.currentKey", { key: editingProvider.apiKey })}
+                  {t("llmProviders.currentKey", {
+                    key: editingProvider.apiKey,
+                  })}
                 </Typography>
               )}
             </FormControl>
@@ -640,7 +735,9 @@ export default function LlmProvidersSettings() {
                 alignItems="center"
                 sx={{ mb: 1.5 }}
               >
-                <FormLabel sx={{ mb: 0 }}>{t("llmProviders.modelsLabel")}</FormLabel>
+                <FormLabel sx={{ mb: 0 }}>
+                  {t("llmProviders.modelsLabel")}
+                </FormLabel>
                 <Button
                   size="sm"
                   variant="plain"
@@ -742,7 +839,9 @@ export default function LlmProvidersSettings() {
                 onClick={handleSave}
                 loading={saving}
               >
-                {editingProvider ? t("llmProviders.saveChanges") : t("llmProviders.addProvider")}
+                {editingProvider
+                  ? t("llmProviders.saveChanges")
+                  : t("llmProviders.addProvider")}
               </Button>
             </Stack>
           </Stack>
