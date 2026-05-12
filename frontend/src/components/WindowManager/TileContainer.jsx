@@ -16,7 +16,6 @@ import TerminalOutlined from "@mui/icons-material/TerminalOutlined";
 import WidgetsOutlined from "@mui/icons-material/WidgetsOutlined";
 import OpenInNewOutlined from "@mui/icons-material/OpenInNewOutlined";
 import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
-import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { usePanels } from "../../contexts/PanelContext";
@@ -61,7 +60,7 @@ function getDropZone(e, element) {
 const TileContainer = ({ tileId, renderPanelContent }) => {
   const { t } = useTranslation("WindowManager");
   const {
-    layout, services, setActiveTab, moveTab, reorderTabs, splitFromTab, removeTab,
+    layout, services, setActiveTab, moveTab, reorderTabs, splitFromTab,
     getPanelActions, sidebarCollapsed, toggleSidebar,
   } = usePanels();
   const [ctxMenu, setCtxMenu] = useState(null);
@@ -78,9 +77,6 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
   const tile = layout.tiles[tileId];
   if (!tile) return null;
   const { tabs, activeTab } = tile;
-
-  // Total tab count across all tiles (to prevent closing the very last tab)
-  const totalTabCount = Object.values(layout.tiles).reduce((sum, t) => sum + t.tabs.length, 0);
 
   /* ── Context menu ── */
   const handleContextMenu = (e, panelId) => {
@@ -129,14 +125,6 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
       if (actions?.openExternal) actions.openExternal();
     }
     closeCtxMenu();
-  };
-
-  /* ── Close tab ── */
-  const handleCloseTab = (e, panelId) => {
-    e.stopPropagation();
-    // Don't close if this is the very last tab across all tiles
-    if (totalTabCount <= 1) return;
-    removeTab(panelId);
   };
 
   /* ── Tab drag (reorder within tile + move between tiles) ── */
@@ -236,7 +224,6 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
             const { label, Icon } = getPanelMeta(panelId, services);
             const isActive = panelId === activeTab;
             const showDropIndicator = tabDropIndex === index;
-            const canClose = totalTabCount > 1;
             return (
               <div
                 key={panelId}
@@ -251,15 +238,6 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
               >
                 <Icon sx={{ fontSize: 14 }} />
                 <span className="tile-tab-label">{label}</span>
-                {canClose && (
-                  <span
-                    className="tile-tab-close"
-                    onClick={(e) => handleCloseTab(e, panelId)}
-                    title={t("closeTab", "Close")}
-                  >
-                    <CloseOutlined sx={{ fontSize: 12 }} />
-                  </span>
-                )}
               </div>
             );
           })}

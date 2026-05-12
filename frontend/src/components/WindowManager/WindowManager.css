@@ -69,28 +69,6 @@
   z-index: 2;
 }
 
-/* Close button on tabs */
-.tile-tab-close {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  margin-left: 2px;
-  opacity: 0;
-  transition: opacity 0.12s, background 0.12s;
-  flex-shrink: 0;
-}
-.tile-tab:hover .tile-tab-close,
-.tile-tab.active .tile-tab-close {
-  opacity: 0.6;
-}
-.tile-tab-close:hover {
-  opacity: 1 !important;
-  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
-}
-
 /* Sidebar toggle */
 .tile-tab-sidebar-toggle {
   display: flex; align-items: center; justify-content: center;
