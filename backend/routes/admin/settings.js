@@ -1,13 +1,22 @@
-import { Elysia } from 'elysia';
-import { z } from 'zod';
-import Setting from '../../models/Setting.js';
-import { scheduleDockerRebuilds, triggerRebuildAll, scheduleContainerCleanup, triggerContainerCleanup } from '../../queue';
+import { Elysia } from "elysia";
+import { z } from "zod";
+import Setting from "../../models/Setting.js";
+import {
+  scheduleDockerRebuilds,
+  triggerRebuildAll,
+  scheduleContainerCleanup,
+  triggerContainerCleanup,
+} from "../../queue";
 
 // ─── Zod Schemas ──────────────────────────────────────────────────────────────
 
 const dockerRebuildSchema = z.object({
   enabled: z.boolean().optional(),
-  intervalHours: z.number().min(1 / 60).max(720).optional(),
+  intervalHours: z
+    .number()
+    .min(1 / 60)
+    .max(720)
+    .optional(),
 });
 
 const containerCleanupSchema = z.object({
@@ -25,21 +34,25 @@ const signupSchema = z.object({
         .min(1)
         .regex(
           /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$/,
-          'Invalid domain format',
+          "Invalid domain format",
         ),
     )
     .optional(),
 });
 
+const integrationsSchema = z.object({
+  githubCopilotEnabled: z.boolean().optional(),
+});
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
-const router = new Elysia({ prefix: '/settings' })
+const router = new Elysia({ prefix: "/settings" })
 
   /**
    * Get all settings
    * GET /api/admin/settings
    */
-  .get('/', async ({ status }) => {
+  .get("/", async ({ status }) => {
     try {
       const settings = await Setting.find();
       return settings;
@@ -54,37 +67,101 @@ const router = new Elysia({ prefix: '/settings' })
    * Update signup restriction settings
    * PUT /api/admin/settings/signup
    */
-  .put('/signup', async ({ body, user, status }) => {
+  .put("/signup", async ({ body, user, status }) => {
     try {
       const parsed = signupSchema.safeParse(body);
       if (!parsed.success) {
         return status(400, {
-          error: parsed.error.errors.map((e) => e.message).join(', '),
+          error: parsed.error.errors.map((e) => e.message).join(", "),
         });
       }
 
       const { restrictSignups, allowedDomains } = parsed.data;
 
       // Get current value or defaults
-      const existing = await Setting.findOne({ key: 'signup' });
-      const current = existing?.value || { restrictSignups: false, allowedDomains: [] };
+      const existing = await Setting.findOne({ key: "signup" });
+      const current = existing?.value || {
+        restrictSignups: false,
+        allowedDomains: [],
+      };
 
       const value = {
-        restrictSignups: restrictSignups !== undefined ? restrictSignups : current.restrictSignups,
-        allowedDomains: allowedDomains !== undefined
-          ? allowedDomains.map((d) => d.toLowerCase().trim()).filter(Boolean)
-          : current.allowedDomains,
+        restrictSignups:
+          restrictSignups !== undefined
+            ? restrictSignups
+            : current.restrictSignups,
+        allowedDomains:
+          allowedDomains !== undefined
+            ? allowedDomains.map((d) => d.toLowerCase().trim()).filter(Boolean)
+            : current.allowedDomains,
       };
 
       const setting = await Setting.findOneAndUpdate(
-        { key: 'signup' },
-        { key: 'signup', value },
+        { key: "signup" },
+        { key: "signup", value },
         { upsert: true, new: true },
       );
 
       return setting;
     } catch (err) {
-      console.error('Error updating signup settings:', err);
+      console.error("Error updating signup settings:", err);
+      return status(500, { error: err.message });
+    }
+  })
+
+  // ─── Integrations settings ──────────────────────────────────────────────
+
+  /**
+   * Get integrations settings
+   * GET /api/admin/settings/integrations
+   */
+  .get("/integrations", async ({ status }) => {
+    try {
+      const setting = await Setting.findOne({ key: "integrations" });
+      const value = setting?.value || { githubCopilotEnabled: false };
+      return {
+        githubCopilotEnabled: !!value.githubCopilotEnabled,
+      };
+    } catch (err) {
+      console.error("Error fetching integrations settings:", err);
+      return status(500, { error: err.message });
+    }
+  })
+
+  /**
+   * Update integrations settings
+   * PUT /api/admin/settings/integrations
+   */
+  .put("/integrations", async ({ body, user, status }) => {
+    try {
+      const parsed = integrationsSchema.safeParse(body);
+      if (!parsed.success) {
+        return status(400, {
+          error: parsed.error.errors.map((e) => e.message).join(", "),
+        });
+      }
+
+      const { githubCopilotEnabled } = parsed.data;
+
+      const existing = await Setting.findOne({ key: "integrations" });
+      const current = existing?.value || { githubCopilotEnabled: false };
+
+      const value = {
+        githubCopilotEnabled:
+          githubCopilotEnabled !== undefined
+            ? githubCopilotEnabled
+            : current.githubCopilotEnabled,
+      };
+
+      const setting = await Setting.findOneAndUpdate(
+        { key: "integrations" },
+        { key: "integrations", value },
+        { upsert: true, new: true },
+      );
+
+      return setting;
+    } catch (err) {
+      console.error("Error updating integrations settings:", err);
       return status(500, { error: err.message });
     }
   })
@@ -95,9 +172,9 @@ const router = new Elysia({ prefix: '/settings' })
    * Get docker rebuild schedule settings
    * GET /api/admin/settings/docker-rebuild
    */
-  .get('/docker-rebuild', async ({ status }) => {
+  .get("/docker-rebuild", async ({ status }) => {
     try {
-      const setting = await Setting.findOne({ key: 'dockerRebuild' });
+      const setting = await Setting.findOne({ key: "dockerRebuild" });
       const value = setting?.value || { enabled: false, intervalHours: 24 };
       return {
         enabled: value.enabled || false,
@@ -105,7 +182,7 @@ const router = new Elysia({ prefix: '/settings' })
         lastTriggeredAt: value.lastTriggeredAt || null,
       };
     } catch (err) {
-      console.error('Error fetching docker rebuild settings:', err);
+      console.error("Error fetching docker rebuild settings:", err);
       return status(500, { error: err.message });
     }
   })
@@ -114,30 +191,31 @@ const router = new Elysia({ prefix: '/settings' })
    * Update docker rebuild schedule settings
    * PUT /api/admin/settings/docker-rebuild
    */
-  .put('/docker-rebuild', async ({ body, user, status }) => {
+  .put("/docker-rebuild", async ({ body, user, status }) => {
     try {
       const parsed = dockerRebuildSchema.safeParse(body);
       if (!parsed.success) {
         return status(400, {
-          error: parsed.error.errors.map((e) => e.message).join(', '),
+          error: parsed.error.errors.map((e) => e.message).join(", "),
         });
       }
 
       const { enabled, intervalHours } = parsed.data;
 
       // Get current value or defaults
-      const existing = await Setting.findOne({ key: 'dockerRebuild' });
+      const existing = await Setting.findOne({ key: "dockerRebuild" });
       const current = existing?.value || { enabled: false, intervalHours: 24 };
 
       const value = {
         enabled: enabled !== undefined ? enabled : current.enabled,
-        intervalHours: intervalHours !== undefined ? intervalHours : current.intervalHours,
+        intervalHours:
+          intervalHours !== undefined ? intervalHours : current.intervalHours,
         lastTriggeredAt: current.lastTriggeredAt || null,
       };
 
       const setting = await Setting.findOneAndUpdate(
-        { key: 'dockerRebuild' },
-        { key: 'dockerRebuild', value },
+        { key: "dockerRebuild" },
+        { key: "dockerRebuild", value },
         { upsert: true, new: true },
       );
 
@@ -146,7 +224,7 @@ const router = new Elysia({ prefix: '/settings' })
 
       return setting;
     } catch (err) {
-      console.error('Error updating docker rebuild settings:', err);
+      console.error("Error updating docker rebuild settings:", err);
       return status(500, { error: err.message });
     }
   })
@@ -155,16 +233,19 @@ const router = new Elysia({ prefix: '/settings' })
    * Trigger rebuild of all docker images now
    * POST /api/admin/settings/docker-rebuild/trigger
    */
-  .post('/docker-rebuild/trigger', async ({ user, status }) => {
+  .post("/docker-rebuild/trigger", async ({ user, status }) => {
     try {
       const jobs = await triggerRebuildAll();
 
       // Update lastTriggeredAt
-      const existing = await Setting.findOne({ key: 'dockerRebuild' });
+      const existing = await Setting.findOne({ key: "dockerRebuild" });
       const current = existing?.value || { enabled: false, intervalHours: 24 };
       await Setting.findOneAndUpdate(
-        { key: 'dockerRebuild' },
-        { key: 'dockerRebuild', value: { ...current, lastTriggeredAt: new Date().toISOString() } },
+        { key: "dockerRebuild" },
+        {
+          key: "dockerRebuild",
+          value: { ...current, lastTriggeredAt: new Date().toISOString() },
+        },
         { upsert: true, new: true },
       );
 
@@ -174,7 +255,7 @@ const router = new Elysia({ prefix: '/settings' })
         jobs: jobs.map((j) => ({ id: j.id, name: j.name })),
       };
     } catch (err) {
-      console.error('Error triggering docker rebuild:', err);
+      console.error("Error triggering docker rebuild:", err);
       return status(500, { error: err.message });
     }
   })
@@ -185,10 +266,14 @@ const router = new Elysia({ prefix: '/settings' })
    * Get container cleanup settings
    * GET /api/admin/settings/container-cleanup
    */
-  .get('/container-cleanup', async ({ status }) => {
+  .get("/container-cleanup", async ({ status }) => {
     try {
-      const setting = await Setting.findOne({ key: 'containerCleanup' });
-      const value = setting?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+      const setting = await Setting.findOne({ key: "containerCleanup" });
+      const value = setting?.value || {
+        enabled: false,
+        idleStopMinutes: 30,
+        idleRemoveMinutes: 1440,
+      };
       return {
         enabled: value.enabled || false,
         idleStopMinutes: value.idleStopMinutes || 30,
@@ -196,7 +281,7 @@ const router = new Elysia({ prefix: '/settings' })
         lastTriggeredAt: value.lastTriggeredAt || null,
       };
     } catch (err) {
-      console.error('Error fetching container cleanup settings:', err);
+      console.error("Error fetching container cleanup settings:", err);
       return status(500, { error: err.message });
     }
   })
@@ -205,31 +290,41 @@ const router = new Elysia({ prefix: '/settings' })
    * Update container cleanup settings
    * PUT /api/admin/settings/container-cleanup
    */
-  .put('/container-cleanup', async ({ body, user, status }) => {
+  .put("/container-cleanup", async ({ body, user, status }) => {
     try {
       const parsed = containerCleanupSchema.safeParse(body);
       if (!parsed.success) {
         return status(400, {
-          error: parsed.error.errors.map((e) => e.message).join(', '),
+          error: parsed.error.errors.map((e) => e.message).join(", "),
         });
       }
 
       const { enabled, idleStopMinutes, idleRemoveMinutes } = parsed.data;
 
       // Get current value or defaults
-      const existing = await Setting.findOne({ key: 'containerCleanup' });
-      const current = existing?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+      const existing = await Setting.findOne({ key: "containerCleanup" });
+      const current = existing?.value || {
+        enabled: false,
+        idleStopMinutes: 30,
+        idleRemoveMinutes: 1440,
+      };
 
       const value = {
         enabled: enabled !== undefined ? enabled : current.enabled,
-        idleStopMinutes: idleStopMinutes !== undefined ? idleStopMinutes : current.idleStopMinutes,
-        idleRemoveMinutes: idleRemoveMinutes !== undefined ? idleRemoveMinutes : current.idleRemoveMinutes,
+        idleStopMinutes:
+          idleStopMinutes !== undefined
+            ? idleStopMinutes
+            : current.idleStopMinutes,
+        idleRemoveMinutes:
+          idleRemoveMinutes !== undefined
+            ? idleRemoveMinutes
+            : current.idleRemoveMinutes,
         lastTriggeredAt: current.lastTriggeredAt || null,
       };
 
       const setting = await Setting.findOneAndUpdate(
-        { key: 'containerCleanup' },
-        { key: 'containerCleanup', value },
+        { key: "containerCleanup" },
+        { key: "containerCleanup", value },
         { upsert: true, new: true },
       );
 
@@ -238,7 +333,7 @@ const router = new Elysia({ prefix: '/settings' })
 
       return setting;
     } catch (err) {
-      console.error('Error updating container cleanup settings:', err);
+      console.error("Error updating container cleanup settings:", err);
       return status(500, { error: err.message });
     }
   })
@@ -247,16 +342,23 @@ const router = new Elysia({ prefix: '/settings' })
    * Trigger container cleanup now
    * POST /api/admin/settings/container-cleanup/trigger
    */
-  .post('/container-cleanup/trigger', async ({ user, status }) => {
+  .post("/container-cleanup/trigger", async ({ user, status }) => {
     try {
       const result = await triggerContainerCleanup();
 
       // Update lastTriggeredAt
-      const existing = await Setting.findOne({ key: 'containerCleanup' });
-      const current = existing?.value || { enabled: false, idleStopMinutes: 30, idleRemoveMinutes: 1440 };
+      const existing = await Setting.findOne({ key: "containerCleanup" });
+      const current = existing?.value || {
+        enabled: false,
+        idleStopMinutes: 30,
+        idleRemoveMinutes: 1440,
+      };
       await Setting.findOneAndUpdate(
-        { key: 'containerCleanup' },
-        { key: 'containerCleanup', value: { ...current, lastTriggeredAt: new Date().toISOString() } },
+        { key: "containerCleanup" },
+        {
+          key: "containerCleanup",
+          value: { ...current, lastTriggeredAt: new Date().toISOString() },
+        },
         { upsert: true, new: true },
       );
 
@@ -268,7 +370,7 @@ const router = new Elysia({ prefix: '/settings' })
         removedConversations: result.removedConversations,
       };
     } catch (err) {
-      console.error('Error triggering container cleanup:', err);
+      console.error("Error triggering container cleanup:", err);
       return status(500, { error: err.message });
     }
   });
