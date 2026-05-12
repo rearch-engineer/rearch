@@ -196,6 +196,66 @@ export function PanelProvider({ conversationId, services, children }) {
     });
   }, []);
 
+  /** Reorder tabs within a tile */
+  const reorderTabs = useCallback((tileId, fromIndex, toIndex) => {
+    setLayout((prev) => {
+      const tile = prev.tiles[tileId];
+      if (!tile) return prev;
+      const newTabs = [...tile.tabs];
+      const [moved] = newTabs.splice(fromIndex, 1);
+      newTabs.splice(toIndex, 0, moved);
+      return { ...prev, tiles: { ...prev.tiles, [tileId]: { ...tile, tabs: newTabs } } };
+    });
+  }, []);
+
+  /** Split a tile by moving a tab to a new tile on a specific edge (direction + position) */
+  const splitFromTab = useCallback((panelId, fromTileId, targetTileId, direction) => {
+    setLayout((prev) => {
+      const fromTile = prev.tiles[fromTileId];
+      const targetTile = prev.tiles[targetTileId];
+      if (!fromTile || !targetTile || !fromTile.tabs.includes(panelId)) return prev;
+
+      // Remove tab from source tile
+      const newFromTabs = fromTile.tabs.filter((t) => t !== panelId);
+      const newTiles = { ...prev.tiles };
+      let newTree = prev.mosaicTree;
+
+      if (newFromTabs.length === 0 && fromTileId !== targetTileId) {
+        delete newTiles[fromTileId];
+        newTree = removeTileFromTree(newTree, fromTileId);
+        if (newTree === null) newTree = targetTileId;
+      } else if (fromTileId === targetTileId && newFromTabs.length === 0) {
+        // Can't split the only tab in a tile onto itself
+        return prev;
+      } else if (fromTileId !== targetTileId || newFromTabs.length > 0) {
+        if (fromTileId === targetTileId) {
+          newTiles[fromTileId] = { tabs: newFromTabs, activeTab: newFromTabs[0] };
+        } else {
+          const newActive = fromTile.activeTab === panelId ? newFromTabs[0] : fromTile.activeTab;
+          newTiles[fromTileId] = { tabs: newFromTabs, activeTab: newActive };
+        }
+      }
+
+      // Create new tile for the dragged tab
+      const newTileId = `tile-${prev.nextTileId}`;
+      newTiles[newTileId] = { tabs: [panelId], activeTab: panelId };
+
+      // direction: "left" | "right" | "top" | "bottom"
+      const isRow = direction === "left" || direction === "right";
+      const first = direction === "left" || direction === "top" ? newTileId : targetTileId;
+      const second = direction === "left" || direction === "top" ? targetTileId : newTileId;
+
+      newTree = replaceTileInTree(newTree, targetTileId, {
+        direction: isRow ? "row" : "column",
+        first,
+        second,
+        splitPercentage: 50,
+      });
+
+      return { mosaicTree: newTree, tiles: newTiles, nextTileId: prev.nextTileId + 1 };
+    });
+  }, []);
+
   const resetLayout = useCallback(() => setLayout(defaultLayout()), []);
 
   const getOpenPanels = useCallback(() => {
@@ -218,7 +278,7 @@ export function PanelProvider({ conversationId, services, children }) {
 
   const value = {
     layout, services: services || [],
-    updateMosaicTree, setActiveTab, addTab, removeTab, splitWithPanel, moveTab, resetLayout, getOpenPanels,
+    updateMosaicTree, setActiveTab, addTab, removeTab, splitWithPanel, moveTab, reorderTabs, splitFromTab, resetLayout, getOpenPanels,
     registerPanelActions, unregisterPanelActions, getPanelActions,
     sidebarCollapsed, setSidebarCollapsed, toggleSidebar,
   };

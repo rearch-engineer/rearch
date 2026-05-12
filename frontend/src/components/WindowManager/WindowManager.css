@@ -20,7 +20,7 @@
 .wm-mosaic-theme .mosaic-split:hover .mosaic-split-line,
 .wm-mosaic-theme .mosaic-split .mosaic-split-line.active { background: var(--joy-palette-primary-400, #096bde); }
 
-/* Drop zones */
+/* Drop zones (mosaic built-in) */
 .wm-mosaic-theme .drop-target-container .drop-target {
   background: var(--joy-palette-primary-100, rgba(9, 107, 222, 0.15));
   border: 2px solid var(--joy-palette-primary-400, #096bde);
@@ -47,10 +47,49 @@
   cursor: pointer; font-size: 0.78rem; font-weight: 500; color: var(--text-tertiary);
   white-space: nowrap; user-select: none; border-bottom: 2px solid transparent;
   transition: color 0.12s, border-color 0.12s, background 0.12s; flex-shrink: 0;
+  position: relative;
 }
 .tile-tab:hover { color: var(--text-primary); background: var(--bg-hover, rgba(255, 255, 255, 0.04)); }
 .tile-tab.active { color: var(--text-primary); border-bottom-color: var(--joy-palette-primary-400, #096bde); }
 .tile-tab-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+/* Tab being dragged */
+.tile-tab.dragging { opacity: 0.4; }
+
+/* Tab drop indicator (vertical bar before the tab) */
+.tile-tab.drop-before::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--joy-palette-primary-400, #096bde);
+  border-radius: 1px;
+  z-index: 2;
+}
+
+/* Close button on tabs */
+.tile-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-left: 2px;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.tile-tab:hover .tile-tab-close,
+.tile-tab.active .tile-tab-close {
+  opacity: 0.6;
+}
+.tile-tab-close:hover {
+  opacity: 1 !important;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.1));
+}
 
 /* Sidebar toggle */
 .tile-tab-sidebar-toggle {
@@ -64,3 +103,48 @@
 /* Tile content */
 .tile-content { flex: 1; overflow: hidden; position: relative; }
 .wm-panel-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-tertiary); font-size: 0.85rem; }
+
+/* ── Drop zone overlay (VS Code-style edge indicators) ── */
+.drop-zone-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.drop-zone-indicator {
+  position: absolute;
+  background: var(--joy-palette-primary-100, rgba(9, 107, 222, 0.12));
+  border: 2px solid var(--joy-palette-primary-400, #096bde);
+  border-radius: 4px;
+  transition: all 0.1s ease;
+}
+
+/* Left edge drop zone */
+.drop-zone-left {
+  top: 0; left: 0; bottom: 0;
+  width: 50%;
+}
+
+/* Right edge drop zone */
+.drop-zone-right {
+  top: 0; right: 0; bottom: 0;
+  width: 50%;
+}
+
+/* Top edge drop zone */
+.drop-zone-top {
+  top: 0; left: 0; right: 0;
+  height: 50%;
+}
+
+/* Bottom edge drop zone */
+.drop-zone-bottom {
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+}
+
+/* Center drop zone (merge into tile) */
+.drop-zone-center {
+  inset: 10%;
+}
