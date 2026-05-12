@@ -15,6 +15,7 @@ import {
   extractKeycloakUserInfo,
 } from "../utils/keycloak.js";
 import { ensurePersonalWorkspace } from "../utils/workspace.js";
+import { encrypt } from "../utils/encryption.js";
 
 const router = new Elysia({ prefix: "/api/auth" });
 
@@ -122,6 +123,10 @@ const oauthCallbackBodySchema = z.object({
 
 const keycloakTokenExchangeBodySchema = z.object({
   keycloakToken: z.string().min(1, "keycloakToken is required."),
+});
+
+const githubCopilotBodySchema = z.object({
+  token: z.string().min(1, "Token is required."),
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -910,6 +915,82 @@ router.delete("/avatar", async ({ user, status }) => {
   } catch (err) {
     console.error("DELETE /auth/avatar error:", err);
     return status(500, { error: "Failed to delete avatar." });
+  }
+});
+
+// ─── Self-service: GitHub Copilot integration ─────────────────────────────────
+
+/**
+ * POST /api/auth/tools/github-copilot
+ * Stores the user's GitHub Copilot token (encrypted at rest).
+ * Only available when an admin has enabled the integration.
+ * Body: { token }
+ */
+router.post("/tools/github-copilot", async ({ body, user, status }) => {
+  const parsed = githubCopilotBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return status(400, { error: parsed.error.errors[0].message });
+  }
+
+  try {
+    // Verify the integration is enabled by an administrator
+    const setting = await Setting.findOne({ key: "integrations" });
+    const value = setting?.value || { githubCopilotEnabled: false };
+    if (!value.githubCopilotEnabled) {
+      return status(403, {
+        error:
+          "GitHub Copilot integration is not enabled by your administrator.",
+      });
+    }
+
+    const dbUser = await User.findById(user.userId);
+    if (!dbUser) {
+      return status(404, { error: "User not found." });
+    }
+
+    const { token } = parsed.data;
+    const { ciphertext, iv, tag } = encrypt(token);
+
+    dbUser.tools = dbUser.tools || {};
+    dbUser.tools.github_copilot = {
+      token: { ciphertext, iv, tag },
+      connected_at: new Date(),
+    };
+    await dbUser.save();
+
+    return dbUser.toSafeJSON();
+  } catch (err) {
+    console.error("POST /auth/tools/github-copilot error:", err);
+    return status(500, {
+      error: "Failed to save GitHub Copilot token.",
+    });
+  }
+});
+
+/**
+ * DELETE /api/auth/tools/github-copilot
+ * Clears the user's stored GitHub Copilot token.
+ */
+router.delete("/tools/github-copilot", async ({ user, status }) => {
+  try {
+    const dbUser = await User.findById(user.userId);
+    if (!dbUser) {
+      return status(404, { error: "User not found." });
+    }
+
+    dbUser.tools = dbUser.tools || {};
+    dbUser.tools.github_copilot = {
+      token: { ciphertext: null, iv: null, tag: null },
+      connected_at: null,
+    };
+    await dbUser.save();
+
+    return dbUser.toSafeJSON();
+  } catch (err) {
+    console.error("DELETE /auth/tools/github-copilot error:", err);
+    return status(500, {
+      error: "Failed to remove GitHub Copilot token.",
+    });
   }
 });
 
