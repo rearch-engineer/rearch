@@ -69,6 +69,22 @@ export const downloadFileStream = (fileId, bucketName = 'attachments') => {
 };
 
 /**
+ * Download a file from GridFS fully into a Buffer.
+ * @param {mongoose.Types.ObjectId|string} fileId - GridFS file ID
+ * @param {string} bucketName - GridFS bucket name (default: 'attachments')
+ * @returns {Promise<Buffer>} File contents
+ */
+export const downloadFileBuffer = (fileId, bucketName = 'attachments') => {
+  const stream = downloadFileStream(fileId, bucketName);
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on('data', (chunk) => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+};
+
+/**
  * Get file metadata from GridFS
  * @param {mongoose.Types.ObjectId|string} fileId - GridFS file ID
  * @param {string} bucketName - GridFS bucket name (default: 'attachments')
@@ -100,6 +116,7 @@ export default {
   getGridFSBucket,
   uploadFile,
   downloadFileStream,
+  downloadFileBuffer,
   getFileInfo,
   deleteFile
 };

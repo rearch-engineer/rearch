@@ -18,6 +18,7 @@ import ContainerCleanupSettings from "../../components/Administration/ContainerC
 import McpServersSettings from "../../components/Administration/McpServersSettings";
 import McpServersGalleryPage from "../../components/Administration/McpServersGalleryPage";
 import McpServersManualPage from "../../components/Administration/McpServersManualPage";
+import McpServersOpenApiPage from "../../components/Administration/McpServersOpenApiPage";
 import McpServersEditPage from "../../components/Administration/McpServersEditPage";
 import ResourceListPage from "../../components/Administration/Resources/ResourceListPage";
 import ResourceTypeSelection from "../../components/Administration/Resources/ResourceTypeSelection";
@@ -85,6 +86,10 @@ export default function AdministrationPage() {
         <Route
           path="/mcp-servers/new/manual"
           element={<McpServersManualPage />}
+        />
+        <Route
+          path="/mcp-servers/new/openapi"
+          element={<McpServersOpenApiPage />}
         />
         <Route path="/mcp-servers/:id" element={<McpServersEditPage />} />
         <Route

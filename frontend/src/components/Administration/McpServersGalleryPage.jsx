@@ -8,6 +8,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsIcon from '@mui/icons-material/Settings';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import ApiIcon from '@mui/icons-material/Api';
 // Gallery icons
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import GitHubIcon from '@mui/icons-material/GitHub';
@@ -145,6 +146,52 @@ export default function McpServersGalleryPage() {
             gap: 1.5,
           }}
         >
+          {/* API Definition — upload an OpenAPI/Swagger spec */}
+          <Card
+            key="__openapi__"
+            variant="outlined"
+            sx={{
+              cursor: 'pointer',
+              borderColor: 'var(--joy-palette-primary-400, #3b82f6)',
+              bgcolor: 'var(--bg-primary)',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+              '&:hover': {
+                boxShadow: '0 0 0 1px var(--joy-palette-primary-400, #3b82f6)',
+              },
+            }}
+            onClick={() => navigate('/administration/mcp-servers/new/openapi')}
+          >
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1 }}>
+                <Sheet
+                  variant="soft"
+                  color="primary"
+                  sx={{
+                    width: 36, height: 36, borderRadius: 'sm',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}
+                >
+                  <ApiIcon sx={{ fontSize: 20 }} />
+                </Sheet>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography level="title-sm" noWrap sx={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {t("mcpGallery.apiDefinitionTitle")}
+                  </Typography>
+                </Box>
+              </Stack>
+              <Typography
+                level="body-xs"
+                sx={{
+                  color: 'var(--text-secondary)',
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden', lineHeight: 1.5,
+                }}
+              >
+                {t("mcpGallery.apiDefinitionDescription")}
+              </Typography>
+            </CardContent>
+          </Card>
+
           {gallery.map((item) => {
             const isInstalled = installedNames.has(item.id);
             return (

@@ -1045,6 +1045,14 @@ export const api = {
     const response = await axios.post(`${API_BASE_URL}/admin/mcp/reload`);
     return response.data;
   },
+  parseOpenApiSpec: async (payload) => {
+    // payload: { specFileId?, spec?, aiCurate? }
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/mcp/openapi/parse`,
+      payload,
+    );
+    return response.data;
+  },
 
   // Suggested Prompt Categories
   getSuggestedPromptCategories: async () => {

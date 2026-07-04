@@ -14,14 +14,18 @@ import mongoose from 'mongoose';
 const mcpServerSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
-    type: { type: String, required: true, enum: ['remote', 'local'] },
+    type: { type: String, required: true, enum: ['remote', 'local', 'openapi'] },
     url: { type: String },
     command: [{ type: String }],
     headers: { type: mongoose.Schema.Types.Mixed, default: {} },
     environment: { type: mongoose.Schema.Types.Mixed, default: {} },
+    // OpenAPI ("API Definition") fields
+    specFileId: { type: mongoose.Schema.Types.ObjectId },
+    baseUrl: { type: String },
+    operations: { type: mongoose.Schema.Types.Mixed },
     enabled: { type: Boolean, default: true },
   },
-  { timestamps: true },
+  { timestamps: true, strict: false },
 );
 
 // Reuse existing model if already compiled (hot-reload safety)
@@ -48,6 +52,8 @@ export async function loadMcpServers() {
         command: doc.command,
         headers: doc.headers || {},
         environment: doc.environment || {},
+        baseUrl: doc.baseUrl,
+        operations: doc.operations,
         enabled: doc.enabled,
       };
     }

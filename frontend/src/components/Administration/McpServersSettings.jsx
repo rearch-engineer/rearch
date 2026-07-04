@@ -194,15 +194,21 @@ export default function McpServersSettings() {
                       </Typography>
                     </td>
                     <td>
-                      <Chip size="sm" variant="soft" color={server.type === 'remote' ? 'primary' : 'success'}>
-                        {server.type}
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        color={server.type === 'remote' ? 'primary' : server.type === 'openapi' ? 'warning' : 'success'}
+                      >
+                        {server.type === 'openapi' ? t("mcpServers.typeApiDefinition") : server.type}
                       </Chip>
                     </td>
                     <td>
                       <Typography level="body-sm" sx={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                         {server.type === 'remote'
                           ? (server.url || '\u2014')
-                          : (Array.isArray(server.command) ? server.command.join(' ') : '\u2014')}
+                          : server.type === 'openapi'
+                            ? (server.baseUrl || '\u2014')
+                            : (Array.isArray(server.command) ? server.command.join(' ') : '\u2014')}
                       </Typography>
                     </td>
                     <td>

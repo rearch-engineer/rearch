@@ -11,6 +11,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { buildOpenApiTools, callOpenApiTool } from './openapi-tools.js';
 
 const CONNECT_TIMEOUT_MS = 30_000;
 
@@ -92,8 +93,27 @@ export class UpstreamManager {
   // -------------------------------------------------------------------------
 
   async #connect(name, cfg) {
-    const entry = { client: null, transport: null, tools: [], status: 'connecting', error: undefined };
+    const entry = { client: null, transport: null, tools: [], status: 'connecting', error: undefined, cfg };
     this.#upstreams.set(name, entry);
+
+    // OpenAPI ("API Definition") servers are synthetic: no transport is opened.
+    // Tools are derived from the admin-curated operation descriptors and the
+    // proxy executes the underlying HTTP calls itself.
+    if (cfg.type === 'openapi') {
+      try {
+        entry.tools = buildOpenApiTools(name, cfg);
+        entry.status = 'connected';
+        entry.kind = 'openapi';
+        console.log(
+          `[upstream] Loaded OpenAPI server ${name} — ${entry.tools.length} tool(s)`,
+        );
+      } catch (err) {
+        entry.status = 'error';
+        entry.error = err.message;
+        console.error(`[upstream] Failed to load OpenAPI server ${name}:`, err.message);
+      }
+      return;
+    }
 
     try {
       const transport = this.#createTransport(name, cfg);
@@ -197,13 +217,16 @@ export class UpstreamManager {
     for (const [name, entry] of this.#upstreams) {
       if (entry.status !== 'connected') continue;
 
-      // Re-fetch tools to pick up any upstream changes
-      try {
-        const { tools: freshTools } = await entry.client.listTools();
-        entry.tools = freshTools || [];
-      } catch (err) {
-        console.warn(`[upstream] Failed to refresh tools for ${name}:`, err.message);
-        // Fall through with cached tools
+      // OpenAPI servers have statically-derived tools — no upstream to refresh.
+      if (entry.kind !== 'openapi') {
+        // Re-fetch tools to pick up any upstream changes
+        try {
+          const { tools: freshTools } = await entry.client.listTools();
+          entry.tools = freshTools || [];
+        } catch (err) {
+          console.warn(`[upstream] Failed to refresh tools for ${name}:`, err.message);
+          // Fall through with cached tools
+        }
       }
 
       for (const tool of entry.tools) {
@@ -233,7 +256,7 @@ export class UpstreamManager {
       if (entry.status !== 'connected') {
         throw new Error(`Server "${serverName}" is not connected (status: ${entry.status})`);
       }
-      return await entry.client.callTool({ name: toolName, arguments: args });
+      return await this.#invoke(entry, toolName, args);
     }
 
     // If the simple split didn't match a server, try longer prefixes.
@@ -244,11 +267,27 @@ export class UpstreamManager {
         if (entry.status !== 'connected') {
           throw new Error(`Server "${name}" is not connected (status: ${entry.status})`);
         }
-        return await entry.client.callTool({ name: actualTool, arguments: args });
+        return await this.#invoke(entry, actualTool, args);
       }
     }
 
     throw new Error(`No upstream server found for tool "${prefixedName}"`);
+  }
+
+  /**
+   * Invoke a single (unprefixed) tool on a connected upstream entry, routing
+   * OpenAPI servers to the local HTTP executor and everything else to the
+   * MCP client transport.
+   */
+  async #invoke(entry, toolName, args) {
+    if (entry.kind === 'openapi') {
+      const tool = (entry.tools || []).find((t) => t.name === toolName);
+      if (!tool || !tool._operation) {
+        throw new Error(`Unknown OpenAPI tool "${toolName}"`);
+      }
+      return await callOpenApiTool(entry.cfg, tool._operation, args);
+    }
+    return await entry.client.callTool({ name: toolName, arguments: args });
   }
 
   // -------------------------------------------------------------------------

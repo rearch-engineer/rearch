@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Button, Typography, FormControl, FormLabel,
-  Input, Textarea, Stack, Switch, Select, Option,
+  Input, Textarea, Stack, Switch, Select, Option, Card, CardContent, Chip, Divider,
 } from '@mui/joy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
@@ -27,6 +27,10 @@ export default function McpServersEditPage() {
     environment: '',
     enabled: true,
   });
+  // OpenAPI ("API Definition") editing state
+  const [baseUrl, setBaseUrl] = useState('');
+  const [specFileId, setSpecFileId] = useState(null);
+  const [operations, setOperations] = useState([]);
 
   useEffect(() => {
     loadServer();
@@ -53,6 +57,9 @@ export default function McpServersEditPage() {
           ? JSON.stringify(server.environment, null, 2) : '',
         enabled: server.enabled !== false,
       });
+      setBaseUrl(server.baseUrl || '');
+      setSpecFileId(server.specFileId || null);
+      setOperations(Array.isArray(server.operations) ? server.operations : []);
     } catch (err) {
       toast.error(t("mcpEdit.failedToLoadServer", { message: err.message }));
       navigate('/administration/mcp-servers');
@@ -84,6 +91,37 @@ export default function McpServersEditPage() {
     if (formData.type === 'remote') {
       payload.url = formData.url;
       if (headers) payload.headers = headers;
+    } else if (formData.type === 'openapi') {
+      const enabledOps = operations.filter((o) => o.enabled !== false);
+      if (enabledOps.length === 0) {
+        toast.error(t("mcpEdit.selectAtLeastOne"));
+        return;
+      }
+      for (const op of enabledOps) {
+        if (!/^[a-zA-Z0-9_]+$/.test(op.toolName || '')) {
+          toast.error(t("mcpEdit.toolNameValidationError", { name: op.toolName || '(empty)' }));
+          return;
+        }
+      }
+      payload.baseUrl = baseUrl;
+      payload.specFileId = specFileId;
+      payload.operations = operations.map((op) => ({
+        operationId: op.operationId,
+        method: op.method,
+        path: op.path,
+        toolName: op.toolName,
+        description: op.description || '',
+        enabled: op.enabled !== false,
+        parameters: (op.parameters || []).map((p) => ({
+          name: p.name,
+          in: p.in,
+          required: !!p.required,
+          type: p.type || 'string',
+          description: p.description || '',
+        })),
+        requestBodySchema: op.requestBodySchema || null,
+      }));
+      if (headers) payload.headers = headers;
     } else {
       payload.command = formData.command.split('\n').map((s) => s.trim()).filter(Boolean);
       if (environment) payload.environment = environment;
@@ -99,6 +137,17 @@ export default function McpServersEditPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const updateOperation = (index, patch) => {
+    setOperations((prev) => prev.map((op, i) => (i === index ? { ...op, ...patch } : op)));
+  };
+  const updateParameter = (opIndex, paramIndex, patch) => {
+    setOperations((prev) => prev.map((op, i) => {
+      if (i !== opIndex) return op;
+      const parameters = (op.parameters || []).map((p, j) => (j === paramIndex ? { ...p, ...patch } : p));
+      return { ...op, parameters };
+    }));
   };
 
   if (loading) {
@@ -161,10 +210,14 @@ export default function McpServersEditPage() {
               <Select
                 value={formData.type}
                 onChange={(_, val) => setFormData({ ...formData, type: val })}
+                disabled={formData.type === 'openapi'}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               >
                 <Option value="remote">{t("mcpEdit.remote")}</Option>
                 <Option value="local">{t("mcpEdit.local")}</Option>
+                {formData.type === 'openapi' && (
+                  <Option value="openapi">{t("mcpServers.typeApiDefinition")}</Option>
+                )}
               </Select>
             </FormControl>
 
@@ -225,6 +278,113 @@ export default function McpServersEditPage() {
                   sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', fontFamily: 'monospace' }}
                 />
               </FormControl>
+            )}
+
+            {formData.type === 'openapi' && (
+              <>
+                <FormControl required>
+                  <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
+                    {t("mcpOpenApi.baseUrl")}
+                  </FormLabel>
+                  <Input
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    placeholder="e.g. https://api.example.com/v1"
+                    sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
+                    {t("mcpEdit.headersJson")}
+                  </FormLabel>
+                  <Textarea
+                    value={formData.headers}
+                    onChange={(e) => setFormData({ ...formData, headers: e.target.value })}
+                    placeholder='e.g. {"Authorization": "Bearer token"}'
+                    minRows={2}
+                    sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', fontFamily: 'monospace' }}
+                  />
+                </FormControl>
+
+                <Divider />
+
+                <Typography level="title-md" sx={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                  {t("mcpOpenApi.operationsTitle", { count: operations.length })}
+                </Typography>
+
+                {operations.map((op, i) => (
+                  <Card
+                    key={`${op.method}-${op.path}-${i}`}
+                    variant="outlined"
+                    sx={{ borderColor: 'var(--border-color)', bgcolor: 'var(--bg-primary)', opacity: op.enabled === false ? 0.6 : 1 }}
+                  >
+                    <CardContent sx={{ p: 2 }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                        <Switch
+                          size="sm"
+                          checked={op.enabled !== false}
+                          onChange={(e) => updateOperation(i, { enabled: e.target.checked })}
+                        />
+                        <Chip size="sm" variant="soft" color="primary">{op.method}</Chip>
+                        <Typography level="body-sm" sx={{ fontFamily: 'monospace', color: 'var(--text-secondary)', flex: 1, minWidth: 0 }} noWrap>
+                          {op.path}
+                        </Typography>
+                      </Stack>
+                      <Stack spacing={1.5} sx={{ pl: { xs: 0, sm: 5 } }}>
+                        <FormControl>
+                          <FormLabel sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                            {t("mcpOpenApi.toolName")}
+                          </FormLabel>
+                          <Input
+                            size="sm"
+                            value={op.toolName || ''}
+                            onChange={(e) => updateOperation(i, { toolName: e.target.value })}
+                            disabled={op.enabled === false}
+                            sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)', fontFamily: 'monospace' }}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel sx={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                            {t("mcpOpenApi.description")}
+                          </FormLabel>
+                          <Textarea
+                            size="sm"
+                            value={op.description || ''}
+                            onChange={(e) => updateOperation(i, { description: e.target.value })}
+                            disabled={op.enabled === false}
+                            minRows={2}
+                            sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+                          />
+                        </FormControl>
+                        {(op.parameters || []).length > 0 && (
+                          <Box>
+                            <Typography level="body-xs" sx={{ color: 'var(--text-secondary)', fontWeight: 600, mb: 0.5 }}>
+                              {t("mcpOpenApi.parameters")}
+                            </Typography>
+                            <Stack spacing={1}>
+                              {op.parameters.map((p, j) => (
+                                <Stack key={`${p.in}-${p.name}`} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+                                  <Chip size="sm" variant="soft" color="neutral" sx={{ minWidth: 0 }}>
+                                    {p.name}{p.required ? '*' : ''} · {p.in} · {p.type}
+                                  </Chip>
+                                  <Input
+                                    size="sm"
+                                    value={p.description || ''}
+                                    onChange={(e) => updateParameter(i, j, { description: e.target.value })}
+                                    disabled={op.enabled === false}
+                                    sx={{ flex: 1, bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
+                                  />
+                                </Stack>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
             )}
 
             <FormControl>
