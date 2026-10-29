@@ -162,8 +162,8 @@ const ChatInterface = ({
       setAgents([]);
       setSelectedModel(getSavedModel());
       setSelectedAgent(getSavedAgent());
-      setConversationSubResourceId(null);
-      setConversationRepoName(null);
+      setConversationRearchAgentId(null);
+      setConversationRearchAgentName(null);
     }
 
     return () => {
