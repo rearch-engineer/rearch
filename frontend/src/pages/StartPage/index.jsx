@@ -7,9 +7,9 @@ import { useConversations } from "../../contexts/ConversationsContext";
 import { useWorkspaces } from "../../contexts/WorkspacesContext";
 
 /**
- * StartPage: auto-creates a conversation for the repository specified in the URL hash.
+ * StartPage: auto-creates a conversation with the agent named in the URL hash.
  *
- * URL format: /start#<repository-name>
+ * URL format: /start#<agent-name>  (repository names still work for legacy links)
  *
  * On mount it reads the hash, calls the backend to create a conversation by repo name,
  * then navigates to /conversations/<id>.
@@ -26,26 +26,27 @@ export default function StartPage() {
     if (processedRef.current) return;
     processedRef.current = true;
 
-    const repoName = window.location.hash.slice(1); // strip leading '#'
+    const agentName = window.location.hash.slice(1); // strip leading '#'
 
-    if (!repoName) {
-      setError(t("noRepoSpecified"));
+    if (!agentName) {
+      setError(t("noAgentSpecified"));
       return;
     }
 
     const createAndRedirect = async () => {
       try {
-        const newConv = await api.createConversationByName(activeWorkspace?._id, decodeURIComponent(repoName));
+        const newConv = await api.createConversationByName(activeWorkspace?._id, decodeURIComponent(agentName));
         handleConversationCreated(newConv);
         navigateToConversation(newConv._id, { replace: true });
       } catch (err) {
         const status = err.response?.status;
         const message = err.response?.data?.error || err.message;
 
-        if (status === 404 && message === "repository-not-found") {
-          setError(
-            t("repoNotFound", { name: decodeURIComponent(repoName) })
-          );
+        if (
+          status === 404 &&
+          (message === "agent-not-found" || message === "repository-not-found")
+        ) {
+          setError(t("agentNotFound", { name: decodeURIComponent(agentName) }));
         } else {
           setError(t("failedToCreate", { message }));
         }

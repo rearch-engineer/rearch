@@ -1,15 +1,15 @@
 # Introduction
 
-A full-stack AI-powered application that connects developers with AI coding assistants running in isolated Docker containers. Each conversation spins up a dedicated [OpenCode](https://opencode.ai) container with access to a Bitbucket repository, enabling collaborative development workflows.
+A full-stack platform for AI agents running in isolated Docker containers. Administrators define **agents** (a container configuration plus the resources the agent works with); each conversation with an agent spins up a dedicated [OpenCode](https://opencode.ai) container. Repositories (Bitbucket, GitHub) are the first kind of resource an agent can use, and they are optional.
 
 ## Overview
 
-ReArch provides a familiar user interface where users can have AI-assisted conversations scoped to specific code repositories. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket for end-to-end developer workflows.
+ReArch provides a familiar chat interface where users pick an agent and start a conversation. The backend orchestrates Docker containers running OpenCode sessions, streams responses in real time via Socket.IO, and integrates with Bitbucket and GitHub when an agent is bound to a repository.
 
 **Key capabilities:**
 
 - Per-conversation Docker containers running OpenCode sessions
-- Use with Bitbucket & Github repositories.
+- Agents with optional Bitbucket / GitHub repositories as resources (more resource kinds to come)
 - Background job processing with BullMQ and Redis
 - Flexible authentication: local email/password, OpenID Connect, or Keycloak
 

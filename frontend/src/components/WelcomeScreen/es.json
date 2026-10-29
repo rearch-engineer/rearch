@@ -1,5 +1,5 @@
 {
-  "headingWithName": "¿Qué hay sobre {{repoName}}, {{firstName}}?",
-  "headingWithoutName": "¿Qué hay sobre {{repoName}}?",
-  "thisRepository": "este repositorio"
+  "headingWithName": "¿Qué hay sobre {{name}}, {{firstName}}?",
+  "headingWithoutName": "¿Qué hay sobre {{name}}?",
+  "thisAgent": "este agente"
 }

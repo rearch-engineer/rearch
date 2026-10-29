@@ -174,36 +174,34 @@ test.describe("BitBucket onboarding flow", () => {
       await expect(page.getByText(bbRepoName)).toBeVisible({ timeout: 15_000 });
     });
 
-    // ── Step 4: Enable ReArch Integration ──────────────────────────────────
+    // ── Step 4: Create an agent for the repository ─────────────────────────
 
-    await test.step("Enable the ReArch integration", async () => {
+    await test.step("Create an agent bound to the repository", async () => {
       // Click on the imported repository card to navigate to its details
       await page.getByText(bbRepoName).first().click();
 
       // Wait for the repository details page to load
       await page.waitForURL("**/subresources/*");
 
-      // Wait for the ReArch Settings section to be visible
-      await expect(page.getByText("ReArch Settings")).toBeVisible();
+      // The repository page offers a shortcut to create an agent for it
+      await page.locator('[data-testid="create-agent-from-repo-btn"]').click();
+      await page.waitForURL("**/administration/agents/new**");
 
-      // Click the Edit button on the ReArch Settings card
-      await page.locator('[data-testid="rearch-edit-btn"]').click();
+      // Name the agent after the repository so the conversation step can find it
+      await page.locator('[data-testid="agent-name-input"] input').fill(bbRepoName);
 
-      // Toggle the "Enable ReArch" switch
-      const switchLocator = page.locator('[data-testid="rearch-enable-switch"]');
+      // Select the "Minimal" template and enable the agent
+      await page.locator('[data-testid="agent-template-minimal"]').click();
+      const switchLocator = page.locator('[data-testid="agent-enable-switch"]');
       await expect(switchLocator).toBeVisible();
       // MUI Switch renders as a <span> wrapping an <input type="checkbox">.
       // Click the outer element to toggle.
       await switchLocator.click();
 
-      // Select the "Minimal" template
-      await page.getByText("Minimal").first().click();
-
-      // Save
-      await page.locator('[data-testid="rearch-save-btn"]').click();
-
-      // Wait for save to complete — the edit mode should close and show "Enabled" chip
-      await expect(page.getByText("Enabled")).toBeVisible({ timeout: 15_000 });
+      // Save: the page navigates to the agent's edit URL and shows "Enabled"
+      await page.locator('[data-testid="agent-save-btn"]').click();
+      await page.waitForURL(/\/administration\/agents\/(?!new)/, { timeout: 15_000 });
+      await expect(page.getByText("Enabled").first()).toBeVisible({ timeout: 15_000 });
     });
 
     // ── Step 5: Start a New Conversation ───────────────────────────────────
@@ -213,13 +211,13 @@ test.describe("BitBucket onboarding flow", () => {
       await page.locator('[data-testid="new-conversation-btn"]').click();
       await page.waitForURL("**/conversations/new");
 
-      // Wait for repository cards to load
+      // Wait for agent cards to load
       await expect(
-        page.locator(`[data-testid="repo-card-${bbRepoName}"]`),
+        page.locator(`[data-testid="agent-card-${bbRepoName}"]`),
       ).toBeVisible({ timeout: 30_000 });
 
-      // Select the repository
-      await page.locator(`[data-testid="repo-card-${bbRepoName}"]`).click();
+      // Select the agent
+      await page.locator(`[data-testid="agent-card-${bbRepoName}"]`).click();
 
       // Click "Start Conversation"
       await page.locator('[data-testid="start-conversation-btn"]').click();

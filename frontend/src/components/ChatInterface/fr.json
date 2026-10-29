@@ -1,12 +1,14 @@
 {
-  "selectRepository": "Sélectionnez un dépôt pour démarrer une nouvelle conversation.",
-  "searchRepositories": "Rechercher des dépôts...",
-  "loadingRepositories": "Chargement des dépôts...",
-  "noRepositoriesEnabled": "Aucun dépôt avec ReArch activé trouvé. Activez d'abord ReArch sur vos dépôts depuis la page Ressources.",
-  "noRepositoriesMatch": "Aucun dépôt ne correspond à votre recherche.",
+  "selectAgent": "Sélectionnez un agent pour démarrer une nouvelle conversation.",
+  "searchAgents": "Rechercher des agents...",
+  "loadingAgents": "Chargement des agents...",
+  "noAgentsEnabled": "Aucun agent disponible. Demandez à un administrateur d'en créer et d'en activer un dans Administration → Agents.",
+  "noAgentsMatch": "Aucun agent ne correspond à votre recherche.",
   "startConversation": "Démarrer la conversation",
-  "pleaseSelectRepository": "Veuillez sélectionner un dépôt",
+  "pleaseSelectAgent": "Veuillez sélectionner un agent",
   "newConversation": "Nouvelle conversation",
   "errorCreatingConversation": "Erreur lors de la création de la conversation : {{message}}",
-  "openInBitbucket": "Ouvrir dans Bitbucket"
+  "openInBitbucket": "Ouvrir dans Bitbucket",
+  "openRepository": "Ouvrir le dépôt",
+  "noRepositoryAgent": "Aucun dépôt"
 }

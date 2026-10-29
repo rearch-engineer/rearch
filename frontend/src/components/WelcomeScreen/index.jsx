@@ -12,8 +12,8 @@ function getIconComponent(iconName) {
 }
 
 export default function WelcomeScreen({
-  subResourceId,
-  repoName,
+  agentId,
+  agentName,
   onPromptClick,
   children,
 }) {
@@ -30,13 +30,13 @@ export default function WelcomeScreen({
   const firstName = displayName.split(" ")[0];
 
   useEffect(() => {
-    if (!subResourceId) {
+    if (!agentId) {
       setLoading(false);
       return;
     }
     const loadPrompts = async () => {
       try {
-        const data = await api.getSuggestedPromptsForRepo(subResourceId);
+        const data = await api.getSuggestedPromptsForAgent(agentId);
         setPrompts(data);
       } catch (err) {
         console.error("Failed to load suggested prompts:", err);
@@ -46,7 +46,7 @@ export default function WelcomeScreen({
       }
     };
     loadPrompts();
-  }, [subResourceId]);
+  }, [agentId]);
 
   const grouped = useMemo(() => {
     const map = new Map();
@@ -68,8 +68,8 @@ export default function WelcomeScreen({
       <div className="welcome-center-anchor">
         <h1 className="welcome-heading">
           {firstName
-            ? t("headingWithName", { repoName: repoName || t("thisRepository"), firstName })
-            : t("headingWithoutName", { repoName: repoName || t("thisRepository") })}
+            ? t("headingWithName", { name: agentName || t("thisAgent"), firstName })
+            : t("headingWithoutName", { name: agentName || t("thisAgent") })}
         </h1>
         <div className="welcome-input-wrapper">{children}</div>
       </div>

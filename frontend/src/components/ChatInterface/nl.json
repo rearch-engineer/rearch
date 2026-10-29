@@ -1,12 +1,14 @@
 {
-  "selectRepository": "Selecteer een repository om een nieuw gesprek te starten.",
-  "searchRepositories": "Repositories zoeken...",
-  "loadingRepositories": "Repositories laden...",
-  "noRepositoriesEnabled": "Geen repositories met ReArch ingeschakeld gevonden. Schakel eerst ReArch in op uw repositories via de pagina Bronnen.",
-  "noRepositoriesMatch": "Geen repositories komen overeen met uw zoekopdracht.",
+  "selectAgent": "Selecteer een agent om een nieuw gesprek te starten.",
+  "searchAgents": "Agents zoeken...",
+  "loadingAgents": "Agents laden...",
+  "noAgentsEnabled": "Geen agents beschikbaar. Vraag een beheerder om er een te maken en in te schakelen via Beheer → Agents.",
+  "noAgentsMatch": "Geen agents komen overeen met uw zoekopdracht.",
   "startConversation": "Gesprek starten",
-  "pleaseSelectRepository": "Selecteer een repository",
+  "pleaseSelectAgent": "Selecteer een agent",
   "newConversation": "Nieuw gesprek",
   "errorCreatingConversation": "Fout bij het aanmaken van het gesprek: {{message}}",
-  "openInBitbucket": "Openen in Bitbucket"
+  "openInBitbucket": "Openen in Bitbucket",
+  "openRepository": "Repository openen",
+  "noRepositoryAgent": "Geen repository"
 }

@@ -59,16 +59,17 @@ const ChatInterface = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState(null);
-  const [selectedSubResource, setSelectedSubResource] = useState("");
-  const [selectedRepoResourceId, setSelectedRepoResourceId] = useState("");
-  const [allRepositories, setAllRepositories] = useState([]);
-  const [isLoadingRepositories, setIsLoadingRepositories] = useState(false);
-  const [repoSearchQuery, setRepoSearchQuery] = useState("");
+  // ReArch agents (what a conversation runs with) — distinct from OpenCode
+  // agents/modes stored in `agents` / `selectedAgent` below.
+  const [selectedRearchAgentId, setSelectedRearchAgentId] = useState("");
+  const [rearchAgents, setRearchAgents] = useState([]);
+  const [isLoadingRearchAgents, setIsLoadingRearchAgents] = useState(false);
+  const [agentSearchQuery, setAgentSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState(null);
   const [pendingPermission, setPendingPermission] = useState(null);
-  const [conversationSubResourceId, setConversationSubResourceId] = useState(null);
-  const [conversationRepoName, setConversationRepoName] = useState(null);
+  const [conversationRearchAgentId, setConversationRearchAgentId] = useState(null);
+  const [conversationRearchAgentName, setConversationRearchAgentName] = useState(null);
 
   // Model and agent state
   const [providers, setProviders] = useState(null);
@@ -229,50 +230,47 @@ const ChatInterface = ({
     return () => clearInterval(interval);
   }, [conversationId, providers, agents, fetchContainerData]);
 
-  // Fetch all repositories when starting a new conversation
+  // Fetch the enabled ReArch agents when starting a new conversation
   useEffect(() => {
     if (conversationId !== "new") return;
 
-    const fetchAllRepositories = async () => {
-      setIsLoadingRepositories(true);
-      setSelectedSubResource("");
-      setSelectedRepoResourceId("");
-      setRepoSearchQuery("");
+    const fetchAgents = async () => {
+      setIsLoadingRearchAgents(true);
+      setSelectedRearchAgentId("");
+      setAgentSearchQuery("");
       try {
-        const repos = await api.getAllSubResources();
-        const enabledRepos = repos.filter((repo) => repo.rearch?.enabled);
-        setAllRepositories(enabledRepos);
+        const list = await api.getAgents();
+        setRearchAgents(list);
 
-        // Check for pre-selected repo from the command palette
+        // Check for a pre-selected agent from the command palette
         try {
-          const preselect = sessionStorage.getItem("command_palette_preselect_repo");
+          const preselect = sessionStorage.getItem("command_palette_preselect_agent");
           if (preselect) {
-            sessionStorage.removeItem("command_palette_preselect_repo");
-            const { subResourceId, resourceId } = JSON.parse(preselect);
-            if (subResourceId && enabledRepos.some((r) => r._id === subResourceId)) {
-              setSelectedSubResource(subResourceId);
-              setSelectedRepoResourceId(resourceId);
+            sessionStorage.removeItem("command_palette_preselect_agent");
+            const { agentId } = JSON.parse(preselect);
+            if (agentId && list.some((a) => a._id === agentId)) {
+              setSelectedRearchAgentId(agentId);
             }
           }
         } catch {
           // ignore parse errors
         }
       } catch (error) {
-        console.error("Error loading repositories:", error);
-        setAllRepositories([]);
+        console.error("Error loading agents:", error);
+        setRearchAgents([]);
       } finally {
-        setIsLoadingRepositories(false);
+        setIsLoadingRearchAgents(false);
       }
     };
 
-    fetchAllRepositories();
+    fetchAgents();
 
-    // Listen for repo-preselected events (when palette selects while already on /new)
-    const handleRepoPreselected = () => {
-      fetchAllRepositories();
+    // Listen for agent-preselected events (when palette selects while already on /new)
+    const handleAgentPreselected = () => {
+      fetchAgents();
     };
-    window.addEventListener("repo-preselected", handleRepoPreselected);
-    return () => window.removeEventListener("repo-preselected", handleRepoPreselected);
+    window.addEventListener("agent-preselected", handleAgentPreselected);
+    return () => window.removeEventListener("agent-preselected", handleAgentPreselected);
   }, [conversationId]);
 
   useEffect(() => {
@@ -305,13 +303,13 @@ const ChatInterface = ({
         api.getConversation(activeWorkspace?._id, conversationId),
       ]);
       setMessages(messages);
-      if (convData?.subResource) {
-        const isPopulated = typeof convData.subResource === "object";
-        setConversationSubResourceId(
-          isPopulated ? convData.subResource._id : convData.subResource,
-        );
-        if (isPopulated && convData.subResource.name) {
-          setConversationRepoName(convData.subResource.name);
+      // Agent (preferred) or legacy repository link for the welcome screen
+      const link = convData?.agent || convData?.subResource;
+      if (link) {
+        const isPopulated = typeof link === "object";
+        setConversationRearchAgentId(isPopulated ? link._id : link);
+        if (isPopulated && link.name) {
+          setConversationRearchAgentName(link.name);
         }
       }
     } catch (error) {
@@ -602,8 +600,8 @@ const ChatInterface = ({
   };
 
   const handleStartConversation = async () => {
-    if (!selectedRepoResourceId || !selectedSubResource) {
-      toast.warning(t("pleaseSelectRepository"));
+    if (!selectedRearchAgentId) {
+      toast.warning(t("pleaseSelectAgent"));
       return;
     }
 
@@ -612,8 +610,7 @@ const ChatInterface = ({
       const newConv = await api.createConversation(
         activeWorkspace?._id,
         t("newConversation"),
-        selectedRepoResourceId,
-        selectedSubResource,
+        selectedRearchAgentId,
       );
       onConversationCreated(newConv);
     } catch (error) {
@@ -626,12 +623,13 @@ const ChatInterface = ({
 
   // Show conversation layout with setup card for new conversations
   if (conversationId === "new") {
-    const filteredRepos = allRepositories.filter((repo) => {
-      if (!repoSearchQuery) return true;
-      const q = repoSearchQuery.toLowerCase();
+    const filteredAgents = rearchAgents.filter((agent) => {
+      if (!agentSearchQuery) return true;
+      const q = agentSearchQuery.toLowerCase();
       return (
-        repo.name.toLowerCase().includes(q) ||
-        (repo.resourceName && repo.resourceName.toLowerCase().includes(q))
+        agent.name.toLowerCase().includes(q) ||
+        (agent.description && agent.description.toLowerCase().includes(q)) ||
+        (agent.repositoryName && agent.repositoryName.toLowerCase().includes(q))
       );
     });
 
@@ -647,16 +645,16 @@ const ChatInterface = ({
                   level="body-md"
                   sx={{ mb: 2, color: "var(--text-primary)" }}
                 >
-                  {t("selectRepository")}
+                  {t("selectAgent")}
                 </Typography>
 
-                {allRepositories.length >= 6 && (
+                {rearchAgents.length >= 6 && (
                   <div className="repo-search-container">
                     <Input
-                      placeholder={t("searchRepositories")}
-                      value={repoSearchQuery}
-                      onChange={(e) => setRepoSearchQuery(e.target.value)}
-                      disabled={isCreating || isLoadingRepositories}
+                      placeholder={t("searchAgents")}
+                      value={agentSearchQuery}
+                      onChange={(e) => setAgentSearchQuery(e.target.value)}
+                      disabled={isCreating || isLoadingRearchAgents}
                       size="sm"
                       sx={{
                         bgcolor: "var(--bg-secondary)",
@@ -677,51 +675,50 @@ const ChatInterface = ({
                   </div>
                 )}
 
-                {isLoadingRepositories ? (
+                {isLoadingRearchAgents ? (
                   <div className="repo-grid-loading">
                     <CircularProgress size="sm" />
                     <Typography
                       level="body-sm"
                       sx={{ color: "var(--text-secondary)" }}
                     >
-                      {t("loadingRepositories")}
+                      {t("loadingAgents")}
                     </Typography>
                   </div>
-                ) : filteredRepos.length === 0 ? (
+                ) : filteredAgents.length === 0 ? (
                   <div className="repo-grid-empty">
                     <Typography
                       level="body-sm"
                       sx={{ color: "var(--text-secondary)" }}
                     >
-                      {allRepositories.length === 0
-                        ? t("noRepositoriesEnabled")
-                        : t("noRepositoriesMatch")}
+                      {rearchAgents.length === 0
+                        ? t("noAgentsEnabled")
+                        : t("noAgentsMatch")}
                     </Typography>
                   </div>
                 ) : (
                   <div className="repo-grid-container">
                     <div className="repo-grid">
-                      {filteredRepos.map((repo) => (
+                      {filteredAgents.map((agent) => (
                         <div
-                          key={repo._id}
-                          data-testid={`repo-card-${repo.name}`}
-                          className={`repo-card${selectedSubResource === repo._id ? " selected" : ""}`}
+                          key={agent._id}
+                          data-testid={`agent-card-${agent.name}`}
+                          className={`repo-card${selectedRearchAgentId === agent._id ? " selected" : ""}`}
                           onClick={() => {
                             if (isCreating) return;
-                            setSelectedSubResource(repo._id);
-                            setSelectedRepoResourceId(repo.resourceId);
+                            setSelectedRearchAgentId(agent._id);
                           }}
                         >
                           <div className="repo-card-header">
-                            <span className="repo-card-name">{repo.name}</span>
-                            {repo.data?.links?.html && (
+                            <span className="repo-card-name">{agent.name}</span>
+                            {agent.repositoryUrl && (
                               <button
                                 className="repo-card-link"
-                                title={t("openInBitbucket")}
+                                title={t("openRepository")}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   window.open(
-                                    repo.data.links.html,
+                                    agent.repositoryUrl,
                                     "_blank",
                                     "noopener,noreferrer",
                                   );
@@ -739,7 +736,9 @@ const ChatInterface = ({
                             )}
                           </div>
                           <span className="repo-card-workspace">
-                            {repo.resourceName}
+                            {agent.repositoryName
+                              ? agent.repositoryName
+                              : agent.description || t("noRepositoryAgent")}
                           </span>
                         </div>
                       ))}
@@ -750,11 +749,7 @@ const ChatInterface = ({
                 <Button
                   data-testid="start-conversation-btn"
                   onClick={handleStartConversation}
-                  disabled={
-                    !selectedRepoResourceId ||
-                    !selectedSubResource ||
-                    isCreating
-                  }
+                  disabled={!selectedRearchAgentId || isCreating}
                   sx={{
                     mt: 1.5,
                     bgcolor: "#0052CC",
@@ -804,8 +799,8 @@ const ChatInterface = ({
     return (
       <div className="chat-interface">
         <WelcomeScreen
-          subResourceId={conversationSubResourceId}
-          repoName={conversationRepoName || allRepositories.find((r) => r._id === conversationSubResourceId)?.name}
+          agentId={conversationRearchAgentId}
+          agentName={conversationRearchAgentName || rearchAgents.find((a) => a._id === conversationRearchAgentId)?.name}
           onPromptClick={(promptText) => {
             handleSendMessage(promptText);
           }}

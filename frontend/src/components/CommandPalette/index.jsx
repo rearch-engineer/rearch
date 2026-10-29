@@ -29,7 +29,7 @@ import { useWorkspaces } from "../../contexts/WorkspacesContext";
 import "./CommandPalette.css";
 
 const STORAGE_KEY_MODEL = "chat_selectedModel";
-const PRESELECT_REPO_KEY = "command_palette_preselect_repo";
+const PRESELECT_AGENT_KEY = "command_palette_preselect_agent";
 
 /**
  * Fuzzy match: checks whether all characters in `query` appear in `text`
@@ -71,7 +71,7 @@ function fuzzyScore(text, query) {
 /**
  * Command Palette / Search component.
  *
- * Opens with Ctrl+P / Cmd+P. Provides unified search across repositories,
+ * Opens with Ctrl+P / Cmd+P. Provides unified search across agents,
  * conversations, and quick actions.
  */
 const CommandPalette = () => {
@@ -86,9 +86,9 @@ const CommandPalette = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Repositories state
-  const [repositories, setRepositories] = useState([]);
-  const [loadingRepos, setLoadingRepos] = useState(false);
+  // ReArch agents state (what a new conversation runs with)
+  const [rearchAgents, setRearchAgents] = useState([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Model sub-view state
   const [view, setView] = useState("main"); // 'main' | 'models' | 'workspaces'
@@ -108,19 +108,17 @@ const CommandPalette = () => {
 
   const isOnActiveConversation = !!currentConversationId;
 
-  // ── Fetch repositories on open ──────────────────────────────────────────
+  // ── Fetch agents on open ────────────────────────────────────────────────
 
-  const fetchRepositories = useCallback(async () => {
-    setLoadingRepos(true);
+  const fetchAgents = useCallback(async () => {
+    setLoadingAgents(true);
     try {
-      const repos = await api.getAllSubResources();
-      const enabledRepos = repos.filter((repo) => repo.rearch?.enabled);
-      setRepositories(enabledRepos);
+      setRearchAgents(await api.getAgents());
     } catch (error) {
-      console.error("Failed to fetch repositories:", error);
-      setRepositories([]);
+      console.error("Failed to fetch agents:", error);
+      setRearchAgents([]);
     } finally {
-      setLoadingRepos(false);
+      setLoadingAgents(false);
     }
   }, []);
 
@@ -238,46 +236,43 @@ const CommandPalette = () => {
         }));
     }
 
-    // ── Main view: Repositories ─────────────────────────────────────────
+    // ── Main view: Agents ───────────────────────────────────────────────
 
-    const repoItems = repositories
-      .map((repo) => {
-        const nameScore = fuzzyScore(repo.name, query);
-        const wsScore = fuzzyScore(repo.resourceName || "", query);
-        const bestScore = Math.max(nameScore, wsScore);
-        return { repo, score: bestScore };
+    const agentItems = rearchAgents
+      .map((agent) => {
+        const nameScore = fuzzyScore(agent.name, query);
+        const repoScore = fuzzyScore(agent.repositoryName || "", query);
+        const bestScore = Math.max(nameScore, repoScore);
+        return { agent, score: bestScore };
       })
       .filter((s) => s.score >= 0)
       .sort((a, b) => b.score - a.score)
-      .map(({ repo }) => ({
+      .map(({ agent }) => ({
         type: "item",
-        category: "repository",
-        label: repo.name,
-        subtitle: repo.resourceName || "",
+        category: "agent",
+        label: agent.name,
+        subtitle: agent.repositoryName || agent.description || "",
         icon: "repo",
-        id: repo._id,
+        id: agent._id,
         action: () => {
           // Store pre-selection info and navigate to new conversation
           try {
             sessionStorage.setItem(
-              PRESELECT_REPO_KEY,
-              JSON.stringify({
-                subResourceId: repo._id,
-                resourceId: repo.resourceId || repo.resource,
-              }),
+              PRESELECT_AGENT_KEY,
+              JSON.stringify({ agentId: agent._id }),
             );
           } catch {
             // ignore
           }
           navigateToConversation("new");
           // Dispatch event so ChatInterface picks it up immediately
-          window.dispatchEvent(new CustomEvent("repo-preselected"));
+          window.dispatchEvent(new CustomEvent("agent-preselected"));
         },
       }));
 
-    if (repoItems.length > 0) {
-      items.push({ type: "section", label: t('repositories') });
-      items.push(...repoItems);
+    if (agentItems.length > 0) {
+      items.push({ type: "section", label: t('agents') });
+      items.push(...agentItems);
     }
 
     // ── Conversations ───────────────────────────────────────────────────
@@ -285,7 +280,7 @@ const CommandPalette = () => {
     const convItems = conversations
       .map((conv) => {
         const title = conv.title || "Untitled";
-        const repo = conv.subResource?.name || "";
+        const repo = conv.agent?.name || conv.subResource?.name || "";
         const bestScore = Math.max(
           fuzzyScore(title, query),
           fuzzyScore(repo, query),
@@ -428,7 +423,7 @@ const CommandPalette = () => {
     t,
     view,
     searchQuery,
-    repositories,
+    rearchAgents,
     conversations,
     modelOptions,
     currentModel,
@@ -459,8 +454,8 @@ const CommandPalette = () => {
     setView("main");
     setModelOptions([]);
     setLoadingModels(false);
-    fetchRepositories();
-  }, [fetchRepositories]);
+    fetchAgents();
+  }, [fetchAgents]);
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -688,7 +683,7 @@ const CommandPalette = () => {
         {/* Results list */}
         <div className="command-palette-list" ref={listRef}>
           {/* Loading state */}
-          {view === "main" && loadingRepos && repositories.length === 0 && (
+          {view === "main" && loadingAgents && rearchAgents.length === 0 && (
             <div className="command-palette-loading">
               <CircularProgress size="sm" />
               <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
@@ -708,7 +703,7 @@ const CommandPalette = () => {
 
           {/* Empty state */}
           {flatItems.length === 0 &&
-            !loadingRepos &&
+            !loadingAgents &&
             !loadingModels && (
               <div className="command-palette-empty">
                 <Typography level="body-sm" sx={{ color: "var(--text-tertiary)" }}>
@@ -803,7 +798,7 @@ const CommandPalette = () => {
                     {t('active')}
                   </Chip>
                 )}
-                {item.category === "repository" && (
+                {item.category === "agent" && (
                   <Chip
                     size="sm"
                     variant="soft"

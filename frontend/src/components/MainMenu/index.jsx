@@ -494,11 +494,11 @@ const MainMenu = () => {
                           {conv.updatedAt && (
                             <span>{timeAgo(conv.updatedAt)}</span>
                           )}
-                          {conv.subResource?.name && (
+                          {(conv.agent?.name || conv.subResource?.name) && (
                             <>
                               <span className="conversation-meta-sep">·</span>
                               <span className="conversation-meta-repo">
-                                {conv.subResource.name}
+                                {conv.agent?.name || conv.subResource?.name}
                               </span>
                             </>
                           )}
@@ -665,11 +665,11 @@ const MainMenu = () => {
                   )}
                   <div className="conversation-meta">
                     {conv.updatedAt && <span>{timeAgo(conv.updatedAt)}</span>}
-                    {conv.subResource?.name && (
+                    {(conv.agent?.name || conv.subResource?.name) && (
                       <>
                         <span className="conversation-meta-sep">·</span>
                         <span className="conversation-meta-repo">
-                          {conv.subResource.name}
+                          {conv.agent?.name || conv.subResource?.name}
                         </span>
                       </>
                     )}
