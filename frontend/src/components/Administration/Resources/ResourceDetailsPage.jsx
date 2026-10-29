@@ -181,7 +181,9 @@ function ResourceDetailsPage() {
           </DetailRow>
           <DetailRow label={t("resourceDetails.privateKey")}>
             <Typography level="body-md" sx={{ color: "var(--text-primary)" }}>
-              {resource.data.privateKey ? "••••••••••••" : t("resourceDetails.notSet")}
+              {resource.data.privateKey || resource.data.privateKeyFileId
+                ? "••••••••••••"
+                : t("resourceDetails.notSet")}
             </Typography>
           </DetailRow>
         </>

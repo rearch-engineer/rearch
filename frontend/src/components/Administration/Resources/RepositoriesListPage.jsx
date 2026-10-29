@@ -36,7 +36,7 @@ function providerFromType(type) {
   return type?.split("-")[0] || "";
 }
 
-function RepositoryCard({ repo, onClick }) {
+function RepositoryCard({ repo, agentCount, onClick }) {
   const { t } = useTranslation("Administration");
   const provider = providerFromType(repo.type);
   const meta = providerMeta[provider] || {
@@ -44,7 +44,6 @@ function RepositoryCard({ repo, onClick }) {
     color: "#6b7280",
     bgTint: "rgba(107, 114, 128, 0.08)",
   };
-  const enabled = Boolean(repo.rearch?.enabled);
 
   return (
     <Card
@@ -102,11 +101,11 @@ function RepositoryCard({ repo, onClick }) {
               <Chip
                 size="sm"
                 variant="soft"
-                color={enabled ? "success" : "neutral"}
+                color={agentCount > 0 ? "success" : "neutral"}
               >
-                {enabled
-                  ? t("repositoriesList.enabled")
-                  : t("repositoriesList.disabled")}
+                {agentCount > 0
+                  ? t("repositoriesList.agentCount", { count: agentCount })
+                  : t("repositoriesList.noAgents")}
               </Chip>
             </Stack>
           </Stack>
@@ -137,6 +136,7 @@ function RepositoriesListPage() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const [repositories, setRepositories] = useState([]);
+  const [agentCounts, setAgentCounts] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [providerFilter, setProviderFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -149,10 +149,22 @@ function RepositoriesListPage() {
     try {
       setLoading(true);
       // No type filter: fetch every imported sub-resource and keep repositories only.
-      const data = await api.getAllAdminSubResources();
+      const [data, agents] = await Promise.all([
+        api.getAllAdminSubResources(),
+        api.getAdminAgents().catch(() => []),
+      ]);
       setRepositories(
         (data || []).filter((sr) => REPOSITORY_TYPES.includes(sr.type)),
       );
+      // Number of agents using each repository
+      const counts = {};
+      for (const agent of agents || []) {
+        if (agent.repository) {
+          const key = String(agent.repository);
+          counts[key] = (counts[key] || 0) + 1;
+        }
+      }
+      setAgentCounts(counts);
     } catch (error) {
       console.error("Error loading repositories:", error);
     } finally {
@@ -309,6 +321,7 @@ function RepositoriesListPage() {
               <RepositoryCard
                 key={repo._id}
                 repo={repo}
+                agentCount={agentCounts[String(repo._id)] || 0}
                 onClick={() =>
                   navigate(
                     `/administration/resources/connections/${repo.resourceId}/subresources/${repo._id}`,

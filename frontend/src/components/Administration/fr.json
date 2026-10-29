@@ -575,12 +575,15 @@
     "enabled": "Activé",
     "disabled": "Désactivé",
     "allProviders": "Tous les fournisseurs",
-    "import": "Importer"
+    "import": "Importer",
+    "agentCount_one": "{{count}} agent",
+    "agentCount_other": "{{count}} agents",
+    "noAgents": "Aucun agent"
   },
   "resourceTypeSelection": {
     "backToResources": "Connexions",
-    "addAResource": "Ajouter une ressource",
-    "addAResourceDescription": "Connectez vos outils favoris pour améliorer vos compétences d'ingénierie ReArch.",
+    "addAResource": "Ajouter une connexion",
+    "addAResourceDescription": "Connectez un fournisseur pour importer des ressources (aujourd'hui, des dépôts) avec lesquelles vos agents travailleront.",
     "featuredIntegrations": "Intégrations en vedette"
   },
   "resourceForm": {
@@ -642,12 +645,12 @@
   },
   "bitbucketResourceForm": {
     "loadingResource": "Chargement de la ressource...",
-    "backToResources": "Ressources",
-    "backToAddResource": "Ajouter une ressource",
-    "editBitbucketResource": "Modifier la ressource Bitbucket",
+    "backToResources": "Connexions",
+    "backToAddResource": "Ajouter une connexion",
+    "editBitbucketResource": "Modifier la connexion Bitbucket",
     "connectBitbucket": "Connecter Bitbucket",
     "connectDescription": "Connectez-vous aux espaces de travail et dépôts Bitbucket pour intégrer l'activité de votre code dans le contexte.",
-    "name": "Nom",
+    "name": "Nom de la connexion",
     "namePlaceholder": "Nom de la ressource",
     "nameError": "Le nom doit contenir entre 2 et 100 caractères",
     "workspace": "Espace de travail",
@@ -680,8 +683,8 @@
     "helpApiTokenStep5": "Choisissez Bitbucket.",
     "helpApiTokenStep6": "Sélectionnez les portées :",
     "helpApiTokenStep7": "Copiez le jeton généré et collez-le dans le champ ci-dessus.",
-    "updateResource": "Mettre à jour la ressource",
-    "createResource": "Créer la ressource",
+    "updateResource": "Mettre à jour la connexion",
+    "createResource": "Créer la connexion",
     "cancel": "Annuler",
     "failedToSave": "Échec de l'enregistrement de la ressource. Veuillez réessayer."
   },

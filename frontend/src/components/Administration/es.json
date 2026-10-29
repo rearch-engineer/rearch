@@ -575,12 +575,15 @@
     "enabled": "Habilitado",
     "disabled": "Deshabilitado",
     "allProviders": "Todos los proveedores",
-    "import": "Importar"
+    "import": "Importar",
+    "agentCount_one": "{{count}} agente",
+    "agentCount_other": "{{count}} agentes",
+    "noAgents": "Sin agentes"
   },
   "resourceTypeSelection": {
     "backToResources": "Conexiones",
-    "addAResource": "Agregar un Recurso",
-    "addAResourceDescription": "Conecte sus herramientas favoritas para mejorar sus habilidades de ingeniería con ReArch.",
+    "addAResource": "Añadir una conexión",
+    "addAResourceDescription": "Conecta un proveedor para importar recursos (hoy, repositorios) con los que trabajarán tus agentes.",
     "featuredIntegrations": "Integraciones Destacadas"
   },
   "resourceForm": {
@@ -642,12 +645,12 @@
   },
   "bitbucketResourceForm": {
     "loadingResource": "Cargando recurso...",
-    "backToResources": "Recursos",
-    "backToAddResource": "Agregar un Recurso",
-    "editBitbucketResource": "Editar Recurso Bitbucket",
+    "backToResources": "Conexiones",
+    "backToAddResource": "Añadir una conexión",
+    "editBitbucketResource": "Editar conexión de Bitbucket",
     "connectBitbucket": "Conectar Bitbucket",
     "connectDescription": "Conecte a espacios de trabajo y repositorios de Bitbucket para traer su actividad de código al contexto.",
-    "name": "Nombre",
+    "name": "Nombre de la conexión",
     "namePlaceholder": "Nombre del recurso",
     "nameError": "El nombre debe tener entre 2 y 100 caracteres",
     "workspace": "Espacio de Trabajo",
@@ -680,8 +683,8 @@
     "helpApiTokenStep5": "Elige Bitbucket.",
     "helpApiTokenStep6": "Selecciona los alcances:",
     "helpApiTokenStep7": "Copia el token generado y pégalo en el campo de arriba.",
-    "updateResource": "Actualizar Recurso",
-    "createResource": "Crear Recurso",
+    "updateResource": "Actualizar conexión",
+    "createResource": "Crear conexión",
     "cancel": "Cancelar",
     "failedToSave": "Error al guardar el recurso. Por favor, inténtelo de nuevo."
   },

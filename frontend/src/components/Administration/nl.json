@@ -575,12 +575,15 @@
     "enabled": "Ingeschakeld",
     "disabled": "Uitgeschakeld",
     "allProviders": "Alle providers",
-    "import": "Importeren"
+    "import": "Importeren",
+    "agentCount_one": "{{count}} agent",
+    "agentCount_other": "{{count}} agents",
+    "noAgents": "Geen agents"
   },
   "resourceTypeSelection": {
     "backToResources": "Verbindingen",
-    "addAResource": "Een bron toevoegen",
-    "addAResourceDescription": "Verbind uw favoriete tools om uw ReArch-engineeringvaardigheden te verbeteren.",
+    "addAResource": "Verbinding toevoegen",
+    "addAResourceDescription": "Verbind een provider om bronnen te importeren (vandaag repositories) waarmee uw agents werken.",
     "featuredIntegrations": "Uitgelichte integraties"
   },
   "resourceForm": {
@@ -642,12 +645,12 @@
   },
   "bitbucketResourceForm": {
     "loadingResource": "Bron laden...",
-    "backToResources": "Bronnen",
-    "backToAddResource": "Een bron toevoegen",
-    "editBitbucketResource": "Bitbucket-bron bewerken",
+    "backToResources": "Verbindingen",
+    "backToAddResource": "Verbinding toevoegen",
+    "editBitbucketResource": "Bitbucket-verbinding bewerken",
     "connectBitbucket": "Bitbucket verbinden",
     "connectDescription": "Maak verbinding met Bitbucket-werkruimten en repositories om uw code-activiteit in context te brengen.",
-    "name": "Naam",
+    "name": "Naam van de verbinding",
     "namePlaceholder": "Bronnaam",
     "nameError": "Naam moet tussen 2 en 100 tekens lang zijn",
     "workspace": "Werkruimte",
@@ -680,8 +683,8 @@
     "helpApiTokenStep5": "Kies Bitbucket.",
     "helpApiTokenStep6": "Selecteer de bereiken:",
     "helpApiTokenStep7": "Kopieer het gegenereerde token en plak het in het bovenstaande veld.",
-    "updateResource": "Bron bijwerken",
-    "createResource": "Bron aanmaken",
+    "updateResource": "Verbinding bijwerken",
+    "createResource": "Verbinding maken",
     "cancel": "Annuleren",
     "failedToSave": "Kan bron niet opslaan. Probeer het opnieuw."
   },
