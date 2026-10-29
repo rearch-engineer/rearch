@@ -113,7 +113,7 @@ const CommandPalette = () => {
   const fetchAgents = useCallback(async () => {
     setLoadingAgents(true);
     try {
-      setRearchAgents(await api.getAgents());
+      setRearchAgents(await api.getRearchAgents());
     } catch (error) {
       console.error("Failed to fetch agents:", error);
       setRearchAgents([]);

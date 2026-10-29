@@ -239,7 +239,7 @@ const ChatInterface = ({
       setSelectedRearchAgentId("");
       setAgentSearchQuery("");
       try {
-        const list = await api.getAgents();
+        const list = await api.getRearchAgents();
         setRearchAgents(list);
 
         // Check for a pre-selected agent from the command palette

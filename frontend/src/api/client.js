@@ -575,13 +575,15 @@ export const api = {
     return response.data;
   },
 
-  // Agents (user-facing: enabled agents only)
-  getAgents: async () => {
+  // ReArch agents (user-facing: enabled agents only).
+  // Not to be confused with getAgents(), which lists OpenCode agent modes
+  // (build, plan...) of a running conversation container.
+  getRearchAgents: async () => {
     const response = await axios.get(`${API_BASE_URL}/agents`);
     return response.data;
   },
 
-  getAgent: async (id) => {
+  getRearchAgent: async (id) => {
     const response = await axios.get(`${API_BASE_URL}/agents/${id}`);
     return response.data;
   },
