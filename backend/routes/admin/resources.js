@@ -15,6 +15,7 @@ import {
 } from "../../utils/hookLoader.js";
 import { deleteFile, downloadFileStream, getFileInfo } from "../../utils/gridfs.js";
 import { getFileContents } from "../../utils/attlasian/bitbucket.js";
+import { getFileContents as getGithubFileContents } from "../../utils/github/github.js";
 import queue from "../../queue";
 
 const router = new Elysia({ prefix: "/resources" });
@@ -255,7 +256,7 @@ router.get("/:id/subresources/:subId", async ({ params, status }) => {
   }
 });
 
-// Get Dockerfile contents for a Bitbucket repository subresource
+// Get .rearch/Dockerfile contents for a repository subresource (Bitbucket or GitHub)
 router.get(
   "/:id/subresources/:subId/dockerfile",
   async ({ params, query, status }) => {
@@ -274,23 +275,42 @@ router.get(
         return status(404, { error: "Subresource not found" });
       }
 
-      const workspace = parentResource.data?.workspace;
-      const repoSlug = subResource.externalId;
       const ref = query?.ref || "HEAD";
+      let contents;
 
-      if (!workspace || !repoSlug) {
-        return status(400, {
-          error: "Workspace and repository slug are required",
-        });
+      if (parentResource.provider === "github") {
+        const fullName = subResource.data?.fullName || subResource.externalId;
+        if (!fullName || !fullName.includes("/")) {
+          return status(400, {
+            error: "Cannot determine owner/repo from subresource",
+          });
+        }
+        const [owner, repo] = fullName.split("/");
+        contents = await getGithubFileContents(
+          parentResource.data,
+          owner,
+          repo,
+          ".rearch/Dockerfile",
+          ref,
+        );
+      } else {
+        const workspace = parentResource.data?.workspace;
+        const repoSlug = subResource.externalId;
+
+        if (!workspace || !repoSlug) {
+          return status(400, {
+            error: "Workspace and repository slug are required",
+          });
+        }
+
+        contents = await getFileContents(
+          parentResource.data,
+          workspace,
+          repoSlug,
+          ".rearch/Dockerfile",
+          ref,
+        );
       }
-
-      const contents = await getFileContents(
-        parentResource.data,
-        workspace,
-        repoSlug,
-        ".rearch/Dockerfile",
-        ref,
-      );
 
       return { contents };
     } catch (err) {
