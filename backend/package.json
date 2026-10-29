@@ -10,7 +10,8 @@
     "test": "bun test middleware routes config.test.js",
     "test:watch": "bun test --watch middleware routes config.test.js",
     "test:coverage": "bun test --coverage middleware routes config.test.js",
-    "test:templates": "bun test templates/templates.test.js --timeout 1200000"
+    "test:templates": "bun test templates/templates.test.js --timeout 1200000",
+    "migrate:agents": "bun run scripts/migrate-agents.js"
   },
   "keywords": [],
   "author": "Lab34 SL <hello@lab34.es> (https://rearch.engineer)",

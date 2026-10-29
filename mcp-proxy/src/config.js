@@ -23,6 +23,7 @@ const mcpServerSchema = new mongoose.Schema(
     specFileId: { type: mongoose.Schema.Types.ObjectId },
     baseUrl: { type: String },
     operations: { type: mongoose.Schema.Types.Mixed },
+    auth: { type: mongoose.Schema.Types.Mixed },
     enabled: { type: Boolean, default: true },
   },
   { timestamps: true, strict: false },
@@ -54,6 +55,10 @@ export async function loadMcpServers() {
         environment: doc.environment || {},
         baseUrl: doc.baseUrl,
         operations: doc.operations,
+        // Only the auth *mode* matters to the proxy; OAuth client metadata
+        // and secrets stay in the backend, which hands out access tokens
+        // through its internal API.
+        auth: { mode: doc.auth?.mode || 'shared' },
         enabled: doc.enabled,
       };
     }

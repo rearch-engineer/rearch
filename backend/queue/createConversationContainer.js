@@ -6,6 +6,7 @@
  * or Redis dependencies.
  */
 import Docker from "dockerode";
+import { signMcpIdentity } from "../utils/mcp/identityToken.js";
 
 const docker = new Docker();
 
@@ -28,6 +29,7 @@ const docker = new Docker();
  * @param {Object} params
  * @param {string} params.containerImage - Docker image to use
  * @param {string} params.conversationId - Unique conversation ID
+ * @param {string} [params.userId] - Conversation owner; signed into the X-MCP-Identity header so the MCP proxy can resolve per-user credentials
  * @param {string} params.repoUrl - Repository clone URL (can be empty)
  * @param {string} params.repoBranch - Branch name (default: "main")
  * @param {Object} [params.providerConfig={}] - OpenCode provider config (from buildProviderConfig)
@@ -48,6 +50,7 @@ const docker = new Docker();
 export async function createConversationContainer({
   containerImage,
   conversationId,
+  userId = "",
   repoUrl = "",
   repoBranch = "main",
   providerConfig = {},
@@ -194,6 +197,12 @@ export async function createConversationContainer({
                 ? { "X-MCP-Secret": process.env.MCP_PROXY_SECRET }
                 : {}),
               "X-MCP-Conversation-Id": conversationId,
+              // HMAC-signed { userId, conversationId } — the proxy verifies it
+              // before loading any per-user credentials, so a container cannot
+              // impersonate another user by editing the header above.
+              ...(userId
+                ? { "X-MCP-Identity": signMcpIdentity({ userId, conversationId }) }
+                : {}),
             },
           },
         },

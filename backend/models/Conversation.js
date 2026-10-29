@@ -20,15 +20,24 @@ const conversationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // The agent this conversation runs with (owns container config + resources)
+  agent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agent',
+    default: null
+  },
+  // Legacy links kept for conversations created before agents existed and
+  // for provider tools (PRs, reviewers) that still need the repository.
+  // `repository` actually points to the provider connection (Resource).
   repository: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Resource',
-    required: true
+    default: null
   },
   subResource: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SubResource',
-    required: true
+    default: null
   },
   contextUsage: {
     used: {
@@ -124,6 +133,7 @@ const conversationSchema = new mongoose.Schema({
 });
 
 conversationSchema.index({ workspace: 1 });
+conversationSchema.index({ agent: 1 });
 
 conversationSchema.plugin(mongoose_delete, {
   deletedAt: true,

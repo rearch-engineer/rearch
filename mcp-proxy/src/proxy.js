@@ -4,11 +4,12 @@
  * Accepts a raw Request, parses the JSON-RPC body, dispatches to the
  * appropriate handler, and returns a spec-compliant JSON-RPC 2.0 Response.
  *
- * Built-in ReArch tools (rearch_search_repositories, rearch_create_conversation)
+ * Built-in ReArch tools (rearch_search_agents, rearch_create_conversation)
  * are served directly; all other tools are routed to upstream MCP servers.
  */
 
 import { getBuiltinTools, isBuiltinTool, callBuiltinTool } from './builtin-tools.js';
+import { getRequestIdentity } from './identity.js';
 
 const SERVER_INFO = {
   name: 'rearch-mcp-proxy',
@@ -56,10 +57,13 @@ export async function handleMcpRequest(request, upstreamManager) {
     return jsonrpcError(null, -32700, 'Parse error: invalid JSON');
   }
 
+  // Verified caller identity (null when the container sent no/invalid token).
+  const identity = getRequestIdentity(request);
+
   // Support batched requests
   if (Array.isArray(body)) {
     const responses = await Promise.all(
-      body.map((req) => dispatch(req, upstreamManager, request)),
+      body.map((req) => dispatch(req, upstreamManager, request, identity)),
     );
     // Filter out null responses (notifications)
     const filtered = responses.filter(Boolean);
@@ -72,7 +76,7 @@ export async function handleMcpRequest(request, upstreamManager) {
     });
   }
 
-  const response = await dispatch(body, upstreamManager, request);
+  const response = await dispatch(body, upstreamManager, request, identity);
   return response || new Response(null, { status: 202 });
 }
 
@@ -80,7 +84,7 @@ export async function handleMcpRequest(request, upstreamManager) {
 // Dispatcher
 // ---------------------------------------------------------------------------
 
-async function dispatch(req, upstreamManager, httpRequest) {
+async function dispatch(req, upstreamManager, httpRequest, identity = null) {
   if (!req || typeof req !== 'object' || req.jsonrpc !== '2.0') {
     return jsonrpcError(req?.id ?? null, -32600, 'Invalid JSON-RPC 2.0 request');
   }
@@ -104,7 +108,7 @@ async function dispatch(req, upstreamManager, httpRequest) {
 
       // -- Tools ------------------------------------------------------------
       case 'tools/list': {
-        const upstreamTools = await upstreamManager.getTools();
+        const upstreamTools = await upstreamManager.getTools(identity);
         const builtinTools = getBuiltinTools();
         return jsonrpcResult(id, { tools: [...builtinTools, ...upstreamTools] });
       }
@@ -118,11 +122,11 @@ async function dispatch(req, upstreamManager, httpRequest) {
         try {
           // Route to built-in handler or upstream
           if (isBuiltinTool(name)) {
-            const result = await callBuiltinTool(name, args || {}, httpRequest);
+            const result = await callBuiltinTool(name, args || {}, httpRequest, identity);
             return jsonrpcResult(id, result);
           }
 
-          const result = await upstreamManager.callTool(name, args || {});
+          const result = await upstreamManager.callTool(name, args || {}, identity);
           return jsonrpcResult(id, result);
         } catch (err) {
           // Return tool errors as successful JSON-RPC responses with isError flag

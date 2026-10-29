@@ -1,4 +1,5 @@
 import Skill from "../models/Skill.js";
+import Agent from "../models/Agent.js";
 import SubResource from "../models/SubResource.js";
 import Resource from "../models/Resource.js";
 import { execInContainer } from "../utils/containerExec.js";
@@ -120,7 +121,7 @@ async function resolveSkillCloneUrl(subResourceId, log) {
  *
  * Skills come from two sources:
  * 1. Default skills: Skill documents with isDefault=true (global, cloned into every container)
- * 2. Repo-specific skills: SubResource IDs stored in subResource.rearch.skills
+ * 2. Agent-specific skills: SubResource IDs stored in Agent.skills
  *
  * Each skill's skillsRepository field is a SubResource ID that is resolved to get the
  * actual git clone URL and Bitbucket credentials from the parent Resource.
@@ -128,10 +129,10 @@ async function resolveSkillCloneUrl(subResourceId, log) {
  * Errors per-skill are non-fatal — they are logged but do not throw.
  *
  * @param {string} containerId - Running Docker container ID
- * @param {string} subResourceId - The conversation's SubResource ID (to read repo-specific skills)
+ * @param {string} agentId - The conversation's Agent ID (to read agent-specific skills)
  * @param {Function} log - jobLog callback (message: string) => Promise<void>
  */
-async function injectSkillsIntoContainer(containerId, subResourceId, log) {
+async function injectSkillsIntoContainer(containerId, agentId, log) {
   // Collect all SubResource IDs to clone (deduplicated)
   const skillSubResourceIds = new Set();
   const skillNameMap = new Map(); // subResourceId -> display name for logging
@@ -154,22 +155,22 @@ async function injectSkillsIntoContainer(containerId, subResourceId, log) {
     );
   }
 
-  // 2. Repo-specific skills from SubResource.rearch.skills
+  // 2. Agent-specific skills from Agent.skills
   try {
-    const subResource = await SubResource.findById(subResourceId);
-    const repoSkills = subResource?.rearch?.skills || [];
-    for (const skillId of repoSkills) {
+    const agent = agentId ? await Agent.findById(agentId) : null;
+    const agentSkills = agent?.skills || [];
+    for (const skillId of agentSkills) {
       if (skillId && !skillSubResourceIds.has(skillId)) {
         skillSubResourceIds.add(skillId);
-        skillNameMap.set(skillId, `repo-specific:${skillId}`);
+        skillNameMap.set(skillId, `agent-specific:${skillId}`);
       }
     }
     await log(
-      `Skills injection: found ${repoSkills.length} repo-specific skill(s)`,
+      `Skills injection: found ${agentSkills.length} agent-specific skill(s)`,
     );
   } catch (err) {
     await log(
-      `Skills injection: failed to read repo-specific skills — ${err.message}`,
+      `Skills injection: failed to read agent-specific skills — ${err.message}`,
     );
   }
 

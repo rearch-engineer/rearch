@@ -4,8 +4,12 @@ import { z } from "zod";
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
 import Resource from "../models/Resource.js";
-import SubResource from "../models/SubResource.js";
-import { createConversation } from "../tools/conversation/create.js";
+import {
+  resolveAgentForNewConversation,
+  findEnabledAgentByName,
+  startConversationForAgent,
+} from "../utils/conversationFactory.js";
+import { resolveConversationAgent } from "../utils/agents.js";
 import { destroyConversation } from "../tools/conversation/destroy.js";
 import {
   streamPrompt,
@@ -41,11 +45,25 @@ const docker = new Docker();
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
-const createConversationBody = z.object({
-  title: z.string().max(200).optional(),
-  repository: z.string().regex(OBJECT_ID_RE, "Invalid repository ID format."),
-  subResource: z.string().regex(OBJECT_ID_RE, "Invalid subResource ID format."),
-});
+const createConversationBody = z
+  .object({
+    title: z.string().max(200).optional(),
+    // The agent to run the conversation with
+    agent: z.string().regex(OBJECT_ID_RE, "Invalid agent ID format.").optional(),
+    // Legacy: connection + repository sub-resource, mapped to the repository's agent
+    repository: z
+      .string()
+      .regex(OBJECT_ID_RE, "Invalid repository ID format.")
+      .optional(),
+    subResource: z
+      .string()
+      .regex(OBJECT_ID_RE, "Invalid subResource ID format.")
+      .optional(),
+  })
+  .refine((b) => b.agent || b.subResource, {
+    message: "agent is required",
+    path: ["agent"],
+  });
 
 const searchConversationsQuery = z.object({
   q: z.string().max(200).optional(),
@@ -139,7 +157,7 @@ function validateObjectId(id) {
 const router = new Elysia({ prefix: "/api" })
   .use(authPlugin)
 
-  // Create new conversation
+  // Create new conversation (runs with an agent)
   .post("/conversations", async ({ body, user, set }) => {
     const parsed = createConversationBody.safeParse(body);
     if (!parsed.success) {
@@ -148,117 +166,45 @@ const router = new Elysia({ prefix: "/api" })
     }
 
     try {
-      const { title, repository, subResource } = parsed.data;
-
-      // Check if repository exists and is of type 'bitbucket'
-      const resourceDoc = await Resource.findById(repository);
-      if (!resourceDoc) {
-        set.status = 404;
-        return { error: "resource-not-found" };
-      }
-
-      if (!["bitbucket", "github"].includes(resourceDoc.provider)) {
-        set.status = 400;
-        return { error: "Resource must be of type bitbucket or github" };
-      }
-
-      // Check if subResource exists and belongs to the given resource
-      const subResourceDoc = await SubResource.findById(subResource);
-      if (!subResourceDoc) {
-        set.status = 404;
-        return { error: "subresource-not-found" };
-      }
-
-      if (subResourceDoc.resource.toString() !== repository) {
-        set.status = 400;
-        return {
-          error: "SubResource does not belong to the specified resource",
-        };
-      }
-
-      if (
-        !["bitbucket-repository", "github-repository"].includes(
-          subResourceDoc.type,
-        )
-      ) {
-        set.status = 400;
-        return {
-          error:
-            "SubResource must be of type bitbucket-repository or github-repository",
-        };
-      }
-
-      // Create conversation (seed creator as first participant)
-      const conversation = new Conversation({
-        title: title || "New Conversation",
-        createdBy: user.userId,
-        participants: [user.userId],
-        repository: repository,
-        subResource: subResource,
+      const { title, agent: agentId, repository, subResource } = parsed.data;
+      const { agent, error } = await resolveAgentForNewConversation({
+        agent: agentId,
+        repository,
+        subResource,
       });
-      await conversation.save();
+      if (error) {
+        set.status = error.status;
+        return { error: error.message };
+      }
 
-      // Trigger BullMQ job for conversation setup
-      await createConversation(conversation._id, repository, subResource);
-
-      return conversation;
+      return await startConversationForAgent({
+        agent,
+        userId: user.userId,
+        title,
+      });
     } catch (err) {
       set.status = 500;
       return { error: err.message };
     }
   })
 
-  // Create conversation by repository name (used by /start#<repoName> links)
+  // Create conversation by agent name (used by /start#<name> links).
+  // Repository names are matched too so legacy links keep working.
   .post("/conversations/start-by-name", async ({ body, user, set }) => {
     const { name } = body || {};
     if (!name || typeof name !== "string" || !name.trim()) {
       set.status = 400;
-      return { error: "Repository name is required." };
+      return { error: "Agent name is required." };
     }
 
     try {
-      // Find the subresource by name (case-insensitive), must be an enabled repository
-      const subResourceDoc = await SubResource.findOne({
-        name: {
-          $regex: new RegExp(
-            `^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-            "i",
-          ),
-        },
-        type: { $in: ["bitbucket-repository", "github-repository"] },
-        "rearch.enabled": true,
-      }).populate("resource");
-
-      if (!subResourceDoc) {
+      const agent = await findEnabledAgentByName(name);
+      if (!agent) {
         set.status = 404;
-        return { error: "repository-not-found" };
+        return { error: "agent-not-found" };
       }
 
-      if (
-        !subResourceDoc.resource ||
-        !["bitbucket", "github"].includes(subResourceDoc.resource.provider)
-      ) {
-        set.status = 400;
-        return { error: "Resource must be of type bitbucket or github" };
-      }
-
-      const repositoryId = subResourceDoc.resource._id.toString();
-      const subResourceId = subResourceDoc._id.toString();
-
-      // Create conversation
-      const conversation = new Conversation({
-        title: "New Conversation",
-        createdBy: user.userId,
-        participants: [user.userId],
-        repository: repositoryId,
-        subResource: subResourceId,
-      });
-      await conversation.save();
-
-      // Trigger BullMQ job for conversation setup
-      await createConversation(conversation._id, repositoryId, subResourceId);
-
-      return conversation;
+      return await startConversationForAgent({ agent, userId: user.userId });
     } catch (err) {
       set.status = 500;
       return { error: err.message };
@@ -283,7 +229,8 @@ const router = new Elysia({ prefix: "/api" })
         title: { $regex: q.trim(), $options: "i" },
       })
         .sort({ createdAt: -1 })
-        .populate("subResource", "name");
+        .populate("subResource", "name")
+        .populate("agent", "name");
       return conversations;
     } catch (err) {
       set.status = 500;
@@ -298,7 +245,8 @@ const router = new Elysia({ prefix: "/api" })
         createdBy: user.userId,
       })
         .sort({ createdAt: -1 })
-        .populate("subResource", "name");
+        .populate("subResource", "name")
+        .populate("agent", "name");
 
       // Fetch session statuses for running conversations (busy/idle)
       let statusMap = {};
@@ -353,7 +301,8 @@ const router = new Elysia({ prefix: "/api" })
           "participants",
           "profile.display_name profile.avatar_fileId account.username account.email",
         )
-        .populate("subResource", "name");
+        .populate("subResource", "name")
+        .populate("agent", "name");
       if (!conversation) {
         set.status = 404;
         return { error: "Conversation not found" };
@@ -371,7 +320,8 @@ const router = new Elysia({ prefix: "/api" })
               "participants",
               "profile.display_name profile.avatar_fileId account.username account.email",
             )
-            .populate("subResource", "name");
+            .populate("subResource", "name")
+            .populate("agent", "name");
         }
       }
 
@@ -412,8 +362,7 @@ const router = new Elysia({ prefix: "/api" })
         });
         await addJobToQueue("conversations", "restart-conversation", {
           conversationId: params.id,
-          repositoryId: conversation.repository.toString(),
-          subResourceId: conversation.subResource.toString(),
+          agentId: conversation.agent ? conversation.agent.toString() : null,
         });
       }
 
@@ -860,7 +809,7 @@ const router = new Elysia({ prefix: "/api" })
 
   /**
    * Get available services for a conversation's running container
-   * Joins SubResource.rearch.services definitions with live Docker port mappings
+   * Joins the agent's service definitions with live Docker port mappings
    * GET /conversations/:id/services
    */
   .get("/conversations/:id/services", async ({ params, user, set }) => {
@@ -886,9 +835,9 @@ const router = new Elysia({ prefix: "/api" })
         return { services: [] };
       }
 
-      // Get the SubResource's rearch.services definitions
-      const subResource = await SubResource.findById(conversation.subResource);
-      const rearchServices = subResource?.rearch?.services || [];
+      // Service port definitions come from the conversation's agent
+      const agent = await resolveConversationAgent(conversation);
+      const rearchServices = agent?.services || [];
 
       if (rearchServices.length === 0) {
         return { services: [] };

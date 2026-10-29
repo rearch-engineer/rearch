@@ -1,8 +1,7 @@
 import { Worker } from "bullmq";
 
-import Resource from "../models/Resource.js";
-import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
+import { resolveConversationAgent, resolveAgentRuntime } from "../utils/agents.js";
 import config from "../config.js";
 import { clearClientCache, sendPrompt } from "../utils/opencodeContainer.js";
 
@@ -104,7 +103,7 @@ const conversationsWorker = new Worker(
 
     // ── Restart conversation (auto-restart stopped/errored containers) ──
     if (job.name === "restart-conversation") {
-      const { conversationId, repositoryId, subResourceId } = job.data;
+      const { conversationId } = job.data;
 
       await jobLog(
         job,
@@ -117,6 +116,9 @@ const conversationsWorker = new Worker(
       if (!conversation) {
         throw new Error("Conversation not found");
       }
+
+      // Agent owning the container configuration (lazy-migrates legacy conversations)
+      const restartAgent = await resolveConversationAgent(conversation);
 
       const containerId = conversation.environment?.container;
       let restarted = false;
@@ -164,7 +166,7 @@ const conversationsWorker = new Worker(
           // Reinject skills
           await injectSkillsIntoContainer(
             containerId,
-            subResourceId,
+            restartAgent?._id,
             (message) => jobLog(job, "conversations", message),
           );
 
@@ -235,16 +237,14 @@ const conversationsWorker = new Worker(
 
     // ── Setup conversation ───────────────────────────────────────────────
     try {
-      const { conversationId, repositoryId, subResourceId } = job.data;
+      const { conversationId } = job.data;
 
       await jobLog(
         job,
         "conversations",
         `Setting up conversation ${conversationId}`,
       );
-      console.log(
-        `Setting up conversation ${conversationId} with repository ${repositoryId}, subResource ${subResourceId}`,
-      );
+      console.log(`Setting up conversation ${conversationId}`);
 
       // Get the conversation
       const conversation = await Conversation.findById(conversationId);
@@ -264,33 +264,24 @@ const conversationsWorker = new Worker(
         status: "starting",
       });
 
-      await jobLog(
-        job,
-        "conversations",
-        "Loading repository and subresource data",
-      );
+      await jobLog(job, "conversations", "Resolving agent configuration");
 
-      // Get the repository resource (parent - contains credentials)
-      const repository = await Resource.findById(repositoryId);
-      if (!repository) {
-        throw new Error("Repository not found");
+      // Resolve the agent that owns this conversation's runtime configuration.
+      // Conversations created before agents existed are migrated lazily from
+      // their repository's legacy configuration.
+      const agent = await resolveConversationAgent(conversation);
+      if (!agent) {
+        throw new Error("Conversation has no agent configured");
       }
+      await jobLog(job, "conversations", `Agent: ${agent.name} (${agent._id})`);
 
-      // Get the subresource (actual repository with clone URL, branch, etc.)
-      const subResource = await SubResource.findById(subResourceId);
-      if (!subResource) {
-        throw new Error("SubResource not found");
-      }
-
-      // Get container image: prefer subresource's custom docker image, then default
+      // Get container image: prefer the agent's custom docker image, then default
       let containerImage =
         config.conversationContainerImage ||
         process.env.CONVERSATION_CONTAINER_IMAGE;
-      if (subResource.rearch?.dockerImage) {
-        containerImage = subResource.rearch.dockerImage;
-        console.log(
-          `Using custom container image from subresource: ${containerImage}`,
-        );
+      if (agent.dockerImage) {
+        containerImage = agent.dockerImage;
+        console.log(`Using custom container image from agent: ${containerImage}`);
       }
       if (!containerImage) {
         throw new Error(
@@ -326,45 +317,31 @@ const conversationsWorker = new Worker(
       );
       console.log(`Creating container with image: ${containerImage}`);
 
-      // Get optional environment variables for Node.js app containers
-      const appPort = repository.data.appPort || "3000";
-      const appStartCommand = repository.data.appStartCommand || "npm run dev";
-
-      // Get credentials from the parent resource based on provider type
-      const provider = repository.provider || "bitbucket";
-      let gitEmail = "";
-      let gitToken = "";
-
-      if (provider === "github") {
-        // For GitHub Apps, generate an installation access token
-        const { getInstallationToken } =
-          await import("../utils/github/github.js");
-        gitToken = await getInstallationToken(repository.data);
-        gitEmail = "github-app@users.noreply.github.com";
+      // Repository + git credentials. Empty when the agent has no repository:
+      // the container then starts with an empty workspace.
+      const runtime = await resolveAgentRuntime(agent);
+      if (runtime.repository) {
+        await jobLog(
+          job,
+          "conversations",
+          `Repository: ${runtime.repository.name} (branch ${runtime.repoBranch}, ${runtime.gitProvider})`,
+        );
       } else {
-        // Bitbucket: use email + API token
-        gitEmail = repository.data.email || "";
-        gitToken = repository.data.apiToken || "";
-      }
-
-      // Derive repository URL from subresource clone links (prefer HTTPS)
-      let repoUrl = "";
-      if (subResource.data?.links?.clone) {
-        const httpsClone = subResource.data.links.clone.find(
-          (c) => c.name === "https",
+        await jobLog(
+          job,
+          "conversations",
+          "Agent has no repository: starting with an empty workspace",
         );
-        const sshClone = subResource.data.links.clone.find(
-          (c) => c.name === "ssh",
-        );
-        repoUrl = httpsClone?.href || sshClone?.href || "";
       }
-      // Fallback to html link if no clone links
-      if (!repoUrl && subResource.data?.links?.html) {
-        repoUrl = subResource.data.links.html;
-      }
-
-      // Derive branch from subresource's mainBranch
-      const repoBranch = subResource.data?.mainBranch || "main";
+      const {
+        repoUrl,
+        repoBranch,
+        gitEmail,
+        gitToken,
+        gitProvider,
+        appPort,
+        appStartCommand,
+      } = runtime;
 
       // ── Create and start the container ──────────────────────────────────
       const {
@@ -378,6 +355,7 @@ const conversationsWorker = new Worker(
       } = await createConversationContainer({
         containerImage,
         conversationId,
+        userId: conversation.createdBy ? String(conversation.createdBy) : "",
         repoUrl,
         repoBranch,
         providerConfig,
@@ -386,9 +364,9 @@ const conversationsWorker = new Worker(
         appStartCommand,
         gitEmail,
         gitToken,
-        gitProvider: provider,
-        rearchServices: subResource.rearch?.services || [],
-        resourceConstraints: subResource.rearch?.resources || {},
+        gitProvider,
+        rearchServices: agent.services || [],
+        resourceConstraints: agent.limits || {},
         log: (msg) => jobLog(job, "conversations", msg),
       });
 
@@ -417,7 +395,7 @@ const conversationsWorker = new Worker(
       );
 
       // Inject skills into the container
-      await injectSkillsIntoContainer(containerId, subResourceId, (message) =>
+      await injectSkillsIntoContainer(containerId, agent._id, (message) =>
         jobLog(job, "conversations", message),
       );
 

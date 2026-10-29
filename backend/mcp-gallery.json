@@ -25,7 +25,8 @@
     ],
     "type": "remote",
     "url": "https://api.githubcopilot.com/mcp/",
-    "headers": {}
+    "headers": {},
+    "auth": "oauth-manual"
   },
   {
     "id": "sentry",
@@ -38,8 +39,9 @@
       "List errors from the last 24 hours"
     ],
     "type": "remote",
-    "url": "https://mcp.sentry.dev/sse",
-    "headers": {}
+    "url": "https://mcp.sentry.dev/mcp",
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "gh-grep",
@@ -80,8 +82,9 @@
       "Update ticket ENG-456 status to In Review"
     ],
     "type": "remote",
-    "url": "https://mcp.linear.app/sse",
-    "headers": {}
+    "url": "https://mcp.linear.app/mcp",
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "figma",
@@ -94,8 +97,9 @@
       "List all text styles used in the project"
     ],
     "type": "remote",
-    "url": "https://modelcontextprotocol.ai/figma/mcp",
-    "headers": {}
+    "url": "https://mcp.figma.com/mcp",
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "supabase",
@@ -109,7 +113,8 @@
     ],
     "type": "remote",
     "url": "https://mcp.supabase.com/mcp",
-    "headers": {}
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "cloudflare",
@@ -122,8 +127,9 @@
       "Check DNS records for my domain"
     ],
     "type": "remote",
-    "url": "https://mcp.cloudflare.com/sse",
-    "headers": {}
+    "url": "https://mcp.cloudflare.com/mcp",
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "browserbase",
@@ -150,8 +156,9 @@
       "Show me the current schema for the orders table"
     ],
     "type": "remote",
-    "url": "https://mcp.neon.tech/sse",
-    "headers": {}
+    "url": "https://mcp.neon.tech/mcp",
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "stripe",
@@ -165,7 +172,8 @@
     ],
     "type": "remote",
     "url": "https://mcp.stripe.com/mcp",
-    "headers": {}
+    "headers": {},
+    "auth": "oauth"
   },
   {
     "id": "slack",
@@ -179,7 +187,8 @@
     ],
     "type": "remote",
     "url": "https://mcp.slack.com/sse",
-    "headers": {}
+    "headers": {},
+    "auth": "oauth-manual"
   },
   {
     "id": "notion",
@@ -207,6 +216,22 @@
     ],
     "type": "remote",
     "url": "https://mcp.vercel.com/mcp",
-    "headers": {}
+    "headers": {},
+    "auth": "oauth"
+  },
+  {
+    "id": "atlassian",
+    "icon": "Workspaces",
+    "title": "Atlassian (Jira & Confluence)",
+    "description": "Search and update Jira issues and Confluence pages with your own Atlassian account. Each user authorizes with OAuth, so Jira project permissions are respected.",
+    "examples": [
+      "List my open Jira issues in the current sprint",
+      "Create a bug in project BOP with this stack trace",
+      "Summarize the Confluence page about the release process"
+    ],
+    "type": "remote",
+    "url": "https://mcp.atlassian.com/v1/mcp",
+    "headers": {},
+    "auth": "oauth"
   }
 ]

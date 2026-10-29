@@ -1,12 +1,15 @@
 import { Elysia } from "elysia";
 import { z } from "zod";
 import McpServer from "../../models/McpServer.js";
+import McpUserCredential from "../../models/McpUserCredential.js";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { downloadFileBuffer } from "../../utils/gridfs.js";
 import { parseOpenApiSpec, loadSpec } from "../../utils/mcp/openapiParser.js";
 import { suggestCuration } from "../../utils/mcp/openapiAiCuration.js";
+import { discoverOAuth } from "../../utils/mcp/oauth.js";
+import { ensureOAuthClient } from "../../utils/mcp/userCredentials.js";
 
 // ─── Gallery Data ─────────────────────────────────────────────────────────────
 
@@ -56,8 +59,26 @@ const openApiOperationSchema = z.object({
   requestBodySchema: z.any().optional().nullable(),
 });
 
+const authSchema = z
+  .object({
+    mode: z.enum(["shared", "oauth-user"]).optional().default("shared"),
+    oauth: z
+      .object({
+        scopes: z.string().max(500).optional().default(""),
+      })
+      .optional(),
+  })
+  .optional();
+
 // Shared validation for the type-specific required fields.
 function refineByType(data, ctx) {
+  if (data.auth?.mode === "oauth-user" && data.type !== "remote") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Per-user OAuth is only available for remote servers",
+      path: ["auth", "mode"],
+    });
+  }
   if (data.type === "remote" && !data.url) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -109,6 +130,7 @@ const serverFieldsShape = {
   baseUrl: z.string().url("Must be a valid URL").optional(),
   specFileId: objectIdSchema.optional(),
   operations: z.array(openApiOperationSchema).optional(),
+  auth: authSchema,
   enabled: z.boolean().optional().default(true),
 };
 
@@ -135,6 +157,38 @@ const parseSpecSchema = z.object({
 
 const MCP_PROXY_URL = process.env.MCP_PROXY_URL || "http://mcp-proxy:3100";
 
+/**
+ * Merge the admin-submitted `auth` block into a server document, preserving
+ * discovered OAuth metadata/registration when the mode stays `oauth-user`.
+ */
+function applyAuth(server, auth) {
+  const mode = auth?.mode || "shared";
+  const prev = server.auth?.oauth?.toObject ? server.auth.oauth.toObject() : server.auth?.oauth || {};
+  server.auth = {
+    mode,
+    oauth: {
+      ...(mode === "oauth-user" ? prev : {}),
+      scopes: auth?.oauth?.scopes ?? prev.scopes ?? "",
+    },
+  };
+  server.markModified("auth");
+}
+
+/**
+ * For `oauth-user` servers, run discovery + dynamic client registration right
+ * away so the admin sees configuration problems at save time rather than when
+ * the first user clicks "Connect". Returns an error message or null.
+ */
+async function bootstrapOAuth(server) {
+  if (server.type !== "remote" || server.auth?.mode !== "oauth-user") return null;
+  try {
+    await ensureOAuthClient(server, { force: true });
+    return null;
+  } catch (err) {
+    return err.message;
+  }
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 const router = new Elysia({ prefix: "/mcp" })
@@ -148,7 +202,7 @@ const router = new Elysia({ prefix: "/mcp" })
     async ({ status }) => {
       try {
         const servers = await McpServer.find().sort({ name: 1 });
-        return servers;
+        return servers.map((s) => s.toAdminJSON());
       } catch (err) {
         console.error("Error fetching MCP servers:", err);
         return status(500, { error: err.message });
@@ -181,6 +235,7 @@ const router = new Elysia({ prefix: "/mcp" })
           baseUrl,
           specFileId,
           operations,
+          auth,
           enabled,
         } = parsed.data;
 
@@ -189,19 +244,28 @@ const router = new Elysia({ prefix: "/mcp" })
           return status(409, { error: `Server "${name}" already exists` });
         }
 
-        const server = await McpServer.create({
+        const server = new McpServer({
           name,
           type,
           url,
           command,
-          headers,
+          // Per-user OAuth servers never use shared headers.
+          headers: auth?.mode === "oauth-user" ? {} : headers,
           environment,
           baseUrl,
           specFileId,
           operations,
           enabled,
         });
-        return server;
+        applyAuth(server, auth);
+
+        const oauthError = await bootstrapOAuth(server);
+        if (oauthError) {
+          return status(400, { error: `OAuth setup failed: ${oauthError}` });
+        }
+
+        await server.save();
+        return server.toAdminJSON();
       } catch (err) {
         console.error("Error adding MCP server:", err);
         return status(500, { error: err.message });
@@ -245,22 +309,44 @@ const router = new Elysia({ prefix: "/mcp" })
           baseUrl,
           specFileId,
           operations,
+          auth,
           enabled,
         } = parsed.data;
+        const urlChanged = type === "remote" && url !== server.url;
+        const modeChanged = (auth?.mode || "shared") !== (server.auth?.mode || "shared");
         Object.assign(server, {
           type,
           url,
           command,
-          headers,
+          headers: auth?.mode === "oauth-user" ? {} : headers,
           environment,
           baseUrl,
           specFileId,
           operations,
           enabled,
         });
+        applyAuth(server, auth);
+
+        // Re-run discovery/registration when the target or mode changed, or
+        // when the server has never been bootstrapped.
+        if (
+          server.auth.mode === "oauth-user" &&
+          (urlChanged || modeChanged || !server.auth.oauth?.clientId)
+        ) {
+          const oauthError = await bootstrapOAuth(server);
+          if (oauthError) {
+            return status(400, { error: `OAuth setup failed: ${oauthError}` });
+          }
+        }
+
+        // Switching away from per-user OAuth invalidates every user grant.
+        if (modeChanged && server.auth.mode !== "oauth-user") {
+          await McpUserCredential.deleteMany({ server: server.name });
+        }
+
         await server.save();
 
-        return server;
+        return server.toAdminJSON();
       } catch (err) {
         console.error("Error updating MCP server:", err);
         return status(500, { error: err.message });
@@ -287,6 +373,7 @@ const router = new Elysia({ prefix: "/mcp" })
         if (!server) {
           return status(404, { error: `Server "${params.name}" not found` });
         }
+        await McpUserCredential.deleteMany({ server: params.name });
 
         return { success: true };
       } catch (err) {
@@ -361,6 +448,33 @@ const router = new Elysia({ prefix: "/mcp" })
       } catch (err) {
         console.error("Error parsing OpenAPI spec:", err);
         return status(500, { error: err.message });
+      }
+    },
+  )
+
+  /**
+   * Probe a remote MCP URL for OAuth support (used by the admin form before
+   * saving a per-user OAuth server).
+   * POST /api/admin/mcp/oauth/discover  Body: { url }
+   * Returns the discovered metadata, or 400 when the server does not
+   * advertise an OAuth authorization server.
+   */
+  .post(
+    "/oauth/discover",
+    async ({ body, status }) => {
+      const parsed = z.object({ url: z.string().url("Must be a valid URL") }).safeParse(body);
+      if (!parsed.success) {
+        return status(400, { error: parsed.error.errors.map((e) => e.message).join(", ") });
+      }
+      try {
+        const meta = await discoverOAuth(parsed.data.url);
+        return {
+          supported: true,
+          dynamicRegistration: !!meta.registrationEndpoint,
+          ...meta,
+        };
+      } catch (err) {
+        return status(400, { supported: false, error: err.message });
       }
     },
   )

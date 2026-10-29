@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
 import resourceRoutes from "./routes/resources.js";
+import agentRoutes from "./routes/agents.js";
 import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspaces.js";
 import Queue from "./queue";
@@ -12,6 +13,7 @@ import { publicRouter as publicSettingsRoutes } from "./routes/settings.js";
 import { publicRouter as suggestedPromptsPublicRoutes } from "./routes/suggestedPrompts.js";
 import adminRoutes from "./routes/admin/index.js";
 import internalRoutes from "./routes/internal.js";
+import integrationRoutes from "./routes/integrations.js";
 import { wsPlugin } from "./ws.js";
 import { authPlugin } from "./middleware/auth.js";
 import User from "./models/User.js";
@@ -150,7 +152,9 @@ const app = new Elysia()
   .use(apiRoutes)
   .use(fileRoutes)
   .use(resourceRoutes)
+  .use(agentRoutes)
   .use(workspaceRoutes)
+  .use(integrationRoutes)
   .use(suggestedPromptsPublicRoutes)
 
   // ─── Admin Routes ─────────────────────────────────────────────────────

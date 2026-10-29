@@ -3,10 +3,10 @@
  *
  * These tools are always available alongside upstream tools and allow AI agents
  * inside conversation containers to:
- *   1. Search for available repositories
+ *   1. Search for available agents (each agent may be bound to a repository)
  *   2. Create new conversations (max 3 per call) with an initial prompt
  *
- * Repository search queries MongoDB directly (mongoose is already available).
+ * Agent search queries MongoDB directly (mongoose is already available).
  * Conversation creation delegates to the backend internal API so that all
  * existing logic (BullMQ job scheduling, Docker provisioning, WebSocket
  * broadcasts) is reused.
@@ -44,6 +44,18 @@ const subResourceSchema = new mongoose.Schema(
 const SubResource =
   mongoose.models.SubResource || mongoose.model('SubResource', subResourceSchema);
 
+const agentSchema = new mongoose.Schema(
+  {
+    name: { type: String },
+    description: { type: String, default: '' },
+    enabled: { type: Boolean, default: false },
+    repository: { type: mongoose.Schema.Types.ObjectId, ref: 'SubResource' },
+  },
+  { timestamps: true, strict: false },
+);
+
+const Agent = mongoose.models.Agent || mongoose.model('Agent', agentSchema);
+
 const conversationSchema = new mongoose.Schema(
   {
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -70,16 +82,16 @@ const Resource =
 
 const BUILTIN_TOOLS = [
   {
-    name: 'rearch_search_repositories',
+    name: 'rearch_search_agents',
     description:
-      '[rearch] Search for available repositories. Returns enabled repos that can be used to create new conversations.',
+      '[rearch] Search for available agents. Returns enabled agents (and the repository each one works on, if any) that can be used to create new conversations.',
     inputSchema: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
           description:
-            'Optional search text to filter repositories by name or description. Leave empty to list all.',
+            'Optional search text to filter agents by name, description or repository name. Leave empty to list all.',
         },
       },
     },
@@ -87,7 +99,7 @@ const BUILTIN_TOOLS = [
   {
     name: 'rearch_create_conversation',
     description:
-      '[rearch] Create new conversations for one or more repositories. Each conversation gets its own dev container and the prompt is sent to the AI agent immediately. Maximum 3 conversations per call.',
+      '[rearch] Create new conversations with one or more agents. Each conversation gets its own dev container and the prompt is sent to the AI agent immediately. Maximum 3 conversations per call.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -98,17 +110,17 @@ const BUILTIN_TOOLS = [
           items: {
             type: 'object',
             properties: {
-              repository: {
+              agent: {
                 type: 'string',
                 description:
-                  'The repository ID (from rearch_search_repositories results).',
+                  'The agent ID (from rearch_search_agents results).',
               },
               prompt: {
                 type: 'string',
                 description: 'The initial prompt to send to the AI agent.',
               },
             },
-            required: ['repository', 'prompt'],
+            required: ['agent', 'prompt'],
           },
         },
       },
@@ -117,7 +129,10 @@ const BUILTIN_TOOLS = [
   },
 ];
 
-const BUILTIN_TOOL_NAMES = new Set(BUILTIN_TOOLS.map((t) => t.name));
+const BUILTIN_TOOL_NAMES = new Set([
+  ...BUILTIN_TOOLS.map((t) => t.name),
+  'rearch_search_repositories', // legacy alias of rearch_search_agents
+]);
 
 // ---------------------------------------------------------------------------
 // Public helpers
@@ -141,12 +156,13 @@ export function isBuiltinTool(name) {
  * @param {Request} request - Original HTTP request (for reading headers)
  * @returns {Promise<object>} MCP tool result
  */
-export async function callBuiltinTool(name, args, request) {
+export async function callBuiltinTool(name, args, request, identity = null) {
   switch (name) {
-    case 'rearch_search_repositories':
-      return handleSearchRepositories(args);
+    case 'rearch_search_agents':
+    case 'rearch_search_repositories': // legacy name
+      return handleSearchAgents(args);
     case 'rearch_create_conversation':
-      return handleCreateConversation(args, request);
+      return handleCreateConversation(args, request, identity);
     default:
       throw new Error(`Unknown built-in tool: ${name}`);
   }
@@ -156,25 +172,31 @@ export async function callBuiltinTool(name, args, request) {
 // Tool handlers
 // ---------------------------------------------------------------------------
 
-async function handleSearchRepositories(args) {
+async function handleSearchAgents(args) {
   const { query } = args || {};
 
-  const filter = {
-    'rearch.enabled': true,
-    type: { $in: ['bitbucket-repository', 'github-repository'] },
-  };
+  const filter = { enabled: true };
 
   if (query && query.trim()) {
     const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = { $regex: escaped, $options: 'i' };
+    // Also match agents through the name of the repository they work on
+    const repos = await SubResource.find({ name: re }).select('_id').lean();
+    const repositoryIds = repos.map((r) => r._id);
     filter.$or = [
-      { name: { $regex: escaped, $options: 'i' } },
-      { description: { $regex: escaped, $options: 'i' } },
+      { name: re },
+      { description: re },
+      ...(repositoryIds.length > 0 ? [{ repository: { $in: repositoryIds } }] : []),
     ];
   }
 
-  const docs = await SubResource.find(filter)
-    .populate('resource', 'provider')
-    .select('name description type resource')
+  const docs = await Agent.find(filter)
+    .populate({
+      path: 'repository',
+      select: 'name type resource',
+      populate: { path: 'resource', select: 'provider' },
+    })
+    .select('name description repository')
     .sort({ name: 1 })
     .lean();
 
@@ -182,8 +204,14 @@ async function handleSearchRepositories(args) {
     id: doc._id.toString(),
     name: doc.name,
     description: doc.description || '',
-    provider: doc.resource?.provider || 'unknown',
-    type: doc.type,
+    repository: doc.repository
+      ? {
+          id: doc.repository._id.toString(),
+          name: doc.repository.name,
+          provider: doc.repository.resource?.provider || 'unknown',
+          type: doc.repository.type,
+        }
+      : null,
   }));
 
   return {
@@ -196,7 +224,7 @@ async function handleSearchRepositories(args) {
   };
 }
 
-async function handleCreateConversation(args, request) {
+async function handleCreateConversation(args, request, identity = null) {
   const { conversations } = args || {};
 
   if (!Array.isArray(conversations) || conversations.length === 0) {
@@ -218,32 +246,38 @@ async function handleCreateConversation(args, request) {
     };
   }
 
-  // Resolve the calling user from the conversation that owns this container
-  const callerConversationId = request?.headers?.get('x-mcp-conversation-id');
-  if (!callerConversationId) {
-    return {
-      content: [{ type: 'text', text: 'Error: Missing X-MCP-Conversation-Id header. Cannot determine calling user.' }],
-      isError: true,
-    };
+  // Resolve the calling user. Prefer the HMAC-verified identity token; fall
+  // back to the legacy (unsigned) conversation-id header for containers that
+  // were created before the identity header existed.
+  let userId = identity?.userId || null;
+
+  if (!userId) {
+    const callerConversationId = request?.headers?.get('x-mcp-conversation-id');
+    if (!callerConversationId) {
+      return {
+        content: [{ type: 'text', text: 'Error: Missing X-MCP-Identity / X-MCP-Conversation-Id header. Cannot determine calling user.' }],
+        isError: true,
+      };
+    }
+
+    const callerConversation = await Conversation.findById(callerConversationId)
+      .select('createdBy')
+      .lean();
+
+    if (!callerConversation || !callerConversation.createdBy) {
+      return {
+        content: [{ type: 'text', text: 'Error: Could not resolve calling user from conversation.' }],
+        isError: true,
+      };
+    }
+
+    userId = callerConversation.createdBy.toString();
   }
-
-  const callerConversation = await Conversation.findById(callerConversationId)
-    .select('createdBy')
-    .lean();
-
-  if (!callerConversation || !callerConversation.createdBy) {
-    return {
-      content: [{ type: 'text', text: 'Error: Could not resolve calling user from conversation.' }],
-      isError: true,
-    };
-  }
-
-  const userId = callerConversation.createdBy.toString();
 
   // Create all conversations in parallel
   const results = await Promise.allSettled(
     conversations.map((conv) =>
-      createSingleConversation(userId, conv.repository, conv.prompt),
+      createSingleConversation(userId, conv.agent, conv.repository, conv.prompt),
     ),
   );
 
@@ -252,7 +286,7 @@ async function handleCreateConversation(args, request) {
       return result.value;
     }
     return {
-      repository: conversations[i].repository,
+      agent: conversations[i].agent || conversations[i].repository,
       error: result.reason?.message || 'Unknown error',
     };
   });
@@ -271,7 +305,12 @@ async function handleCreateConversation(args, request) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function createSingleConversation(userId, subResourceId, prompt) {
+// `agentId` is preferred; `subResourceId` (a repository id) is still accepted
+// for callers that used the old rearch_search_repositories tool.
+async function createSingleConversation(userId, agentId, subResourceId, prompt) {
+  if (!agentId && !subResourceId) {
+    throw new Error('agent is required');
+  }
   const url = `${BACKEND_API_URL}/api/internal/conversations`;
 
   const response = await fetch(url, {
@@ -280,7 +319,12 @@ async function createSingleConversation(userId, subResourceId, prompt) {
       'Content-Type': 'application/json',
       'X-Internal-Secret': INTERNAL_API_SECRET,
     },
-    body: JSON.stringify({ userId, subResourceId, prompt }),
+    body: JSON.stringify({
+      userId,
+      ...(agentId ? { agentId } : {}),
+      ...(subResourceId ? { subResourceId } : {}),
+      prompt,
+    }),
   });
 
   if (!response.ok) {

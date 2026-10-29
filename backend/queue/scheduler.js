@@ -1,3 +1,4 @@
+import Agent from "../models/Agent.js";
 import Resource from "../models/Resource.js";
 import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
@@ -12,31 +13,36 @@ import { broadcast } from "../ws.js";
 const REBUILD_ALL_JOB_NAME = "rebuild-all-docker-images";
 
 /**
- * Trigger a rebuild of all docker images for subresources that have rearch enabled.
- * Each eligible subresource gets its own "rebuild" job queued.
+ * Trigger a rebuild of the docker image of every enabled agent that builds
+ * its image from a repository branch. Each eligible agent gets its own
+ * "rebuild" job queued.
  * @returns {Promise<Array>} Array of created BullMQ jobs
  */
 async function triggerRebuildAll() {
-  // Find all subresources with rearch.enabled = true that have rebuild prerequisites
-  const subResources = await SubResource.find({ "rearch.enabled": true });
+  const agents = await Agent.find({
+    enabled: true,
+    dockerImageFromBranch: { $nin: ["", null] },
+    repository: { $ne: null },
+  });
 
   const jobs = [];
-  for (const sub of subResources) {
-    // Only rebuild if the subresource has a branch configured
-    if (!sub.rearch?.dockerImageFromBranch) continue;
+  for (const agent of agents) {
+    const subResource = await SubResource.findById(agent.repository);
+    if (!subResource) continue;
 
-    // Get the parent resource for credentials
-    const parentResource = await Resource.findById(sub.resource);
+    // Get the parent connection for credentials
+    const parentResource = await Resource.findById(subResource.resource);
     if (!parentResource) continue;
 
     const job = await addJobToQueue("resources", "rebuild", {
       parentResource,
-      subResource: sub,
+      subResource,
+      agent,
       payload: {},
     });
     jobs.push(job);
     console.log(
-      `🔄 Queued rebuild for subresource ${sub.name} (${sub._id}), job ${job.id}`,
+      `🔄 Queued rebuild for agent ${agent.name} (${agent._id}), job ${job.id}`,
     );
   }
 

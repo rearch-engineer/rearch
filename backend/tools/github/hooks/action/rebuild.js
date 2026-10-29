@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import SubResource from "../../../../models/SubResource.js";
+import Agent from "../../../../models/Agent.js";
 import { getInstallationToken } from "../../../../utils/github/github.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -31,18 +32,25 @@ const VALID_TEMPLATES = ["minimal", "node", "node-browser", "node-react-pg"];
  */
 export default async function onRebuild(job, { log } = {}) {
   const _log = log || ((msg) => job.log(msg));
-  const { parentResource, subResource } = job.data;
+  // `agent` carries the build configuration; `subResource` is the repository to
+  // clone and `parentResource` the connection holding the credentials. Jobs
+  // without an agent come from repositories configured before agents existed.
+  const { parentResource, subResource, agent } = job.data;
 
   await _log(
     `[GitHub Rebuild] Starting rebuild for repository: ${subResource.externalId}`,
   );
 
-  const dockerImageFromBranch = subResource.rearch?.dockerImageFromBranch;
-  const template = subResource.rearch?.template || "";
+  const dockerImageFromBranch = agent
+    ? agent.dockerImageFromBranch
+    : subResource.rearch?.dockerImageFromBranch;
+  const template = (agent ? agent.template : subResource.rearch?.template) || "";
   const cloneLinks = subResource.data?.links?.clone;
 
   // Determine Docker image name
-  const subId = (subResource._id || "").toString().toLowerCase();
+  // Image name is scoped to the agent (two agents may build the same repo
+  // with different templates); legacy jobs fall back to the repository id.
+  const subId = (agent?._id || subResource._id || "").toString().toLowerCase();
   const repoSlug = (
     subResource.data?.slug ||
     subResource.externalId ||
@@ -61,7 +69,7 @@ export default async function onRebuild(job, { log } = {}) {
 
   if (!dockerImageFromBranch) {
     throw new Error(
-      "dockerImageFromBranch property is required in subResource.rearch",
+      "A build branch (dockerImageFromBranch) is required to build the image",
     );
   }
 
@@ -134,9 +142,7 @@ export default async function onRebuild(job, { log } = {}) {
         `[GitHub Rebuild] Image ${dockerImageTag} already exists — skipping rebuild`,
       );
 
-      await SubResource.findByIdAndUpdate(subResource._id, {
-        "rearch.dockerImage": dockerImageTag,
-      });
+      await persistDockerImage(agent, subResource, dockerImageTag);
 
       return {
         success: true,
@@ -241,11 +247,9 @@ export default async function onRebuild(job, { log } = {}) {
     }
 
     // Persist image tag to MongoDB
-    await SubResource.findByIdAndUpdate(subResource._id, {
-      "rearch.dockerImage": dockerImageTag,
-    });
+    await persistDockerImage(agent, subResource, dockerImageTag);
     await _log(
-      `[GitHub Rebuild] Updated subresource dockerImage in DB: ${dockerImageTag}`,
+      `[GitHub Rebuild] Persisted dockerImage: ${dockerImageTag}`,
     );
 
     // Clean up old images
@@ -357,4 +361,19 @@ export async function pruneOldDockerImages(docker, dockerImageTag, log) {
   }
 
   return { removedCount, skippedCount };
+}
+
+/**
+ * Persist the freshly built image tag so new conversation containers use it.
+ * Agents own the image; legacy repository-only jobs still write to
+ * SubResource.rearch.dockerImage.
+ */
+async function persistDockerImage(agent, subResource, dockerImageTag) {
+  if (agent?._id) {
+    await Agent.findByIdAndUpdate(agent._id, { dockerImage: dockerImageTag });
+    return;
+  }
+  await SubResource.findByIdAndUpdate(subResource._id, {
+    "rearch.dockerImage": dockerImageTag,
+  });
 }

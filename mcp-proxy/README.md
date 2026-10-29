@@ -48,7 +48,10 @@ The proxy requires a running MongoDB instance. Set `MONGODB_URI` or it defaults 
 |---|---|---|
 | `MCP_PROXY_PORT` | `3100` | Port the HTTP server listens on |
 | `MONGODB_URI` | `mongodb://localhost:27017/rearch` | MongoDB connection string |
-| `MCP_PROXY_SECRET` | _(unset)_ | Shared secret for `X-MCP-Secret` header authentication. When unset, all requests are allowed (dev mode) |
+| `MCP_PROXY_SECRET` | _(unset)_ | Shared secret for `X-MCP-Secret` header authentication and for verifying `X-MCP-Identity` tokens. When unset, all requests are allowed (dev mode) |
+| `BACKEND_API_URL` | `http://localhost:5000` | Backend base URL for the internal API (conversation creation, per-user OAuth tokens) |
+| `INTERNAL_API_SECRET` | _(unset)_ | Shared secret for the backend internal API (`X-Internal-Secret`) |
+| `FRONTEND_URL` | `http://localhost:3000` | Used in links handed to agents (e.g. the integrations page) |
 
 ## Endpoints
 
@@ -132,6 +135,30 @@ Example content:
 
 No changes to container Dockerfiles are needed.
 
+### Per-user OAuth servers
+
+Servers whose `auth.mode` is `oauth-user` (configured by the admin as
+"Per-user OAuth") have **no shared upstream connection**. Instead:
+
+1. Each conversation container sends an HMAC-signed `X-MCP-Identity` header
+   (`{ userId, conversationId }`, signed by the backend with
+   `MCP_PROXY_SECRET`, falling back to `INTERNAL_API_SECRET`). The proxy
+   verifies it in `src/identity.js`, so a container can only act as the user
+   who owns it.
+2. On `tools/list` / `tools/call`, the proxy asks the backend
+   (`GET /api/internal/mcp/user-token?userId&server`) for that user's access
+   token. The backend owns refresh tokens, encryption and refreshing.
+3. The proxy opens one upstream MCP client per `(server, user)` with
+   `Authorization: Bearer <token>`, caches it, retries once with a refreshed
+   token on `401`, and closes it after 15 minutes idle.
+4. Users who have not connected the integration see a single
+   `<server>_connect` placeholder tool whose description tells the agent to
+   send them to `<FRONTEND_URL>/account/integrations`.
+
+Users connect under **Account › Integrations** in the frontend; the backend
+runs OAuth 2.1 discovery (RFC 9728 / 8414), dynamic client registration
+(RFC 7591) and the PKCE authorization-code flow.
+
 ### Hot reload
 
 When MCP server configurations change in MongoDB:
@@ -151,6 +178,8 @@ Only changed or new servers are reconnected. Unchanged servers keep their existi
 | `src/upstream-manager.js` | Manages upstream MCP client connections, tool aggregation, and call routing |
 | `src/config.js` | Reads `McpServer` documents from MongoDB, watches for changes |
 | `src/auth.js` | Validates `X-MCP-Secret` header |
+| `src/identity.js` | Verifies the signed `X-MCP-Identity` header (caller user) |
+| `src/user-credentials.js` | Fetches/caches per-user access tokens from the backend internal API |
 
 ## Docker
 

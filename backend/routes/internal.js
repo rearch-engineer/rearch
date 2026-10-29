@@ -8,12 +8,14 @@
 
 import { Elysia } from "elysia";
 import Conversation from "../models/Conversation.js";
-import Resource from "../models/Resource.js";
-import SubResource from "../models/SubResource.js";
 import WorkspaceMember from "../models/WorkspaceMember.js";
-import { createConversation } from "../tools/conversation/create.js";
+import {
+  resolveAgentForNewConversation,
+  startConversationForAgent,
+} from "../utils/conversationFactory.js";
 import { broadcast } from "../ws.js";
 import { ensurePersonalWorkspace } from "../utils/workspace.js";
+import { getUserAccessToken } from "../utils/mcp/userCredentials.js";
 
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
 
@@ -51,20 +53,26 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
    *
    * Create a conversation on behalf of a user (called by the MCP proxy).
    *
-   * Body: { userId, subResourceId, prompt? }
-   * Returns: { _id, title, link }
+   * Body: { userId, agentId, prompt?, workspaceId? }
+   *       `subResourceId` (legacy) is still accepted and mapped to the
+   *       agent bound to that repository.
+   * Returns: { _id, title }
    */
   .post("/conversations", async ({ body, set }) => {
-    let { userId, subResourceId, prompt, workspaceId } = body || {};
+    let { userId, agentId, subResourceId, prompt, workspaceId } = body || {};
 
-    if (!userId || !subResourceId) {
+    if (!userId || (!agentId && !subResourceId)) {
       set.status = 400;
-      return { error: "userId and subResourceId are required" };
+      return { error: "userId and agentId are required" };
     }
 
     // Validate ObjectId format
     const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
-    if (!OBJECT_ID_RE.test(userId) || !OBJECT_ID_RE.test(subResourceId)) {
+    if (
+      !OBJECT_ID_RE.test(userId) ||
+      (agentId && !OBJECT_ID_RE.test(agentId)) ||
+      (subResourceId && !OBJECT_ID_RE.test(subResourceId))
+    ) {
       set.status = 400;
       return { error: "Invalid ID format" };
     }
@@ -89,58 +97,27 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
         const personalWs = await ensurePersonalWorkspace(userId);
         workspaceId = personalWs._id;
       }
-      // Find the SubResource and its parent Resource
-      const subResourceDoc = await SubResource.findById(subResourceId).populate(
-        "resource",
-      );
 
-      if (!subResourceDoc) {
-        set.status = 404;
-        return { error: "subresource-not-found" };
-      }
-
-      if (!subResourceDoc.rearch?.enabled) {
-        set.status = 400;
-        return { error: "Repository is not enabled for conversations" };
-      }
-
-      if (
-        !["bitbucket-repository", "github-repository"].includes(
-          subResourceDoc.type,
-        )
-      ) {
-        set.status = 400;
-        return { error: "SubResource must be a repository type" };
-      }
-
-      const resourceDoc = subResourceDoc.resource;
-      if (
-        !resourceDoc ||
-        !["bitbucket", "github"].includes(resourceDoc.provider)
-      ) {
-        set.status = 400;
-        return { error: "Resource must be of type bitbucket or github" };
-      }
-
-      const repositoryId = resourceDoc._id.toString();
-
-      // Create the conversation
-      const conversation = new Conversation({
-        title: "New Conversation",
-        createdBy: userId,
-        participants: [userId],
-        repository: repositoryId,
+      // Resolve the agent (legacy subResourceId maps to the repository's agent)
+      const { agent, error } = await resolveAgentForNewConversation({
+        agent: agentId,
         subResource: subResourceId,
-        workspace: workspaceId,
-        ...(prompt ? { initialPrompt: prompt } : {}),
       });
-      await conversation.save();
+      if (error) {
+        set.status = error.status;
+        return { error: error.message };
+      }
 
-      // Trigger BullMQ job for conversation setup
-      await createConversation(conversation._id, repositoryId, subResourceId);
+      const conversation = await startConversationForAgent({
+        agent,
+        userId,
+        workspaceId,
+        initialPrompt: prompt || null,
+      });
 
-      // Populate subResource name for the WS broadcast
+      // Populate names for the WS broadcast
       const populatedConv = await Conversation.findById(conversation._id)
+        .populate("agent", "name")
         .populate("subResource", "name")
         .lean();
 
@@ -155,6 +132,50 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
       console.error("[internal] Error creating conversation:", err.message);
       set.status = 500;
       return { error: err.message };
+    }
+  })
+
+  /**
+   * GET /api/internal/mcp/user-token?userId=&server=&forceRefresh=
+   *
+   * Hands the MCP proxy a valid access token for a user's per-user OAuth
+   * MCP server, refreshing it transparently. `forceRefresh=1` is used after
+   * the upstream rejected the current token.
+   *
+   * Returns: { accessToken, tokenType, expiresAt }
+   * Errors:  404 { error: "not_connected" | "server_not_found" }
+   *          401 { error: "reauthorize_required", message }
+   *          502 { error: "refresh_failed", message }
+   */
+  .get("/mcp/user-token", async ({ query, set }) => {
+    const { userId, server, forceRefresh } = query || {};
+    const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
+    if (!userId || !server || !OBJECT_ID_RE.test(userId) || !/^[a-zA-Z0-9_-]+$/.test(server)) {
+      set.status = 400;
+      return { error: "userId and server are required" };
+    }
+    try {
+      const token = await getUserAccessToken(userId, server, {
+        forceRefresh: forceRefresh === "1" || forceRefresh === "true",
+      });
+      return token;
+    } catch (err) {
+      switch (err.code) {
+        case "not_connected":
+        case "server_not_found":
+          set.status = 404;
+          return { error: err.code, message: err.message };
+        case "reauthorize_required":
+          set.status = 401;
+          return { error: err.code, message: err.message };
+        case "refresh_failed":
+          set.status = 502;
+          return { error: err.code, message: err.message };
+        default:
+          console.error("[internal] user-token error:", err);
+          set.status = 500;
+          return { error: "internal_error", message: err.message };
+      }
     }
   });
 
