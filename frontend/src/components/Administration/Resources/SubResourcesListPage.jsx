@@ -200,7 +200,7 @@ function SubResourcesListPage() {
           variant="plain"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate(`/administration/resources/${id}`)}
+          onClick={() => navigate(`/administration/resources/connections/${id}`)}
           sx={{ mb: 2 }}
         >
           {t("subResourcesList.backTo", { name: resource?.name || "Resource" })}
@@ -317,7 +317,7 @@ function SubResourcesListPage() {
                 subResource={subResource}
                 onClick={() =>
                   navigate(
-                    `/administration/resources/${id}/subresources/${subResource._id}`,
+                    `/administration/resources/connections/${id}/subresources/${subResource._id}`,
                   )
                 }
               />

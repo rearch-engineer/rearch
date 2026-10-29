@@ -51,7 +51,7 @@ function SubResourceDetailsPage() {
       setDeleting(true);
       setDeleteError(null);
       await api.deleteSubResource(subResource.resource, subResource._id);
-      navigate(`/administration/resources/${subResource.resource}/subresources`);
+      navigate(`/administration/resources/connections/${subResource.resource}/subresources`);
     } catch (err) {
       setDeleteError(err.response?.data?.error || err.message || t("subResourceDetails.failedToLoadSubresource"));
     } finally {
@@ -131,7 +131,7 @@ function SubResourceDetailsPage() {
           variant="soft"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate(`/administration/resources/${id}/subresources`)}
+          onClick={() => navigate(`/administration/resources/connections/${id}/subresources`)}
         >
           {t("subResourceDetails.backToList")}
         </Button>

@@ -44,9 +44,15 @@ const AdminSidebarMenu = () => {
       ],
     },
     {
-      label: t("sidebar.groupRepositories"),
+      label: t("sidebar.groupResources"),
       items: [
-        { label: t("sidebar.resources"), path: "/administration/resources", icon: <StorageIcon /> },
+        {
+          label: t("sidebar.repositories"),
+          path: "/administration/resources/repositories",
+          // Connections (Bitbucket/GitHub) and their repositories live under /resources too
+          activePrefix: "/administration/resources",
+          icon: <StorageIcon />,
+        },
       ],
     },
     {
@@ -58,8 +64,10 @@ const AdminSidebarMenu = () => {
     },
   ];
 
-  const isActive = (path) =>
-    location.pathname === path || location.pathname.startsWith(path + "/");
+  const isActive = (item) => {
+    const path = item.activePrefix || item.path;
+    return location.pathname === path || location.pathname.startsWith(path + "/");
+  };
 
   return (
     <div className="conversations">
@@ -76,7 +84,7 @@ const AdminSidebarMenu = () => {
           {group.items.map((item) => (
             <div
               key={item.path}
-              className={`conversation-item admin-menu-group-item ${isActive(item.path) ? "active" : ""}`}
+              className={`conversation-item admin-menu-group-item ${isActive(item) ? "active" : ""}`}
               onClick={() => navigate(item.path)}
             >
               <div className="conversation-info">

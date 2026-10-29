@@ -117,7 +117,7 @@ function GithubResourceForm() {
       } else {
         await api.createGithubResource(formData, pemFile);
       }
-      navigate("/administration/resources");
+      navigate("/administration/resources/connections");
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: t("githubResourceForm.failedToSave") });
@@ -170,8 +170,8 @@ function GithubResourceForm() {
           onClick={() =>
             navigate(
               isEditMode
-                ? "/administration/resources"
-                : "/administration/resources/new",
+                ? "/administration/resources/connections"
+                : "/administration/resources/connections/new",
             )
           }
           sx={{ mb: 2 }}
@@ -525,8 +525,8 @@ function GithubResourceForm() {
                   onClick={() =>
                     navigate(
                       isEditMode
-                        ? "/administration/resources"
-                        : "/administration/resources/new",
+                        ? "/administration/resources/connections"
+                        : "/administration/resources/connections/new",
                     )
                   }
                   disabled={loading}

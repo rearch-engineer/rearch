@@ -130,7 +130,7 @@ function BitbucketResourceForm() {
       } else {
         await api.createResource(formData);
       }
-      navigate("/administration/resources");
+      navigate("/administration/resources/connections");
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: t("bitbucketResourceForm.failedToSave") });
@@ -183,8 +183,8 @@ function BitbucketResourceForm() {
           onClick={() =>
             navigate(
               isEditMode
-                ? "/administration/resources"
-                : "/administration/resources/new",
+                ? "/administration/resources/connections"
+                : "/administration/resources/connections/new",
             )
           }
           sx={{ mb: 2 }}
@@ -564,8 +564,8 @@ function BitbucketResourceForm() {
                   onClick={() =>
                     navigate(
                       isEditMode
-                        ? "/administration/resources"
-                        : "/administration/resources/new",
+                        ? "/administration/resources/connections"
+                        : "/administration/resources/connections/new",
                     )
                   }
                   disabled={loading}

@@ -20,6 +20,7 @@ import McpServersGalleryPage from "../../components/Administration/McpServersGal
 import McpServersManualPage from "../../components/Administration/McpServersManualPage";
 import McpServersOpenApiPage from "../../components/Administration/McpServersOpenApiPage";
 import McpServersEditPage from "../../components/Administration/McpServersEditPage";
+import RepositoriesListPage from "../../components/Administration/Resources/RepositoriesListPage";
 import ResourceListPage from "../../components/Administration/Resources/ResourceListPage";
 import ResourceTypeSelection from "../../components/Administration/Resources/ResourceTypeSelection";
 import ResourceFormPage from "../../components/Administration/Resources/ResourceFormPage";
@@ -48,24 +49,40 @@ export default function AdministrationPage() {
           path="/"
           element={<Navigate to="/administration/general" replace />}
         />
-        <Route path="/resources" element={<ResourceListPage />} />
-        <Route path="/resources/new" element={<ResourceTypeSelection />} />
+        {/* Resources: repositories are the first (and so far only) resource kind.
+            Provider connections (Bitbucket / GitHub) hang below them. */}
         <Route
-          path="/resources/new/bitbucket"
+          path="/resources"
+          element={<Navigate to="/administration/resources/repositories" replace />}
+        />
+        <Route path="/resources/repositories" element={<RepositoriesListPage />} />
+        <Route path="/resources/connections" element={<ResourceListPage />} />
+        <Route
+          path="/resources/connections/new"
+          element={<ResourceTypeSelection />}
+        />
+        <Route
+          path="/resources/connections/new/bitbucket"
           element={<BitbucketResourceForm />}
         />
         <Route
-          path="/resources/new/github"
+          path="/resources/connections/new/github"
           element={<GithubResourceForm />}
         />
-        <Route path="/resources/:id" element={<ResourceDetailsPage />} />
-        <Route path="/resources/:id/edit" element={<ResourceFormPage />} />
         <Route
-          path="/resources/:id/subresources"
+          path="/resources/connections/:id"
+          element={<ResourceDetailsPage />}
+        />
+        <Route
+          path="/resources/connections/:id/edit"
+          element={<ResourceFormPage />}
+        />
+        <Route
+          path="/resources/connections/:id/subresources"
           element={<SubResourcesListPage />}
         />
         <Route
-          path="/resources/:id/subresources/:subId"
+          path="/resources/connections/:id/subresources/:subId"
           element={<SubResourceDetailsPage />}
         />
         <Route path="/general" element={<GeneralSettings />} />

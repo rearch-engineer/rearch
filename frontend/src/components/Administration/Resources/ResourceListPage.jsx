@@ -12,7 +12,7 @@ import {
   ModalDialog,
   ModalClose,
 } from "@mui/joy";
-import { Search, Delete, Add } from "@mui/icons-material";
+import { Search, Delete, Add, ArrowBack } from "@mui/icons-material";
 import { api } from "../../../api/client";
 
 // Bitbucket SVG logo component
@@ -276,6 +276,15 @@ function ResourceListPage() {
     >
       {/* Header */}
       <Box sx={{ maxWidth: 960, mx: "auto", mb: 4 }}>
+        <Button
+          variant="plain"
+          size="sm"
+          startDecorator={<ArrowBack />}
+          onClick={() => navigate("/administration/resources/repositories")}
+          sx={{ mb: 2, color: "var(--text-secondary)", pl: 0 }}
+        >
+          {t("resources.backToRepositories")}
+        </Button>
         <Typography level="h3" sx={{ mb: 3 }}>
           {t("resources.title")}
         </Typography>
@@ -299,7 +308,7 @@ function ResourceListPage() {
           data-testid="add-resource-btn"
           size="sm"
           variant="solid"
-          onClick={() => navigate("/administration/resources/new")}
+          onClick={() => navigate("/administration/resources/connections/new")}
           sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
         >
           {t("resources.connect")}
@@ -350,7 +359,7 @@ function ResourceListPage() {
                     variant="soft"
                     color="primary"
                     startDecorator={<Add />}
-                    onClick={() => navigate("/administration/resources/new")}
+                    onClick={() => navigate("/administration/resources/connections/new")}
                   >
                     {t("resources.addResource")}
                   </Button>
@@ -365,7 +374,7 @@ function ResourceListPage() {
                 key={resource._id}
                 resource={resource}
                 onClick={() =>
-                  navigate(`/administration/resources/${resource._id}`)
+                  navigate(`/administration/resources/connections/${resource._id}`)
                 }
                 onDelete={handleDeleteClick}
               />

@@ -79,16 +79,16 @@ test.describe("BitBucket onboarding flow", () => {
 
     await test.step("Create a new BitBucket resource", async () => {
       // Navigate to Resources page
-      await page.goto("/resources");
+      await page.goto("/administration/resources/connections");
       await expect(page.locator('[data-testid="add-resource-btn"]')).toBeVisible();
 
       // Click "Add Resource"
       await page.locator('[data-testid="add-resource-btn"]').click();
-      await page.waitForURL("**/resources/new");
+      await page.waitForURL("**/resources/connections/new");
 
       // Select BitBucket
       await page.locator('[data-testid="resource-type-bitbucket"]').click();
-      await page.waitForURL("**/resources/new/bitbucket");
+      await page.waitForURL("**/resources/connections/new/bitbucket");
 
       // Fill the form
       await page.locator('[data-testid="bb-resource-name"] input').fill(bbName);
@@ -109,7 +109,7 @@ test.describe("BitBucket onboarding flow", () => {
       await page.locator('[data-testid="bb-resource-submit"]').click();
 
       // Wait for redirect back to the resources list
-      await page.waitForURL("**/resources", { timeout: 30_000 });
+      await page.waitForURL("**/resources/connections", { timeout: 30_000 });
 
       // Verify the new resource appears in the list
       await expect(page.getByText(bbName)).toBeVisible();
@@ -128,14 +128,14 @@ test.describe("BitBucket onboarding flow", () => {
       await page.getByText(bbName).first().click();
 
       // Wait for navigation to /resources/:id
-      await page.waitForURL("**/resources/*");
+      await page.waitForURL("**/resources/connections/*");
       resourceDetailUrl = page.url();
 
       // Navigate to subresources — look for a link/button that goes to the subresources page.
       // The resource detail page shows a "Repositories" link or the user navigates via the
       // subresources path. Let's navigate directly.
-      const resourceId = resourceDetailUrl.split("/resources/")[1].split("/")[0];
-      subResourcesUrl = `/resources/${resourceId}/subresources`;
+      const resourceId = resourceDetailUrl.split("/resources/connections/")[1].split("/")[0];
+      subResourcesUrl = `/administration/resources/connections/${resourceId}/subresources`;
       await page.goto(subResourcesUrl);
 
       // Wait for the page to load

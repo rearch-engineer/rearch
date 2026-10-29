@@ -126,11 +126,11 @@ function ResourceDetailsPage() {
       if (foundResource) {
         setResource(foundResource);
       } else {
-        navigate("/administration/resources");
+        navigate("/administration/resources/connections");
       }
     } catch (error) {
       console.error("Error loading resource:", error);
-      navigate("/administration/resources");
+      navigate("/administration/resources/connections");
     } finally {
       setLoading(false);
     }
@@ -250,7 +250,7 @@ function ResourceDetailsPage() {
             variant="plain"
             color="neutral"
             startDecorator={<ArrowBack />}
-            onClick={() => navigate("/administration/resources")}
+            onClick={() => navigate("/administration/resources/connections")}
           >
             {t("resourceDetails.resources")}
           </Button>
@@ -345,7 +345,7 @@ function ResourceDetailsPage() {
                   color="neutral"
                   startDecorator={<List />}
                   onClick={() =>
-                    navigate(`/administration/resources/${id}/subresources`)
+                    navigate(`/administration/resources/connections/${id}/subresources`)
                   }
                   sx={{ borderColor: "var(--border-color)" }}
                 >
@@ -357,7 +357,7 @@ function ResourceDetailsPage() {
                 color="primary"
                 startDecorator={<Edit />}
                 onClick={() =>
-                  navigate(`/administration/resources/${id}/edit`)
+                  navigate(`/administration/resources/connections/${id}/edit`)
                 }
               >
                 {t("resourceDetails.edit")}

@@ -84,7 +84,7 @@ function ResourceTypeSelection() {
   const navigate = useNavigate();
 
   const handleTypeSelect = (slug) => {
-    navigate(`/administration/resources/new/${slug}`);
+    navigate(`/administration/resources/connections/new/${slug}`);
   };
 
   return (
@@ -103,7 +103,7 @@ function ResourceTypeSelection() {
           variant="plain"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate("/administration/resources")}
+          onClick={() => navigate("/administration/resources/connections")}
         >
           {t("resourceTypeSelection.backToResources")}
         </Button>
