@@ -194,13 +194,20 @@ export default function McpServersSettings() {
                       </Typography>
                     </td>
                     <td>
-                      <Chip
-                        size="sm"
-                        variant="soft"
-                        color={server.type === 'remote' ? 'primary' : server.type === 'openapi' ? 'warning' : 'success'}
-                      >
-                        {server.type === 'openapi' ? t("mcpServers.typeApiDefinition") : server.type}
-                      </Chip>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Chip
+                          size="sm"
+                          variant="soft"
+                          color={server.type === 'remote' ? 'primary' : server.type === 'openapi' ? 'warning' : 'success'}
+                        >
+                          {server.type === 'openapi' ? t("mcpServers.typeApiDefinition") : server.type}
+                        </Chip>
+                        {server.auth?.mode === 'oauth-user' && (
+                          <Chip size="sm" variant="outlined" color="primary">
+                            {t("mcpAuth.oauthBadge")}
+                          </Chip>
+                        )}
+                      </Stack>
                     </td>
                     <td>
                       <Typography level="body-sm" sx={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>

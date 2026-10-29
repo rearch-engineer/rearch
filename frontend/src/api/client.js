@@ -281,25 +281,24 @@ export const api = {
   createConversation: async (
     workspaceId,
     title = "New Conversation",
-    repository,
-    subResource,
+    agentId,
   ) => {
     const response = await axios.post(
       `${API_BASE_URL}/workspaces/${workspaceId}/conversations`,
       {
         title,
-        repository,
-        subResource,
+        agent: agentId,
       },
     );
     return response.data;
   },
 
-  createConversationByName: async (workspaceId, repoName) => {
+  // Start a conversation by agent name (repository names are matched too)
+  createConversationByName: async (workspaceId, agentName) => {
     const response = await axios.post(
       `${API_BASE_URL}/workspaces/${workspaceId}/conversations/start-by-name`,
       {
-        name: repoName,
+        name: agentName,
       },
     );
     return response.data;
@@ -572,6 +571,53 @@ export const api = {
     const response = await axios.get(
       `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/bitbucket-members`,
       { params },
+    );
+    return response.data;
+  },
+
+  // Agents (user-facing: enabled agents only)
+  getAgents: async () => {
+    const response = await axios.get(`${API_BASE_URL}/agents`);
+    return response.data;
+  },
+
+  getAgent: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/agents/${id}`);
+    return response.data;
+  },
+
+  // Admin Agents
+  getAdminAgents: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/agents`);
+    return response.data;
+  },
+
+  getAdminAgent: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/agents/${id}`);
+    return response.data;
+  },
+
+  createAgent: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/agents`, data);
+    return response.data;
+  },
+
+  updateAgent: async (id, data) => {
+    const response = await axios.put(`${API_BASE_URL}/admin/agents/${id}`, data);
+    return response.data;
+  },
+
+  deleteAgent: async (id, { force = false } = {}) => {
+    const response = await axios.delete(
+      `${API_BASE_URL}/admin/agents/${id}${force ? "?force=true" : ""}`,
+    );
+    return response.data;
+  },
+
+  rebuildAgentImage: async (id) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/agents/${id}/actions/rebuild`,
+      {},
     );
     return response.data;
   },
@@ -962,6 +1008,34 @@ export const api = {
     return response.data;
   },
 
+  // User integrations: per-user OAuth connections to MCP servers
+  getIntegrations: async () => {
+    const response = await axios.get(`${API_BASE_URL}/integrations`);
+    return response.data;
+  },
+
+  startIntegrationAuth: async (server) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/integrations/${encodeURIComponent(server)}/authorize`,
+    );
+    return response.data; // { url, stateToken }
+  },
+
+  completeIntegrationAuth: async (server, { code, state, stateToken }) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/integrations/${encodeURIComponent(server)}/callback`,
+      { code, state, stateToken },
+    );
+    return response.data;
+  },
+
+  disconnectIntegration: async (server) => {
+    const response = await axios.delete(
+      `${API_BASE_URL}/integrations/${encodeURIComponent(server)}`,
+    );
+    return response.data;
+  },
+
   // Docker rebuild schedule settings (admin)
   getDockerRebuildSettings: async () => {
     const response = await axios.get(
@@ -1045,6 +1119,13 @@ export const api = {
     const response = await axios.post(`${API_BASE_URL}/admin/mcp/reload`);
     return response.data;
   },
+  discoverMcpOAuth: async (url) => {
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/mcp/oauth/discover`,
+      { url },
+    );
+    return response.data;
+  },
   parseOpenApiSpec: async (payload) => {
     // payload: { specFileId?, spec?, aiCurate? }
     const response = await axios.post(
@@ -1088,6 +1169,13 @@ export const api = {
   // Suggested Prompts
   getSuggestedPrompts: async () => {
     const response = await axios.get(`${API_BASE_URL}/suggested-prompts`);
+    return response.data;
+  },
+
+  getSuggestedPromptsForAgent: async (agentId) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/suggested-prompts/for-agent/${agentId}`,
+    );
     return response.data;
   },
 

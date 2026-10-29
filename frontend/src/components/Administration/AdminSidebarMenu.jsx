@@ -5,6 +5,7 @@ import Badge from "@mui/joy/Badge";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import ArticleIcon from "@mui/icons-material/Article";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import PeopleIcon from "@mui/icons-material/People";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import BuildIcon from "@mui/icons-material/Build";
@@ -37,6 +38,7 @@ const AdminSidebarMenu = () => {
     {
       label: t("sidebar.groupGenerativeAI"),
       items: [
+        { label: t("sidebar.agents"), path: "/administration/agents", icon: <AutoAwesomeIcon /> },
         { label: t("sidebar.providers"), path: "/administration/llm-providers", icon: <SmartToyIcon /> },
         { label: t("sidebar.skills"), path: "/administration/skills", icon: <ArticleIcon /> },
         { label: t("sidebar.mcpServers"), path: "/administration/mcp-servers", icon: <HubIcon fontSize="small" /> },

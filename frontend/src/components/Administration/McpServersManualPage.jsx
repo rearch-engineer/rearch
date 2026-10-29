@@ -9,6 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
+import McpAuthFields from './McpAuthFields';
 
 const EMPTY_FORM = {
   name: '',
@@ -36,6 +37,10 @@ export default function McpServersManualPage() {
       url: prefill.url || '',
       headers: prefill.headers || '',
     } : {}),
+  });
+  const [auth, setAuth] = useState({
+    mode: prefill.authMode === 'oauth-user' ? 'oauth-user' : 'shared',
+    scopes: prefill.oauthScopes || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -67,7 +72,8 @@ export default function McpServersManualPage() {
 
     if (formData.type === 'remote') {
       payload.url = formData.url;
-      if (headers) payload.headers = headers;
+      payload.auth = { mode: auth.mode, oauth: { scopes: auth.scopes.trim() } };
+      if (headers && auth.mode !== 'oauth-user') payload.headers = headers;
     } else {
       payload.command = formData.command.split('\n').map((s) => s.trim()).filter(Boolean);
       if (environment) payload.environment = environment;
@@ -175,6 +181,10 @@ export default function McpServersManualPage() {
             )}
 
             {formData.type === 'remote' && (
+              <McpAuthFields auth={auth} onChange={setAuth} url={formData.url} />
+            )}
+
+            {formData.type === 'remote' && auth.mode !== 'oauth-user' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
                   {t("mcpManual.headersJson")}

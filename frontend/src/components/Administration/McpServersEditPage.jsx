@@ -9,6 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
+import McpAuthFields from './McpAuthFields';
 
 export default function McpServersEditPage() {
   const { t } = useTranslation("Administration");
@@ -27,6 +28,8 @@ export default function McpServersEditPage() {
     environment: '',
     enabled: true,
   });
+  const [auth, setAuth] = useState({ mode: 'shared', scopes: '' });
+  const [oauthInfo, setOauthInfo] = useState(null);
   // OpenAPI ("API Definition") editing state
   const [baseUrl, setBaseUrl] = useState('');
   const [specFileId, setSpecFileId] = useState(null);
@@ -57,6 +60,11 @@ export default function McpServersEditPage() {
           ? JSON.stringify(server.environment, null, 2) : '',
         enabled: server.enabled !== false,
       });
+      setAuth({
+        mode: server.auth?.mode === 'oauth-user' ? 'oauth-user' : 'shared',
+        scopes: server.auth?.oauth?.scopes || '',
+      });
+      setOauthInfo(server.auth?.oauth || null);
       setBaseUrl(server.baseUrl || '');
       setSpecFileId(server.specFileId || null);
       setOperations(Array.isArray(server.operations) ? server.operations : []);
@@ -90,7 +98,8 @@ export default function McpServersEditPage() {
 
     if (formData.type === 'remote') {
       payload.url = formData.url;
-      if (headers) payload.headers = headers;
+      payload.auth = { mode: auth.mode, oauth: { scopes: auth.scopes.trim() } };
+      if (headers && auth.mode !== 'oauth-user') payload.headers = headers;
     } else if (formData.type === 'openapi') {
       const enabledOps = operations.filter((o) => o.enabled !== false);
       if (enabledOps.length === 0) {
@@ -251,6 +260,10 @@ export default function McpServersEditPage() {
             )}
 
             {formData.type === 'remote' && (
+              <McpAuthFields auth={auth} onChange={setAuth} url={formData.url} oauthInfo={oauthInfo} />
+            )}
+
+            {formData.type === 'remote' && auth.mode !== 'oauth-user' && (
               <FormControl>
                 <FormLabel sx={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.8rem' }}>
                   {t("mcpEdit.headersJson")}

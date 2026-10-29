@@ -25,6 +25,8 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ForumIcon from '@mui/icons-material/Forum';
 import DescriptionIcon from '@mui/icons-material/Description';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import WorkspacesIcon from '@mui/icons-material/Workspaces';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -44,6 +46,7 @@ const ICON_MAP = {
   Forum: ForumIcon,
   Description: DescriptionIcon,
   RocketLaunch: RocketLaunchIcon,
+  Workspaces: WorkspacesIcon,
 };
 
 function GalleryIcon({ name, ...props }) {
@@ -81,6 +84,10 @@ export default function McpServersGalleryPage() {
         url: item.url || '',
         headers: item.headers && Object.keys(item.headers).length > 0
           ? JSON.stringify(item.headers, null, 2) : '',
+        // Servers that advertise OAuth 2.1 with dynamic client registration
+        // default to per-user authentication.
+        authMode: item.auth === 'oauth' ? 'oauth-user' : 'shared',
+        oauthScopes: item.oauthScopes || '',
       },
     });
   };
@@ -237,6 +244,12 @@ export default function McpServersGalleryPage() {
                         </Typography>
                         {isInstalled && (
                           <CheckCircleIcon sx={{ fontSize: 14, color: '#16a34a', flexShrink: 0 }} />
+                        )}
+                        {item.auth === 'oauth' && (
+                          <VerifiedUserIcon
+                            titleAccess={t("mcpAuth.oauthBadge")}
+                            sx={{ fontSize: 14, color: 'var(--joy-palette-primary-500, #2563eb)', flexShrink: 0 }}
+                          />
                         )}
                       </Stack>
                     </Box>
