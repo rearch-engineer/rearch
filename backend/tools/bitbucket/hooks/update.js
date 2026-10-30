@@ -1,12 +1,12 @@
 /**
- * Bitbucket resource update hook
- * Called after a Bitbucket workspace resource is updated
+ * Bitbucket connection update hook
+ * Called after a Bitbucket workspace connection is updated
  */
-export default async function onUpdate(originalResource, updatedResource) {
-  console.log(`[Bitbucket Update Hook] Resource updated: ${updatedResource.name}`);
+export default async function onUpdate(originalConnection, updatedConnection) {
+  console.log(`[Bitbucket Update Hook] Connection updated: ${updatedConnection.name}`);
   
-  // Validate required fields from the updated resource
-  const { workspace, email, apiToken } = updatedResource.data || {};
+  // Validate required fields from the updated connection
+  const { workspace, email, apiToken } = updatedConnection.data || {};
   
   if (!workspace) {
     throw new Error('Bitbucket workspace is required');
@@ -16,6 +16,6 @@ export default async function onUpdate(originalResource, updatedResource) {
     throw new Error('Bitbucket email and API token are required');
   }
 
-  // Return the updated resource data (includes all fields like cloneUsername)
-  return updatedResource.data;
+  // Return the updated connection data (includes all fields like cloneUsername)
+  return updatedConnection.data;
 }

@@ -8,6 +8,6 @@ export { scheduleDockerRebuilds, triggerRebuildAll, scheduleContainerCleanup, tr
 import "./resourcesWorker.js";
 import "./conversationsWorker.js";
 
-// Default export (used by routes/resources.js, tools/conversation/*)
+// Default export (used by routes/connections.js, tools/conversation/*)
 import { addJobToQueue } from "./config.js";
 export default { addJobToQueue };

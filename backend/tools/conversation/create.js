@@ -5,8 +5,8 @@ import queue from "../../queue";
  *
  * @param {string} conversationId - The ID of the conversation
  * @param {string} agentId - The ID of the Agent the conversation runs with
- * @param {{ repositoryId?: string, subResourceId?: string }} [legacy]
- *   Optional legacy identifiers (connection + repository sub-resource). They
+ * @param {{ connectionId?: string, resourceId?: string }} [legacy]
+ *   Optional identifiers of the connection + repository resource. They
  *   are only carried in the job payload for logging/backward compatibility;
  *   the worker resolves everything from the agent.
  */
@@ -19,8 +19,8 @@ export const createConversation = async (
     await queue.addJobToQueue("conversations", "setup-conversation", {
       conversationId,
       agentId: agentId ? agentId.toString() : null,
-      ...(legacy.repositoryId ? { repositoryId: legacy.repositoryId } : {}),
-      ...(legacy.subResourceId ? { subResourceId: legacy.subResourceId } : {}),
+      ...(legacy.connectionId ? { connectionId: legacy.connectionId } : {}),
+      ...(legacy.resourceId ? { resourceId: legacy.resourceId } : {}),
     });
     console.log(
       `✅ Conversation setup job added for conversation ${conversationId}`,

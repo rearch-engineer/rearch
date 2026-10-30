@@ -1,11 +1,11 @@
 import { getRepositoryDetails } from "../../../utils/github/github.js";
 
-export default async function onImport(parentResource, subResource) {
+export default async function onImport(connection, resource) {
   console.log(
-    `[GitHub Import Hook] Importing repository: ${subResource.externalId}`,
+    `[GitHub Import Hook] Importing repository: ${resource.externalId}`,
   );
 
-  const fullName = subResource.externalId; // owner/repo format
+  const fullName = resource.externalId; // owner/repo format
   if (!fullName || !fullName.includes("/")) {
     throw new Error(
       "Repository full name (owner/repo) is required for import",
@@ -16,13 +16,13 @@ export default async function onImport(parentResource, subResource) {
 
   try {
     const repoDetails = await getRepositoryDetails(
-      parentResource.data,
+      connection.data,
       owner,
       repo,
     );
 
     return {
-      ...subResource.data,
+      ...resource.data,
       slug: repoDetails.slug,
       fullName: repoDetails.fullName,
       description: repoDetails.description,

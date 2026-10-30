@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import apiRoutes from "./routes/api.js";
-import resourceRoutes from "./routes/resources.js";
+import connectionRoutes, { resourcesRouter } from "./routes/connections.js";
 import agentRoutes from "./routes/agents.js";
 import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspaces.js";
@@ -151,7 +151,8 @@ const app = new Elysia()
   // ─── Authenticated Routes ─────────────────────────────────────────────
   .use(apiRoutes)
   .use(fileRoutes)
-  .use(resourceRoutes)
+  .use(connectionRoutes)
+  .use(resourcesRouter)
   .use(agentRoutes)
   .use(workspaceRoutes)
   .use(integrationRoutes)

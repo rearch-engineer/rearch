@@ -10,7 +10,7 @@ import jobRoutes from './jobs.js';
 import usageRoutes from './usage.js';
 import mcpRoutes from './mcp.js';
 import suggestedPromptsRoutes from './suggestedPrompts.js';
-import resourceRoutes from './resources.js';
+import connectionRoutes, { resourcesRouter as adminResourcesRouter } from './connections.js';
 import agentRoutes from './agents.js';
 import workspaceRoutes from './workspaces.js';
 
@@ -25,7 +25,8 @@ const adminRouter = new Elysia({ prefix: '/api/admin' })
   .use(usageRoutes)
   .use(mcpRoutes)
   .use(suggestedPromptsRoutes)
-  .use(resourceRoutes)
+  .use(connectionRoutes)
+  .use(adminResourcesRouter)
   .use(agentRoutes)
   .use(workspaceRoutes);
 

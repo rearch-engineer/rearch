@@ -1,13 +1,13 @@
 /**
- * GitHub resource update hook
- * Called after a GitHub App resource is updated.
+ * GitHub connection update hook
+ * Called after a GitHub App connection is updated.
  */
 import { getInstallationToken } from "../../../utils/github/github.js";
 
-export default async function onUpdate(originalResource, updatedResource) {
-  console.log(`[GitHub Update Hook] Resource updated: ${updatedResource.name}`);
+export default async function onUpdate(originalConnection, updatedConnection) {
+  console.log(`[GitHub Update Hook] Connection updated: ${updatedConnection.name}`);
 
-  const { appId, privateKey, privateKeyFileId, installationId } = updatedResource.data || {};
+  const { appId, privateKey, privateKeyFileId, installationId } = updatedConnection.data || {};
 
   if (!appId) {
     throw new Error("GitHub App ID is required");
@@ -23,12 +23,12 @@ export default async function onUpdate(originalResource, updatedResource) {
 
   // Re-validate credentials
   try {
-    await getInstallationToken(updatedResource.data);
+    await getInstallationToken(updatedConnection.data);
   } catch (error) {
     throw new Error(
       `Invalid GitHub App credentials: ${error.message}`,
     );
   }
 
-  return updatedResource.data;
+  return updatedConnection.data;
 }

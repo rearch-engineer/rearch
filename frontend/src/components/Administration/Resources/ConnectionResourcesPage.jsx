@@ -13,23 +13,22 @@ import {
 } from "@mui/joy";
 import { Search, Add, ArrowBack } from "@mui/icons-material";
 import { api } from "../../../api/client";
-import SubResourceImportModal from "./SubResourceImportModal";
+import ResourceImportModal from "./ResourceImportModal";
 
-function getTypeLabel(type, t) {
-  switch (type) {
-    case "bitbucket-repository":
-    case "github-repository":
+function getKindLabel(resource, t) {
+  switch (resource.kind) {
+    case "repository":
       return t("subResourcesList.repositories");
     default:
-      return type;
+      return resource.kind;
   }
 }
 
-function getTypeChipColor(type) {
-  switch (type) {
-    case "bitbucket-repository":
+function getProviderChipColor(provider) {
+  switch (provider) {
+    case "bitbucket":
       return "#10a37f";
-    case "github-repository":
+    case "github":
       return "#24292f";
     default:
       return "#6b7280";
@@ -46,20 +45,17 @@ function getProviderLabel(provider, t) {
   }
 }
 
-function getSubResourceSubtitle(subResource) {
-  if (
-    subResource.type === "bitbucket-repository" ||
-    subResource.type === "github-repository"
-  ) {
-    return subResource.data?.fullName || null;
+function getResourceSubtitle(resource) {
+  if (resource.kind === "repository") {
+    return resource.data?.fullName || null;
   }
   return null;
 }
 
-function SubResourceCard({ subResource, onClick }) {
+function ResourceCard({ resource, onClick }) {
   const { t } = useTranslation("Administration");
-  const subtitle = getSubResourceSubtitle(subResource);
-  const typeColor = getTypeChipColor(subResource.type);
+  const subtitle = getResourceSubtitle(resource);
+  const typeColor = getProviderChipColor(resource.provider);
 
   return (
     <Card
@@ -106,7 +102,7 @@ function SubResourceCard({ subResource, onClick }) {
             level="title-md"
             sx={{ fontWeight: 700, color: "var(--text-primary)" }}
           >
-            {subResource.name}
+            {resource.name}
           </Typography>
 
           <Stack direction="row" spacing={1} alignItems="center">
@@ -139,12 +135,12 @@ function SubResourceCard({ subResource, onClick }) {
   );
 }
 
-function SubResourcesListPage() {
+function ConnectionResourcesPage() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const { id } = useParams();
-  const [resource, setResource] = useState(null);
-  const [subResources, setSubResources] = useState([]);
+  const [connection, setResource] = useState(null);
+  const [resources, setResources] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -155,17 +151,17 @@ function SubResourcesListPage() {
     }
   }, [id]);
 
-  const loadAll = async (resourceId) => {
+  const loadAll = async (connectionId) => {
     try {
       setLoading(true);
       const [res, subs] = await Promise.all([
-        api.getAdminResource(resourceId),
-        api.getAdminSubResources(resourceId),
+        api.getAdminConnection(connectionId),
+        api.getAdminConnectionResources(connectionId),
       ]);
       setResource(res);
-      setSubResources(subs);
+      setResources(subs);
     } catch (error) {
-      console.error("Error loading sub-resources:", error);
+      console.error("Error loading sub-connections:", error);
     } finally {
       setLoading(false);
     }
@@ -176,12 +172,12 @@ function SubResourcesListPage() {
     loadAll(id);
   };
 
-  const filteredSubResources = subResources.filter((s) =>
+  const filteredResources = resources.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const listLabel = resource
-    ? getProviderLabel(resource.provider, t)
+  const listLabel = connection
+    ? getProviderLabel(connection.provider, t)
     : t("subResourcesList.subResources");
 
   return (
@@ -200,10 +196,10 @@ function SubResourcesListPage() {
           variant="plain"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate(`/administration/resources/connections/${id}`)}
+          onClick={() => navigate(`/administration/connections/connections/${id}`)}
           sx={{ mb: 2 }}
         >
-          {t("subResourcesList.backTo", { name: resource?.name || "Resource" })}
+          {t("subResourcesList.backTo", { name: connection?.name || "Connection" })}
         </Button>
 
         <Box sx={{ mb: 3 }}>
@@ -248,7 +244,7 @@ function SubResourcesListPage() {
           </Stack>
         </Box>
       </Box>
-      {/* Sub-resource list */}
+      {/* Sub-connection list */}
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {loading ? (
           <Box sx={{ textAlign: "center", py: 8 }}>
@@ -256,7 +252,7 @@ function SubResourcesListPage() {
               {t("subResourcesList.loading")}
             </Typography>
           </Box>
-        ) : filteredSubResources.length === 0 ? (
+        ) : filteredResources.length === 0 ? (
           <Card
             variant="outlined"
             sx={{
@@ -311,13 +307,13 @@ function SubResourcesListPage() {
           </Card>
         ) : (
           <Stack spacing={2}>
-            {filteredSubResources.map((subResource) => (
-              <SubResourceCard
-                key={subResource._id}
-                subResource={subResource}
+            {filteredResources.map((resource) => (
+              <ResourceCard
+                key={resource._id}
+                resource={resource}
                 onClick={() =>
                   navigate(
-                    `/administration/resources/connections/${id}/subresources/${subResource._id}`,
+                    `/administration/connections/connections/${id}/resources/${resource._id}`,
                   )
                 }
               />
@@ -325,11 +321,11 @@ function SubResourcesListPage() {
           </Stack>
         )}
       </Box>
-      {resource && (
-        <SubResourceImportModal
+      {connection && (
+        <ResourceImportModal
           open={importModalOpen}
           onClose={() => setImportModalOpen(false)}
-          resource={resource}
+          connection={connection}
           onImportSuccess={handleImportSuccess}
         />
       )}
@@ -337,4 +333,4 @@ function SubResourcesListPage() {
   );
 }
 
-export default SubResourcesListPage;
+export default ConnectionResourcesPage;

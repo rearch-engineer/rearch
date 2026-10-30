@@ -21,7 +21,7 @@ import CommandPalette from "./components/CommandPalette";
 import LoginPage from "./pages/LoginPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import StartPage from "./pages/StartPage";
-import { ResourcesProvider } from "./contexts/ResourcesContext";
+import { ConnectionsProvider } from "./contexts/ConnectionsContext";
 import { SkillsProvider } from "./contexts/SkillsContext";
 import { JobsProvider } from "./contexts/JobsContext";
 import { SocketProvider } from "./contexts/SocketContext";
@@ -190,7 +190,7 @@ function AuthenticatedApp() {
   return (
     <SocketProvider>
       <JobsProvider>
-        <ResourcesProvider>
+        <ConnectionsProvider>
             <SkillsProvider>
               <WorkspacesProvider>
               <ConversationsProvider>
@@ -232,7 +232,7 @@ function AuthenticatedApp() {
               </ConversationsProvider>
               </WorkspacesProvider>
             </SkillsProvider>
-        </ResourcesProvider>
+        </ConnectionsProvider>
       </JobsProvider>
     </SocketProvider>
   );

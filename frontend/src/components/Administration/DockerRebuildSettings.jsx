@@ -68,9 +68,9 @@ export default function DockerRebuildSettings() {
       setLoading(true);
       setCheckingRearch(true);
 
-      const [settings, subResources] = await Promise.all([
+      const [settings, agents] = await Promise.all([
         api.getDockerRebuildSettings(),
-        api.getAllSubResources(),
+        api.getAgents(),
       ]);
 
       setEnabled(settings.enabled || false);
@@ -79,11 +79,8 @@ export default function DockerRebuildSettings() {
       setIntervalUnit(display.unit);
       setLastTriggeredAt(settings.lastTriggeredAt || null);
 
-      // Check if any subresource has rearch.enabled
-      const anyRearchEnabled = subResources.some(
-        (sr) => sr.rearch?.enabled === true
-      );
-      setHasRearchEnabled(anyRearchEnabled);
+      // Scheduled rebuilds only make sense once at least one agent is enabled
+      setHasRearchEnabled(agents.length > 0);
     } catch (err) {
       toast.error(t("dockerRebuild.failedToLoadSettings", { message: err.message }));
     } finally {

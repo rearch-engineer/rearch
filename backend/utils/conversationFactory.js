@@ -1,8 +1,8 @@
 import Agent from "../models/Agent.js";
 import Conversation from "../models/Conversation.js";
-import SubResource from "../models/SubResource.js";
+import Resource from "../models/Resource.js";
 import { createConversation } from "../tools/conversation/create.js";
-import { ensureAgentForSubResource, isRepositorySubResource } from "./agents.js";
+import { ensureAgentForResource, isRepositoryResource } from "./agents.js";
 
 /**
  * Shared logic to create a conversation for an agent. Used by the public API,
@@ -19,15 +19,15 @@ function escapeRegex(value) {
 /**
  * Resolve the agent a new conversation should run with.
  *
- * Accepts either `agent` (preferred) or the legacy `repository` + `subResource`
+ * Accepts either `agent` (preferred) or the legacy `repository` + `resource`
  * pair; the legacy pair is mapped to the agent bound to that repository.
  *
  * @returns {Promise<{ agent?: object, error?: { status: number, message: string } }>}
  */
 export async function resolveAgentForNewConversation({
   agent: agentId,
-  repository: repositoryId,
-  subResource: subResourceId,
+  connection: connectionId,
+  resource: resourceId,
 } = {}) {
   let agent = null;
 
@@ -39,37 +39,36 @@ export async function resolveAgentForNewConversation({
     if (!agent) {
       return { error: { status: 404, message: "agent-not-found" } };
     }
-  } else if (subResourceId) {
-    if (!OBJECT_ID_RE.test(String(subResourceId))) {
+  } else if (resourceId) {
+    if (!OBJECT_ID_RE.test(String(resourceId))) {
       return {
-        error: { status: 400, message: "Invalid subResource ID format." },
+        error: { status: 400, message: "Invalid resource ID format." },
       };
     }
-    const subResourceDoc = await SubResource.findById(subResourceId);
-    if (!subResourceDoc) {
-      return { error: { status: 404, message: "subresource-not-found" } };
+    const resourceDoc = await Resource.findById(resourceId);
+    if (!resourceDoc) {
+      return { error: { status: 404, message: "resource-not-found" } };
     }
-    if (!isRepositorySubResource(subResourceDoc)) {
+    if (!isRepositoryResource(resourceDoc)) {
       return {
         error: {
           status: 400,
-          message:
-            "SubResource must be of type bitbucket-repository or github-repository",
+          message: "Resource must be a repository",
         },
       };
     }
     if (
-      repositoryId &&
-      subResourceDoc.resource.toString() !== String(repositoryId)
+      connectionId &&
+      resourceDoc.connection.toString() !== String(connectionId)
     ) {
       return {
         error: {
           status: 400,
-          message: "SubResource does not belong to the specified resource",
+          message: "Resource does not belong to the specified resource",
         },
       };
     }
-    agent = await ensureAgentForSubResource(subResourceDoc);
+    agent = await ensureAgentForResource(resourceDoc);
     if (!agent) {
       return { error: { status: 404, message: "agent-not-found" } };
     }
@@ -97,9 +96,9 @@ export async function findEnabledAgentByName(name) {
   const byName = await Agent.findOne({ name: { $regex: re }, enabled: true });
   if (byName) return byName;
 
-  const repos = await SubResource.find({
+  const repos = await Resource.find({
     name: { $regex: re },
-    type: { $in: ["bitbucket-repository", "github-repository"] },
+    kind: "repository",
   }).select("_id");
   if (repos.length === 0) return null;
 
@@ -111,7 +110,7 @@ export async function findEnabledAgentByName(name) {
 
 /**
  * Create and persist a conversation for an agent, then queue its container
- * setup job. Legacy `repository`/`subResource` fields are filled from the
+ * setup job. Legacy `repository`/`resource` fields are filled from the
  * agent's repository so provider tools (pull requests, reviewers) keep working.
  *
  * @returns {Promise<import('mongoose').Document>} the saved conversation
@@ -125,7 +124,7 @@ export async function startConversationForAgent({
 }) {
   let repositoryDoc = null;
   if (agent.repository) {
-    repositoryDoc = await SubResource.findById(agent.repository).select(
+    repositoryDoc = await Resource.findById(agent.repository).select(
       "resource",
     );
   }
@@ -135,16 +134,16 @@ export async function startConversationForAgent({
     createdBy: userId,
     participants: [userId],
     agent: agent._id,
-    subResource: repositoryDoc?._id || null,
-    repository: repositoryDoc?.resource || null,
+    resource: repositoryDoc?._id || null,
+    connection: repositoryDoc?.connection || null,
     workspace: workspaceId,
     ...(initialPrompt ? { initialPrompt } : {}),
   });
   await conversation.save();
 
   await createConversation(conversation._id, agent._id, {
-    repositoryId: repositoryDoc?.resource?.toString(),
-    subResourceId: repositoryDoc?._id?.toString(),
+    connectionId: repositoryDoc?.connection?.toString(),
+    resourceId: repositoryDoc?._id?.toString(),
   });
 
   return conversation;

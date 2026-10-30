@@ -1,12 +1,12 @@
 /**
- * Bitbucket resource creation hook
- * Called after a Bitbucket workspace resource is created
+ * Bitbucket connection creation hook
+ * Called after a Bitbucket workspace connection is created
  */
-export default async function onCreate({ resource }) {
-  console.log(`[Bitbucket Create Hook] Resource created: ${resource.name}`);
+export default async function onCreate({ connection }) {
+  console.log(`[Bitbucket Create Hook] Connection created: ${connection.name}`);
 
   // Validate required fields
-  const { workspace, email, apiToken } = resource.data || {};
+  const { workspace, email, apiToken } = connection.data || {};
 
   if (!workspace) {
     throw new Error("Bitbucket workspace is required");
@@ -16,6 +16,6 @@ export default async function onCreate({ resource }) {
     throw new Error("Bitbucket email and API token are required");
   }
 
-  // Return the resource data as-is (no additional processing needed on create)
-  return resource.data;
+  // Return the connection data as-is (no additional processing needed on create)
+  return connection.data;
 }

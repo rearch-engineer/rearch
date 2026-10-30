@@ -1,14 +1,14 @@
 /**
- * GitHub resource creation hook
- * Called after a GitHub App resource is created.
+ * GitHub connection creation hook
+ * Called after a GitHub App connection is created.
  * Validates the credentials by attempting to generate an installation token.
  */
 import { getInstallationToken } from "../../../utils/github/github.js";
 
-export default async function onCreate({ resource }) {
-  console.log(`[GitHub Create Hook] Resource created: ${resource.name}`);
+export default async function onCreate({ connection }) {
+  console.log(`[GitHub Create Hook] Connection created: ${connection.name}`);
 
-  const { appId, privateKey, privateKeyFileId, installationId } = resource.data || {};
+  const { appId, privateKey, privateKeyFileId, installationId } = connection.data || {};
 
   if (!appId) {
     throw new Error("GitHub App ID is required");
@@ -24,7 +24,7 @@ export default async function onCreate({ resource }) {
 
   // Validate credentials by generating an installation token
   try {
-    await getInstallationToken(resource.data);
+    await getInstallationToken(connection.data);
     console.log(`[GitHub Create Hook] Credentials validated successfully`);
   } catch (error) {
     throw new Error(
@@ -32,5 +32,5 @@ export default async function onCreate({ resource }) {
     );
   }
 
-  return resource.data;
+  return connection.data;
 }

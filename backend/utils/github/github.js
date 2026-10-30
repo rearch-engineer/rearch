@@ -63,11 +63,11 @@ const readPrivateKeyFromGridFS = async (fileId) => {
 /**
  * Get an installation access token for the GitHub App.
  * Tokens are valid for 1 hour.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @returns {Promise<string>} Installation access token
  */
-export const getInstallationToken = async (resourceData) => {
-  const { appId, privateKey, privateKeyFileId, installationId } = resourceData;
+export const getInstallationToken = async (connectionData) => {
+  const { appId, privateKey, privateKeyFileId, installationId } = connectionData;
 
   if (!appId || (!privateKey && !privateKeyFileId) || !installationId) {
     throw new Error(
@@ -141,19 +141,19 @@ const apiRequest = async (token, endpoint, options = {}) => {
 
 /**
  * Search for repositories accessible to the GitHub App installation.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @param {string} searchTerm - Search term to filter repositories
  * @param {Object} options - Optional parameters
  * @param {number} options.perPage - Number of results per page (default: 50)
  * @returns {Promise<Object>} Search results containing repositories
  */
 export const searchRepositories = async (
-  resourceData,
+  connectionData,
   searchTerm = "",
   options = {},
 ) => {
   try {
-    const token = await getInstallationToken(resourceData);
+    const token = await getInstallationToken(connectionData);
     const perPage = options.perPage || 50;
 
     // List repositories accessible to the installation
@@ -208,18 +208,18 @@ export const searchRepositories = async (
 
 /**
  * Get detailed information about a specific repository.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @param {string} owner - Repository owner (user or org)
  * @param {string} repo - Repository name
  * @returns {Promise<Object>} Complete repository details
  */
-export const getRepositoryDetails = async (resourceData, owner, repo) => {
+export const getRepositoryDetails = async (connectionData, owner, repo) => {
   try {
     if (!owner || !repo) {
       throw new Error("Owner and repository name are required");
     }
 
-    const token = await getInstallationToken(resourceData);
+    const token = await getInstallationToken(connectionData);
 
     const repoData = await apiRequest(token, `/repos/${owner}/${repo}`);
 
@@ -294,7 +294,7 @@ export const getRepositoryDetails = async (resourceData, owner, repo) => {
 
 /**
  * List collaborators of a GitHub repository with optional search.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
  * @param {Object} [options] - Optional parameters
@@ -302,7 +302,7 @@ export const getRepositoryDetails = async (resourceData, owner, repo) => {
  * @returns {Promise<Array>} List of collaborators
  */
 export const listCollaborators = async (
-  resourceData,
+  connectionData,
   owner,
   repo,
   { search } = {},
@@ -312,7 +312,7 @@ export const listCollaborators = async (
       throw new Error("Owner and repository name are required");
     }
 
-    const token = await getInstallationToken(resourceData);
+    const token = await getInstallationToken(connectionData);
 
     const allCollaborators = [];
     let page = 1;
@@ -360,7 +360,7 @@ export const listCollaborators = async (
 
 /**
  * Create a pull request in a GitHub repository.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
  * @param {Object} options - Pull request options
@@ -372,7 +372,7 @@ export const listCollaborators = async (
  * @returns {Promise<Object>} Created pull request details
  */
 export const createPullRequest = async (
-  resourceData,
+  connectionData,
   owner,
   repo,
   { title, description, sourceBranch, destinationBranch = "main", reviewers = [] },
@@ -388,7 +388,7 @@ export const createPullRequest = async (
       throw new Error("Pull request title is required");
     }
 
-    const token = await getInstallationToken(resourceData);
+    const token = await getInstallationToken(connectionData);
 
     const body = {
       title,
@@ -443,7 +443,7 @@ export const createPullRequest = async (
 
 /**
  * Get the raw contents of a file from a GitHub repository.
- * @param {Object} resourceData - Resource data containing GitHub App credentials
+ * @param {Object} connectionData - Connection data containing GitHub App credentials
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
  * @param {string} filePath - Path to the file within the repository
@@ -451,7 +451,7 @@ export const createPullRequest = async (
  * @returns {Promise<string>} Raw file contents as a string
  */
 export const getFileContents = async (
-  resourceData,
+  connectionData,
   owner,
   repo,
   filePath,
@@ -462,7 +462,7 @@ export const getFileContents = async (
       throw new Error("Owner, repository name, and file path are required");
     }
 
-    const token = await getInstallationToken(resourceData);
+    const token = await getInstallationToken(connectionData);
     const encodedPath = filePath.split("/").map(encodeURIComponent).join("/");
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${ref}`;
 

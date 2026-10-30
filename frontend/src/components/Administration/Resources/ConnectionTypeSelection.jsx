@@ -79,12 +79,12 @@ const resourceTypes = [
   },
 ];
 
-function ResourceTypeSelection() {
+function ConnectionTypeSelection() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
 
   const handleTypeSelect = (slug) => {
-    navigate(`/administration/resources/connections/new/${slug}`);
+    navigate(`/administration/connections/connections/new/${slug}`);
   };
 
   return (
@@ -103,7 +103,7 @@ function ResourceTypeSelection() {
           variant="plain"
           color="neutral"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate("/administration/resources/connections")}
+          onClick={() => navigate("/administration/connections/connections")}
         >
           {t("resourceTypeSelection.backToResources")}
         </Button>
@@ -151,9 +151,9 @@ function ResourceTypeSelection() {
           spacing={2.5}
           sx={{ width: "100%" }}
         >
-          {resourceTypes.map((resource) => (
+          {resourceTypes.map((connection) => (
             <Card
-              key={resource.slug}
+              key={connection.slug}
               data-testid={`resource-type-${resource.slug}`}
               variant="outlined"
               sx={{
@@ -170,7 +170,7 @@ function ResourceTypeSelection() {
                   borderColor: "var(--text-tertiary)",
                 },
               }}
-              onClick={() => handleTypeSelect(resource.slug)}
+              onClick={() => handleTypeSelect(connection.slug)}
             >
               <Box
                 sx={{
@@ -187,10 +187,10 @@ function ResourceTypeSelection() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    bgcolor: resource.bgTint,
+                    bgcolor: connection.bgTint,
                     transition: "background-color 0.2s ease",
                     ".MuiCard-root:hover &": {
-                      bgcolor: resource.bgTintHover,
+                      bgcolor: connection.bgTintHover,
                     },
                   }}
                 >
@@ -206,7 +206,7 @@ function ResourceTypeSelection() {
                       boxShadow: "0 1px 3px var(--shadow-color)",
                     }}
                   >
-                    {resource.icon}
+                    {connection.icon}
                   </Box>
                 </Box>
 
@@ -229,7 +229,7 @@ function ResourceTypeSelection() {
                       fontSize: "1.1rem",
                     }}
                   >
-                    {resource.title}
+                    {connection.title}
                   </Typography>
 
 
@@ -244,7 +244,7 @@ function ResourceTypeSelection() {
                       overflow: "hidden",
                     }}
                   >
-                    {resource.description}
+                    {connection.description}
                   </Typography>
 
                   <Typography
@@ -255,7 +255,7 @@ function ResourceTypeSelection() {
                       pt: 0.5,
                     }}
                   >
-                    {resource.pricing}
+                    {connection.pricing}
                   </Typography>
                 </Box>
               </Box>
@@ -267,4 +267,4 @@ function ResourceTypeSelection() {
   );
 }
 
-export default ResourceTypeSelection;
+export default ConnectionTypeSelection;

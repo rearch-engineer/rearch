@@ -17,7 +17,7 @@ const resourcesWorker = new Worker(
         await jobLog(
           job,
           "resources",
-          "Scheduled rebuild-all: triggering rebuild for all eligible subresources",
+          "Scheduled rebuild-all: triggering rebuild for all eligible resources",
         );
         const jobs = await triggerRebuildAll();
 
@@ -48,15 +48,15 @@ const resourcesWorker = new Worker(
         return { success: true, jobCount: jobs.length };
       }
 
-      const { parentResource, subResource, action, payload } = job.data;
+      const { connection, resource, action, payload } = job.data;
 
       await jobLog(
         job,
         "resources",
-        `Executing action '${action}' for provider '${parentResource.provider}'`,
+        `Executing action '${action}' for provider '${connection.provider}'`,
       );
       console.log(
-        `Executing action '${action}' for provider '${parentResource.provider}'`,
+        `Executing action '${action}' for provider '${connection.provider}'`,
       );
 
       // Execute the action hook, passing a log callback that also emits via Socket.IO

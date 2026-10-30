@@ -1,10 +1,10 @@
 /**
- * GitHub resource deletion hook
- * Called before a GitHub App resource is deleted.
+ * GitHub connection deletion hook
+ * Called before a GitHub App connection is deleted.
  */
-export default async function onDelete(resource) {
-  console.log(`[GitHub Delete Hook] Resource being deleted: ${resource.name}`);
+export default async function onDelete(connection) {
+  console.log(`[GitHub Delete Hook] Connection being deleted: ${connection.name}`);
 
-  // No cleanup needed — SubResources are cascade-deleted upstream
+  // No cleanup needed — Resources are cascade-deleted upstream
   return true;
 }

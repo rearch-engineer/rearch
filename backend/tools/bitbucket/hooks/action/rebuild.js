@@ -4,7 +4,7 @@ import temp from "temp";
 import fs from "node:fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import SubResource from "../../../../models/SubResource.js";
+import Resource from "../../../../models/Resource.js";
 import Agent from "../../../../models/Agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,43 +25,43 @@ const VALID_TEMPLATES = ["minimal", "node", "node-browser", "node-react-pg"];
  * 3. Retrieves the HEAD commit hash to use as the Docker image tag
  * 4. If .rearch/Dockerfile exists in the repo, uses it to build the image
  * 5. If not, copies the selected built-in template into .rearch/ and builds from it
- * 6. Builds a Docker image tagged as rearch_<subresource_id>_<slug>:<commitHash> (7-char short hash)
- * 7. Persists the new image tag back to subResource.rearch.dockerImage in MongoDB
+ * 6. Builds a Docker image tagged as rearch_<resource_id>_<slug>:<commitHash> (7-char short hash)
+ * 7. Persists the new image tag back to resource.rearch.dockerImage in MongoDB
  * 8. Cleans up old images for the same repository (including dangling images)
  */
 export default async function onRebuild(job, { log } = {}) {
   const _log = log || ((msg) => job.log(msg));
-  // `agent` carries the build configuration; `subResource` is the repository to
-  // clone and `parentResource` the connection holding the credentials. Jobs
+  // `agent` carries the build configuration; `resource` is the repository to
+  // clone and `connection` the connection holding the credentials. Jobs
   // without an agent come from repositories configured before agents existed.
-  const { parentResource, subResource, agent } = job.data;
+  const { connection, resource, agent } = job.data;
 
   await _log(
-    `[Bitbucket Rebuild] Starting rebuild for repository: ${subResource.externalId}`,
+    `[Bitbucket Rebuild] Starting rebuild for repository: ${resource.externalId}`,
   );
 
   // Extract required configuration
-  const workspace = parentResource.data?.workspace;
-  const apiToken = parentResource.data?.apiToken;
-  const cloneUsername = parentResource.data?.cloneUsername;
+  const workspace = connection.data?.workspace;
+  const apiToken = connection.data?.apiToken;
+  const cloneUsername = connection.data?.cloneUsername;
 
   const dockerImageFromBranch = agent
     ? agent.dockerImageFromBranch
-    : subResource.rearch?.dockerImageFromBranch;
-  const template = (agent ? agent.template : subResource.rearch?.template) || "";
-  const cloneLinks = subResource.data?.links?.clone;
+    : resource.rearch?.dockerImageFromBranch;
+  const template = (agent ? agent.template : resource.rearch?.template) || "";
+  const cloneLinks = resource.data?.links?.clone;
 
   // Determine Docker image name (the repository portion, without tag).
   // The full tag (<name>:<commitHash>) is computed after cloning, once we
   // know the HEAD commit hash of the checked-out branch.
-  // Image name is always auto-generated: rearch_<subresource_id>_<slugified_repo_name>
+  // Image name is always auto-generated: rearch_<resource_id>_<slugified_repo_name>
   // Image name is scoped to the agent (two agents may build the same repo
   // with different templates); legacy jobs fall back to the repository id.
-  const subId = (agent?._id || subResource._id || "").toString().toLowerCase();
+  const subId = (agent?._id || resource._id || "").toString().toLowerCase();
   const repoSlug = (
-    subResource.data?.slug ||
-    subResource.externalId ||
-    subResource.name ||
+    resource.data?.slug ||
+    resource.externalId ||
+    resource.name ||
     "repo"
   )
     .toString()
@@ -164,14 +164,14 @@ export default async function onRebuild(job, { log } = {}) {
       );
 
       // Ensure the DB is up-to-date (defensive: it should already match)
-      await persistDockerImage(agent, subResource, dockerImageTag);
+      await persistDockerImage(agent, resource, dockerImageTag);
 
       return {
         success: true,
         skipped: true,
         dockerImage: dockerImageTag,
         branch: dockerImageFromBranch,
-        repository: subResource.externalId,
+        repository: resource.externalId,
         template: template || "custom",
       };
     } catch {
@@ -284,7 +284,7 @@ export default async function onRebuild(job, { log } = {}) {
 
     // Persist the new image tag (with commit hash) back to MongoDB so that
     // conversation containers will use the correct, freshly built image.
-    await persistDockerImage(agent, subResource, dockerImageTag);
+    await persistDockerImage(agent, resource, dockerImageTag);
     await _log(
       `[Bitbucket Rebuild] Persisted dockerImage: ${dockerImageTag}`,
     );
@@ -300,7 +300,7 @@ export default async function onRebuild(job, { log } = {}) {
       success: true,
       dockerImage: dockerImageTag,
       branch: dockerImageFromBranch,
-      repository: subResource.externalId,
+      repository: resource.externalId,
       template: hasCustomRearch ? "custom" : template,
     };
   } catch (error) {
@@ -445,14 +445,14 @@ export async function pruneOldDockerImages(docker, dockerImageTag, log) {
 /**
  * Persist the freshly built image tag so new conversation containers use it.
  * Agents own the image; legacy repository-only jobs still write to
- * SubResource.rearch.dockerImage.
+ * Resource.rearch.dockerImage.
  */
-async function persistDockerImage(agent, subResource, dockerImageTag) {
+async function persistDockerImage(agent, resource, dockerImageTag) {
   if (agent?._id) {
     await Agent.findByIdAndUpdate(agent._id, { dockerImage: dockerImageTag });
     return;
   }
-  await SubResource.findByIdAndUpdate(subResource._id, {
+  await Resource.findByIdAndUpdate(resource._id, {
     "rearch.dockerImage": dockerImageTag,
   });
 }

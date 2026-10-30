@@ -624,65 +624,69 @@ export const api = {
     return response.data;
   },
 
-  // Resources
-  getResources: async () => {
-    const response = await axios.get(`${API_BASE_URL}/resources`);
+  // Connections (provider credentials)
+  getConnections: async () => {
+    const response = await axios.get(`${API_BASE_URL}/connections`);
     return response.data;
   },
 
-  getResource: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/resources/${id}`);
+  getConnection: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/connections/${id}`);
     return response.data;
   },
 
-  // Admin Resources (includes full data field)
-  getAdminResources: async () => {
-    const response = await axios.get(`${API_BASE_URL}/admin/resources`);
+  // Admin Connections (includes full data field)
+  getAdminConnections: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/connections`);
     return response.data;
   },
 
-  getAdminResource: async (id) => {
-    const response = await axios.get(`${API_BASE_URL}/admin/resources/${id}`);
+  getAdminConnection: async (id) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/connections/${id}`);
     return response.data;
   },
 
-  getAdminSubResources: async (resourceId) => {
+  getAdminConnectionResources: async (connectionId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources`,
     );
     return response.data;
   },
 
-  getAdminSubResource: async (resourceId, subResourceId) => {
+  getAdminResource: async (connectionId, resourceId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/${resourceId}`,
     );
     return response.data;
   },
 
-  getAllAdminSubResources: async (type) => {
-    const params = type ? `?type=${encodeURIComponent(type)}` : "";
+  // All imported resources across connections (admin view, full data)
+  getAdminResources: async ({ kind, provider } = {}) => {
+    const query = new URLSearchParams();
+    if (kind) query.set("kind", kind);
+    if (provider) query.set("provider", provider);
+    const qs = query.toString();
     const response = await axios.get(
-      `${API_BASE_URL}/admin/resources/subresources${params}`,
+      `${API_BASE_URL}/admin/resources${qs ? `?${qs}` : ""}`,
     );
     return response.data;
   },
 
-  getAdminSubResourceDockerfile: async (resourceId, subResourceId, ref) => {
+  getAdminResourceDockerfile: async (connectionId, resourceId, ref) => {
     const params = ref ? { ref } : {};
     const response = await axios.get(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/dockerfile`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/${resourceId}/dockerfile`,
       { params },
     );
     return response.data;
   },
 
-  createResource: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/admin/resources`, data);
+  createConnection: async (data) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/connections`, data);
     return response.data;
   },
 
-  createGithubResource: async (data, pemFile) => {
+  createGithubConnection: async (data, pemFile) => {
     const formData = new FormData();
     formData.append("name", data.name);
     formData.append("appId", data.data.appId);
@@ -692,7 +696,7 @@ export const api = {
     }
 
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/github`,
+      `${API_BASE_URL}/admin/connections/github`,
       formData,
       {
         headers: {
@@ -703,7 +707,7 @@ export const api = {
     return response.data;
   },
 
-  updateGithubResource: async (id, data, pemFile) => {
+  updateGithubConnection: async (id, data, pemFile) => {
     const formData = new FormData();
     if (data.name) formData.append("name", data.name);
     if (data.data.appId) formData.append("appId", data.data.appId);
@@ -714,7 +718,7 @@ export const api = {
     }
 
     const response = await axios.put(
-      `${API_BASE_URL}/admin/resources/github/${id}`,
+      `${API_BASE_URL}/admin/connections/github/${id}`,
       formData,
       {
         headers: {
@@ -731,7 +735,7 @@ export const api = {
     formData.append("file", file);
 
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/upload`,
+      `${API_BASE_URL}/admin/connections/upload`,
       formData,
       {
         headers: {
@@ -742,100 +746,103 @@ export const api = {
     return response.data;
   },
 
-  updateResource: async (id, data) => {
+  updateConnection: async (id, data) => {
     const response = await axios.put(
-      `${API_BASE_URL}/admin/resources/${id}`,
+      `${API_BASE_URL}/admin/connections/${id}`,
       data,
     );
     return response.data;
   },
 
-  deleteResource: async (id) => {
+  deleteConnection: async (id) => {
     const response = await axios.delete(
-      `${API_BASE_URL}/admin/resources/${id}`,
+      `${API_BASE_URL}/admin/connections/${id}`,
     );
     return response.data;
   },
 
   downloadFile: (fileId) => {
-    return `${API_BASE_URL}/resources/file/${fileId}`;
+    return `${API_BASE_URL}/connections/file/${fileId}`;
   },
 
-  // Get all subresources across all resources, with optional type filter
-  getAllSubResources: async (type) => {
-    const params = type ? `?type=${encodeURIComponent(type)}` : "";
+  // All imported resources across connections, optionally filtered by kind/provider
+  getResources: async ({ kind, provider } = {}) => {
+    const query = new URLSearchParams();
+    if (kind) query.set("kind", kind);
+    if (provider) query.set("provider", provider);
+    const qs = query.toString();
     const response = await axios.get(
-      `${API_BASE_URL}/resources/subresources${params}`,
+      `${API_BASE_URL}/resources${qs ? `?${qs}` : ""}`,
     );
     return response.data;
   },
 
-  // SubResources
-  getSubResources: async (resourceId) => {
+  // Resources
+  getConnectionResources: async (connectionId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/resources/${resourceId}/subresources`,
+      `${API_BASE_URL}/connections/${connectionId}/resources`,
     );
     return response.data;
   },
 
-  getSubResource: async (resourceId, subResourceId) => {
+  getResource: async (connectionId, resourceId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/connections/${connectionId}/resources/${resourceId}`,
     );
     return response.data;
   },
 
-  createSubResource: async (resourceId, data) => {
+  createResource: async (connectionId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources`,
       data,
     );
     return response.data;
   },
 
-  updateSubResource: async (resourceId, subResourceId, data) => {
+  updateResource: async (connectionId, resourceId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/${resourceId}`,
       data,
     );
     return response.data;
   },
 
-  deleteSubResource: async (resourceId, subResourceId) => {
+  deleteResource: async (connectionId, resourceId) => {
     const response = await axios.delete(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/${resourceId}`,
     );
     return response.data;
   },
 
-  searchSubResources: async (resourceId, query) => {
+  searchImportableResources: async (connectionId, query) => {
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/search`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/import/search`,
       { query },
     );
     return response.data;
   },
 
-  importSubResource: async (resourceId, data) => {
+  importResource: async (connectionId, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/import/import`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/import/import`,
       data,
     );
     return response.data;
   },
 
-  executeSubResourceAction: async (resourceId, subResourceId, action, data) => {
+  executeResourceAction: async (connectionId, resourceId, action, data) => {
     const response = await axios.post(
-      `${API_BASE_URL}/admin/resources/${resourceId}/subresources/${subResourceId}/action/${action}`,
+      `${API_BASE_URL}/admin/connections/${connectionId}/resources/${resourceId}/action/${action}`,
       data,
     );
     return response.data;
   },
 
-  getSubResourceDockerfile: async (resourceId, subResourceId, ref) => {
+  getResourceDockerfile: async (connectionId, resourceId, ref) => {
     const params = ref ? { ref } : {};
     const response = await axios.get(
-      `${API_BASE_URL}/resources/${resourceId}/subresources/${subResourceId}/dockerfile`,
+      `${API_BASE_URL}/connections/${connectionId}/resources/${resourceId}/dockerfile`,
       { params },
     );
     return response.data;
@@ -1181,9 +1188,9 @@ export const api = {
     return response.data;
   },
 
-  getSuggestedPromptsForRepo: async (subResourceId) => {
+  getSuggestedPromptsForRepo: async (resourceId) => {
     const response = await axios.get(
-      `${API_BASE_URL}/suggested-prompts/for-repo/${subResourceId}`,
+      `${API_BASE_URL}/suggested-prompts/for-repo/${resourceId}`,
     );
     return response.data;
   },

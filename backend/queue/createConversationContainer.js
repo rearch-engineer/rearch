@@ -39,8 +39,8 @@ const docker = new Docker();
  * @param {string} [params.gitEmail=""] - Git provider email
  * @param {string} [params.gitToken=""] - Git provider API token or installation token
  * @param {string} [params.gitProvider="bitbucket"] - Git provider type ("bitbucket" or "github")
- * @param {Array}  [params.rearchServices=[]] - Service port definitions from subResource.rearch.services
- * @param {Object} [params.resourceConstraints] - Docker resource constraints from subResource.rearch.resources
+ * @param {Array}  [params.rearchServices=[]] - Service port definitions from resource.rearch.services
+ * @param {Object} [params.resourceConstraints] - Docker resource constraints from resource.rearch.resources
  * @param {number} [params.resourceConstraints.memoryMb=0] - Memory limit in MB (0 = no limit)
  * @param {number} [params.resourceConstraints.cpuQuota=0] - CPU quota (0 = no limit, 100000 = 1 CPU)
  * @param {number} [params.resourceConstraints.pidsLimit=0] - Max number of PIDs (0 = no limit)
@@ -212,7 +212,7 @@ export async function createConversationContainer({
     HostConfig: {
       AutoRemove: false,
       PortBindings: useOverlayNetwork ? undefined : portBindings,
-      // Resource constraints (only applied when > 0)
+      // Connection constraints (only applied when > 0)
       ...(resourceConstraints?.memoryMb > 0 && {
         Memory: resourceConstraints.memoryMb * 1024 * 1024,
         MemorySwap: resourceConstraints.memoryMb * 2 * 1024 * 1024, // swap = 2x memory

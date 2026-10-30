@@ -26,17 +26,16 @@ const conversationSchema = new mongoose.Schema({
     ref: 'Agent',
     default: null
   },
-  // Legacy links kept for conversations created before agents existed and
-  // for provider tools (PRs, reviewers) that still need the repository.
-  // `repository` actually points to the provider connection (Resource).
-  repository: {
+  // Mirrors of the agent's repository, kept for provider tools (PRs, reviewers)
+  // and for conversations created before agents existed.
+  connection: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Resource',
+    ref: 'Connection',
     default: null
   },
-  subResource: {
+  resource: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'SubResource',
+    ref: 'Resource',
     default: null
   },
   contextUsage: {

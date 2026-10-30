@@ -20,12 +20,12 @@ export default function SkillEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', skillsRepository: '', isDefault: false });
-  const [repositorySubResources, setRepositorySubResources] = useState([]);
+  const [repositoryResources, setRepositoryResources] = useState([]);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     loadSkill();
-    loadRepositorySubResources();
+    loadRepositoryResources();
   }, [id]);
 
   const loadSkill = async () => {
@@ -46,12 +46,12 @@ export default function SkillEditPage() {
     }
   };
 
-  const loadRepositorySubResources = async () => {
+  const loadRepositoryResources = async () => {
     try {
-      const subResources = await api.getAllSubResources();
-      setRepositorySubResources(subResources);
+      const resources = await api.getResources();
+      setRepositoryResources(resources);
     } catch (err) {
-      console.error('Failed to load repository subresources:', err);
+      console.error('Failed to load repository resources:', err);
     }
   };
 
@@ -170,7 +170,7 @@ export default function SkillEditPage() {
                 placeholder={t("skillEdit.selectRepository")}
                 sx={{ bgcolor: 'var(--bg-secondary)', borderColor: 'var(--border-color)' }}
               >
-                {repositorySubResources.map((r) => (
+                {repositoryResources.map((r) => (
                   <Option key={r._id} value={r._id}>{r.name}</Option>
                 ))}
               </Select>

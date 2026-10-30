@@ -8,10 +8,10 @@ import mongoose from "mongoose";
  * limits, skills) and declares which resources it works with.
  *
  * A repository is just one kind of resource an agent may use. `repository`
- * points to the SubResource (kind: repository) that gets cloned into the
+ * points to the Resource (kind: repository) that gets cloned into the
  * container; it is optional so agents can exist without any repository.
  *
- * This replaces the former `SubResource.rearch` block, which coupled the
+ * This replaces the former `Resource.rearch` block, which coupled the
  * runtime configuration to a single repository.
  */
 
@@ -53,7 +53,7 @@ const agentSchema = new mongoose.Schema(
     // Primary repository cloned into the container (optional)
     repository: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "SubResource",
+      ref: "Resource",
       default: null,
     },
     // Additional resources exposed to the agent (any kind). Reserved for
@@ -61,7 +61,7 @@ const agentSchema = new mongoose.Schema(
     resources: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "SubResource",
+        ref: "Resource",
       },
     ],
 
@@ -88,7 +88,7 @@ const agentSchema = new mongoose.Schema(
         internalPort: Number,
       },
     ],
-    // SubResource ids of repositories containing skills to clone into the container
+    // Resource ids of repositories containing skills to clone into the container
     skills: [
       {
         type: String,

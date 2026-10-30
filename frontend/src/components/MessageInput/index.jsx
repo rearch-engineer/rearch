@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { MentionsInput, Mention } from "react-mentions";
-import { useResources } from "../../contexts/ResourcesContext";
+import { useConnections } from "../../contexts/ConnectionsContext";
 import { useAuth } from "../../contexts/AuthContext";
 import Box from "@mui/joy/Box";
 import IconButton from "@mui/joy/IconButton";
@@ -86,7 +86,7 @@ const MessageInput = forwardRef(
     useEffect(() => {
       focusInput();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
-    const { resources } = useResources();
+    const { connections } = useConnections();
     const { user } = useAuth();
     const { t } = useTranslation("MessageInput");
 
@@ -441,10 +441,10 @@ const MessageInput = forwardRef(
       }
     };
 
-    // Transform resources to react-mentions format
-    const resourceSuggestions = resources.map((resource) => ({
-      id: resource._id,
-      display: resource.name,
+    // Transform connections to react-mentions format
+    const connectionSuggestions = connections.map((connection) => ({
+      id: connection._id,
+      display: connection.name,
     }));
 
     const hasContent = input.trim();
@@ -492,7 +492,7 @@ const MessageInput = forwardRef(
               >
                 <Mention
                   trigger="@"
-                  data={resourceSuggestions}
+                  data={connectionSuggestions}
                   style={mentionStyle}
                   displayTransform={(id, display) => `@${display}`}
                 />

@@ -130,8 +130,8 @@ export default function UsageSettings() {
   const [dateTo, setDateTo] = useState(toDateString(new Date()));
   const [activeRange, setActiveRange] = useState(7); // tracks which quick button is "active", null if custom
   const [filterUserId, setFilterUserId] = useState("");
-  const [filterSubResource, setFilterSubResource] = useState("");
-  const [filters, setFilters] = useState({ users: [], subResources: [] });
+  const [filterResource, setFilterResource] = useState("");
+  const [filters, setFilters] = useState({ users: [], resources: [] });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filtersLoading, setFiltersLoading] = useState(true);
@@ -179,7 +179,7 @@ export default function UsageSettings() {
     try {
       const params = { from: fromISO, to: toISO };
       if (filterUserId) params.userId = filterUserId;
-      if (filterSubResource) params.subResource = filterSubResource;
+      if (filterResource) params.resource = filterResource;
       const result = await api.getUsage(params);
       setData(result);
     } catch (err) {
@@ -187,22 +187,22 @@ export default function UsageSettings() {
     } finally {
       setLoading(false);
     }
-  }, [fromISO, toISO, filterUserId, filterSubResource]);
+  }, [fromISO, toISO, filterUserId, filterResource]);
 
   useEffect(() => {
     fetchUsage();
   }, [fetchUsage]);
 
   // ── Group sub-resources by parent resource for the dropdown ──────────
-  const groupedSubResources = useMemo(() => {
+  const groupedResources = useMemo(() => {
     const groups = {};
-    for (const sr of filters.subResources) {
-      const groupKey = sr.resourceName || "Other";
+    for (const sr of filters.resources) {
+      const groupKey = sr.connectionName || "Other";
       if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push(sr);
     }
     return groups;
-  }, [filters.subResources]);
+  }, [filters.resources]);
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
@@ -288,13 +288,13 @@ export default function UsageSettings() {
           <Select
             size="sm"
             placeholder={t("usage.allRepositories")}
-            value={filterSubResource}
-            onChange={(_, val) => setFilterSubResource(val || "")}
+            value={filterResource}
+            onChange={(_, val) => setFilterResource(val || "")}
             sx={{ minWidth: 200 }}
             slotProps={{ listbox: { sx: { maxHeight: 280 } } }}
           >
             <Option value="">{t("usage.allRepositories")}</Option>
-            {Object.entries(groupedSubResources).map(([group, items]) => (
+            {Object.entries(groupedResources).map(([group, items]) => (
               <React.Fragment key={group}>
                 <Option disabled value={`__group_${group}`} sx={{ fontWeight: "bold", fontSize: "xs", opacity: 0.7 }}>
                   {group}

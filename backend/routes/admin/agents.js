@@ -2,11 +2,11 @@ import { Elysia } from "elysia";
 import { z } from "zod";
 import Agent, { AGENT_TEMPLATES } from "../../models/Agent.js";
 import Conversation from "../../models/Conversation.js";
+import Connection from "../../models/Connection.js";
 import Resource from "../../models/Resource.js";
-import SubResource from "../../models/SubResource.js";
 import {
   AGENT_POPULATE,
-  isRepositorySubResource,
+  isRepositoryResource,
   serializeAgent,
 } from "../../utils/agents.js";
 import queue from "../../queue";
@@ -60,9 +60,9 @@ const agentBodySchema = z.object({
  */
 async function validateRepository(repositoryId) {
   if (!repositoryId) return null;
-  const sub = await SubResource.findById(repositoryId);
+  const sub = await Resource.findById(repositoryId);
   if (!sub) return "Repository not found";
-  if (!isRepositorySubResource(sub)) {
+  if (!isRepositoryResource(sub)) {
     return "The selected resource is not a repository";
   }
   return null;
@@ -196,16 +196,16 @@ router.post("/:id/actions/rebuild", async ({ params, body, status }) => {
       });
     }
 
-    const subResource = await SubResource.findById(agent.repository);
-    if (!subResource) return status(404, { error: "Repository not found" });
-    const parentResource = await Resource.findById(subResource.resource);
-    if (!parentResource) {
+    const resource = await Resource.findById(agent.repository);
+    if (!resource) return status(404, { error: "Repository not found" });
+    const connection = await Connection.findById(resource.connection);
+    if (!connection) {
       return status(404, { error: "Repository connection not found" });
     }
 
     const job = await queue.addJobToQueue("resources", "rebuild", {
-      parentResource,
-      subResource,
+      connection,
+      resource,
       agent,
       payload: body || {},
     });

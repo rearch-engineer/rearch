@@ -82,10 +82,10 @@ const providerMeta = {
   },
 };
 
-function ResourceCard({ resource, onClick, onDelete }) {
+function ConnectionCard({ connection, onClick, onDelete }) {
   const { t } = useTranslation("Administration");
-  const meta = providerMeta[resource.provider] || {
-    label: resource.provider,
+  const meta = providerMeta[connection.provider] || {
+    label: connection.provider,
 
     bgTint: "rgba(107, 114, 128, 0.08)",
     bgTintHover: "rgba(107, 114, 128, 0.13)",
@@ -93,10 +93,10 @@ function ResourceCard({ resource, onClick, onDelete }) {
   };
 
   const subtitle =
-    resource.provider === "bitbucket"
-      ? resource.data?.workspace
-      : resource.provider === "github"
-        ? `App ID: ${resource.data?.appId || "N/A"}`
+    connection.provider === "bitbucket"
+      ? connection.data?.workspace
+      : connection.provider === "github"
+        ? `App ID: ${connection.data?.appId || "N/A"}`
         : null;
 
   return (
@@ -164,7 +164,7 @@ function ResourceCard({ resource, onClick, onDelete }) {
             level="title-md"
             sx={{ fontWeight: 700, color: "var(--text-primary)" }}
           >
-            {resource.name}
+            {connection.name}
           </Typography>
 
 
@@ -190,7 +190,7 @@ function ResourceCard({ resource, onClick, onDelete }) {
             component="button"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(resource);
+              onDelete(connection);
             }}
             sx={{
               display: "flex",
@@ -219,48 +219,48 @@ function ResourceCard({ resource, onClick, onDelete }) {
   );
 }
 
-function ResourceListPage() {
+function ConnectionListPage() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
-  const [resources, setResources] = useState([]);
+  const [connections, setConnections] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [resourceToDelete, setResourceToDelete] = useState(null);
+  const [connectionToDelete, setResourceToDelete] = useState(null);
 
   useEffect(() => {
-    loadResources();
+    loadConnections();
   }, []);
 
-  const loadResources = async () => {
+  const loadConnections = async () => {
     try {
       setLoading(true);
-      const data = await api.getAdminResources();
-      setResources(data);
+      const data = await api.getAdminConnections();
+      setConnections(data);
     } catch (error) {
-      console.error("Error loading resources:", error);
+      console.error("Error loading connections:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteClick = (resource) => {
-    setResourceToDelete(resource);
+  const handleDeleteClick = (connection) => {
+    setResourceToDelete(connection);
     setDeleteConfirmOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.deleteResource(resourceToDelete._id);
-      await loadResources();
+      await api.deleteConnection(connectionToDelete._id);
+      await loadConnections();
       setDeleteConfirmOpen(false);
       setResourceToDelete(null);
     } catch (error) {
-      console.error("Error deleting resource:", error);
+      console.error("Error deleting connection:", error);
     }
   };
 
-  const filteredResources = resources.filter((r) =>
+  const filteredConnections = connections.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -280,7 +280,7 @@ function ResourceListPage() {
           variant="plain"
           size="sm"
           startDecorator={<ArrowBack />}
-          onClick={() => navigate("/administration/resources/repositories")}
+          onClick={() => navigate("/administration/connections/repositories")}
           sx={{ mb: 2, color: "var(--text-secondary)", pl: 0 }}
         >
           {t("resources.backToRepositories")}
@@ -308,14 +308,14 @@ function ResourceListPage() {
           data-testid="add-resource-btn"
           size="sm"
           variant="solid"
-          onClick={() => navigate("/administration/resources/connections/new")}
+          onClick={() => navigate("/administration/connections/connections/new")}
           sx={{ flexShrink: 0, bgcolor: "#fff", color: "#000", "&:hover": { bgcolor: "#e5e5e5" } }}
         >
           {t("resources.connect")}
         </Button>
       </Stack>
 
-      {/* Resource list */}
+      {/* Connection list */}
       <Box sx={{ maxWidth: 960, mx: "auto" }}>
         {loading ? (
           <Box sx={{ textAlign: "center", py: 8 }}>
@@ -323,7 +323,7 @@ function ResourceListPage() {
               {t("resources.loadingResources")}
             </Typography>
           </Box>
-        ) : filteredResources.length === 0 ? (
+        ) : filteredConnections.length === 0 ? (
           <Box sx={{ bgcolor: "var(--bg-primary)" }}>
             <Box sx={{ textAlign: "center", py: 8 }}>
               {searchQuery ? (
@@ -359,7 +359,7 @@ function ResourceListPage() {
                     variant="soft"
                     color="primary"
                     startDecorator={<Add />}
-                    onClick={() => navigate("/administration/resources/connections/new")}
+                    onClick={() => navigate("/administration/connections/connections/new")}
                   >
                     {t("resources.addResource")}
                   </Button>
@@ -369,12 +369,12 @@ function ResourceListPage() {
           </Box>
         ) : (
           <Stack spacing={2}>
-            {filteredResources.map((resource) => (
-              <ResourceCard
-                key={resource._id}
-                resource={resource}
+            {filteredConnections.map((connection) => (
+              <ConnectionCard
+                key={connection._id}
+                connection={connection}
                 onClick={() =>
-                  navigate(`/administration/resources/connections/${resource._id}`)
+                  navigate(`/administration/connections/connections/${connection._id}`)
                 }
                 onDelete={handleDeleteClick}
               />
@@ -392,7 +392,7 @@ function ResourceListPage() {
           <ModalClose />
           <Typography level="h4">{t("resources.confirmDelete")}</Typography>
           <Typography>
-            {t("resources.confirmDeleteMessage", { name: resourceToDelete?.name })}
+            {t("resources.confirmDeleteMessage", { name: connectionToDelete?.name })}
           </Typography>
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
             <Button color="danger" onClick={handleDeleteConfirm}>
@@ -412,4 +412,4 @@ function ResourceListPage() {
   );
 }
 
-export default ResourceListPage;
+export default ConnectionListPage;

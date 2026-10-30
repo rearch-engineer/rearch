@@ -70,7 +70,7 @@ const privateRouter = new Elysia({ prefix: '/api/files' })
       const headers = {
         'Content-Type': fileInfo.contentType || 'application/octet-stream',
         'Content-Disposition': `inline; filename="${fileInfo.filename}"`,
-        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Connection-Policy': 'cross-origin',
       };
       if (fileInfo.length) {
         headers['Content-Length'] = fileInfo.length.toString();
@@ -115,7 +115,7 @@ const publicRouter = new Elysia({ prefix: '/api/files' })
       const headers = {
         'Content-Type': fileInfo.contentType || 'application/octet-stream',
         'Content-Disposition': `inline; filename="${fileInfo.filename}"`,
-        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Connection-Policy': 'cross-origin',
       };
       if (fileInfo.length) {
         headers['Content-Length'] = fileInfo.length.toString();

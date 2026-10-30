@@ -117,26 +117,26 @@ test.describe("BitBucket onboarding flow", () => {
 
     // ── Step 3: Import a Repository ────────────────────────────────────────
 
-    // We need to navigate into the resource to access its subresources.
+    // We need to navigate into the resource to access its resources.
     // The resource card is clickable and navigates to /resources/:id.
 
-    let resourceDetailUrl;
-    let subResourcesUrl;
+    let connectionDetailUrl;
+    let resourcesUrl;
 
-    await test.step("Navigate to the resource and open subresources", async () => {
+    await test.step("Navigate to the resource and open resources", async () => {
       // Click on the resource card by its name
       await page.getByText(bbName).first().click();
 
       // Wait for navigation to /resources/:id
       await page.waitForURL("**/resources/connections/*");
-      resourceDetailUrl = page.url();
+      connectionDetailUrl = page.url();
 
-      // Navigate to subresources — look for a link/button that goes to the subresources page.
+      // Navigate to resources — look for a link/button that goes to the resources page.
       // The resource detail page shows a "Repositories" link or the user navigates via the
-      // subresources path. Let's navigate directly.
-      const resourceId = resourceDetailUrl.split("/resources/connections/")[1].split("/")[0];
-      subResourcesUrl = `/administration/resources/connections/${resourceId}/subresources`;
-      await page.goto(subResourcesUrl);
+      // resources path. Let's navigate directly.
+      const connectionId = connectionDetailUrl.split("/resources/connections/")[1].split("/")[0];
+      resourcesUrl = `/administration/resources/connections/${connectionId}/resources`;
+      await page.goto(resourcesUrl);
 
       // Wait for the page to load
       await expect(
@@ -170,7 +170,7 @@ test.describe("BitBucket onboarding flow", () => {
         timeout: 30_000,
       });
 
-      // Verify the imported repository appears in the subresources list
+      // Verify the imported repository appears in the resources list
       await expect(page.getByText(bbRepoName)).toBeVisible({ timeout: 15_000 });
     });
 
@@ -181,7 +181,7 @@ test.describe("BitBucket onboarding flow", () => {
       await page.getByText(bbRepoName).first().click();
 
       // Wait for the repository details page to load
-      await page.waitForURL("**/subresources/*");
+      await page.waitForURL("**/resources/*");
 
       // The repository page offers a shortcut to create an agent for it
       await page.locator('[data-testid="create-agent-from-repo-btn"]').click();

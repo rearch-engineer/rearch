@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import Conversation from "../../models/Conversation.js";
 import User from "../../models/User.js";
-import SubResource from "../../models/SubResource.js";
+import Resource from "../../models/Resource.js";
 
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
@@ -14,7 +14,7 @@ const usageQuerySchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
   userId: z.string().regex(OBJECT_ID_RE, "Invalid userId format.").optional(),
-  subResource: z.string().regex(OBJECT_ID_RE, "Invalid subResource ID format.").optional(),
+  resource: z.string().regex(OBJECT_ID_RE, "Invalid resource ID format.").optional(),
 }).refine(
   (data) => {
     if (data.from) {
@@ -65,13 +65,13 @@ const router = new Elysia({ prefix: '/usage' });
  */
 router.get("/filters", async ({ status }) => {
   try {
-    const [users, subResources] = await Promise.all([
+    const [users, resources] = await Promise.all([
       User.find({ "account.status": "active" })
         .select("_id profile.display_name profile.avatar_fileId account.username account.email")
         .lean(),
-      SubResource.find()
+      Resource.find()
         .select("_id name resource")
-        .populate("resource", "name")
+        .populate("connection", "name")
         .lean(),
     ]);
 
@@ -85,10 +85,10 @@ router.get("/filters", async ({ status }) => {
           "Unknown",
         avatarFileId: u.profile?.avatar_fileId || null,
       })),
-      subResources: subResources.map((sr) => ({
+      resources: resources.map((sr) => ({
         _id: sr._id,
         name: sr.name,
-        resourceName: sr.resource?.name || "Unknown",
+        connectionName: sr.connection?.name || "Unknown",
       })),
     };
   } catch (err) {
@@ -106,7 +106,7 @@ router.get("/filters", async ({ status }) => {
  *   - from: ISO date string (default: 7 days ago)
  *   - to:   ISO date string (default: now)
  *   - userId: filter by user (ObjectId)
- *   - subResource: filter by repository/sub-resource (ObjectId)
+ *   - resource: filter by repository/sub-resource (ObjectId)
  */
 router.get("/", async ({ query, status }) => {
   const parsed = usageQuerySchema.safeParse(query);
@@ -119,24 +119,24 @@ router.get("/", async ({ query, status }) => {
     const from = parsed.data.from ? new Date(parsed.data.from) : new Date(now - 7 * 24 * 60 * 60 * 1000);
     const to = parsed.data.to ? new Date(parsed.data.to) : now;
     const filterUserId = parsed.data.userId || null;
-    const filterSubResource = parsed.data.subResource || null;
+    const filterResource = parsed.data.resource || null;
 
     // ── Step 1: Build base match for conversations in date range ──────────
     const baseMatch = {
       createdAt: { $gte: from, $lte: to },
     };
 
-    if (filterSubResource) {
-      baseMatch.subResource = new mongoose.Types.ObjectId(filterSubResource);
+    if (filterResource) {
+      baseMatch.resource = new mongoose.Types.ObjectId(filterResource);
     }
 
     // ── Step 2: Get all matching conversations ───────────────────────────
     let conversations = await Conversation.find(baseMatch)
-      .select("_id title cost contextUsage subResource pullRequests createdAt updatedAt")
+      .select("_id title cost contextUsage resource pullRequests createdAt updatedAt")
       .populate({
-        path: "subResource",
+        path: "resource",
         select: "name resource",
-        populate: { path: "resource", select: "name" },
+        populate: { path: "connection", select: "name" },
       })
       .lean();
 
@@ -254,33 +254,33 @@ router.get("/", async ({ query, status }) => {
     const repoCostMap = new Map();
     const repoNameMap = new Map();
     for (const conv of conversations) {
-      if (!conv.subResource) continue;
-      const srId = conv.subResource._id ? conv.subResource._id.toString() : conv.subResource.toString();
+      if (!conv.resource) continue;
+      const srId = conv.resource._id ? conv.resource._id.toString() : conv.resource.toString();
       repoCostMap.set(srId, (repoCostMap.get(srId) || 0) + (conv.cost?.total || 0));
-      if (conv.subResource._id && !repoNameMap.has(srId)) {
-        const sr = conv.subResource;
-        const label = sr.resource?.name ? `${sr.resource.name} / ${sr.name}` : sr.name;
+      if (conv.resource._id && !repoNameMap.has(srId)) {
+        const sr = conv.resource;
+        const label = sr.connection?.name ? `${sr.connection.name} / ${sr.name}` : sr.name;
         repoNameMap.set(srId, label);
       }
     }
 
-    // For any subResources not yet resolved (unpopulated), fetch them
+    // For any resources not yet resolved (unpopulated), fetch them
     const unresolvedRepoIds = [...repoCostMap.keys()].filter((id) => !repoNameMap.has(id));
     if (unresolvedRepoIds.length > 0) {
-      const repos = await SubResource.find({ _id: { $in: unresolvedRepoIds.map((id) => new mongoose.Types.ObjectId(id)) } })
+      const repos = await Resource.find({ _id: { $in: unresolvedRepoIds.map((id) => new mongoose.Types.ObjectId(id)) } })
         .select("_id name resource")
-        .populate("resource", "name")
+        .populate("connection", "name")
         .lean();
       for (const r of repos) {
-        const label = r.resource?.name ? `${r.resource.name} / ${r.name}` : r.name;
+        const label = r.connection?.name ? `${r.connection.name} / ${r.name}` : r.name;
         repoNameMap.set(r._id.toString(), label);
       }
     }
 
     const costPerResource = [...repoCostMap.entries()]
-      .map(([subResourceId, cost]) => ({
-        subResourceId,
-        name: repoNameMap.get(subResourceId) || "Unknown",
+      .map(([resourceId, cost]) => ({
+        resourceId,
+        name: repoNameMap.get(resourceId) || "Unknown",
         cost: Math.round(cost * 10000) / 10000,
       }))
       .sort((a, b) => b.cost - a.cost);
@@ -324,8 +324,8 @@ router.get("/", async ({ query, status }) => {
         title: conv.title || "New Conversation",
         user: uidStr ? (userNameMap.get(uidStr) || "Unknown") : "Unknown",
         userAvatarFileId: uidStr ? (userAvatarMap.get(uidStr) || null) : null,
-        repository: repoNameMap.get(conv.subResource?._id?.toString() || conv.subResource?.toString()) ||
-          (conv.subResource?.name || "Unknown"),
+        repository: repoNameMap.get(conv.resource?._id?.toString() || conv.resource?.toString()) ||
+          (conv.resource?.name || "Unknown"),
         cost: Math.round((conv.cost?.total || 0) * 10000) / 10000,
         pullRequestsCount: (conv.pullRequests || []).length,
         createdAt: conv.createdAt,

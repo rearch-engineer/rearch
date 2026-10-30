@@ -2,8 +2,8 @@
  * Migration: repositories → agents
  *
  * Before this migration the runtime configuration of a conversation lived in
- * `SubResource.rearch` (one config per repository) and conversations pointed
- * to `repository` (the connection) + `subResource` (the repository).
+ * `Resource.rearch` (one config per repository) and conversations pointed
+ * to `repository` (the connection) + `resource` (the repository).
  *
  * This script:
  *   1. Creates one Agent per imported repository sub-resource that does not
@@ -15,15 +15,16 @@
  * still unlinked. Legacy fields are left in place; they can be dropped once
  * everything runs on agents.
  *
- * Usage (from backend/):  bun run migrate:agents
+ * Usage (from backend/):  bun run migrate:rename   (first, once)
+ *                         bun run migrate:agents
  * Dry run:                DRY_RUN=1 bun run migrate:agents
  */
 import mongoose from "mongoose";
 import Agent from "../models/Agent.js";
 import Conversation from "../models/Conversation.js";
-import SubResource from "../models/SubResource.js";
+import Resource from "../models/Resource.js";
 import {
-  REPOSITORY_SUBRESOURCE_TYPES,
+  REPOSITORY_KIND,
   agentFieldsFromLegacyRearch,
 } from "../utils/agents.js";
 
@@ -37,8 +38,8 @@ async function migrate() {
   console.log("Connected.");
 
   // Step 1: one agent per imported repository
-  const repositories = await SubResource.find({
-    type: { $in: REPOSITORY_SUBRESOURCE_TYPES },
+  const repositories = await Resource.find({
+    kind: REPOSITORY_KIND,
     imported: true,
   });
   console.log(`Found ${repositories.length} imported repositories.`);
@@ -70,18 +71,18 @@ async function migrate() {
   // Step 2: link conversations to agents (include soft-deleted ones)
   const unlinked = await Conversation.findWithDeleted({
     $or: [{ agent: null }, { agent: { $exists: false } }],
-    subResource: { $ne: null },
-  }).select("_id subResource");
+    resource: { $ne: null },
+  }).select("_id resource");
   console.log(`Found ${unlinked.length} conversations without an agent.`);
 
   let linked = 0;
   let orphaned = 0;
   for (const conv of unlinked) {
-    const agent = agentByRepository.get(conv.subResource.toString());
+    const agent = agentByRepository.get(conv.resource.toString());
     if (!agent) {
       orphaned++;
       console.warn(
-        `  ! conversation ${conv._id} references repository ${conv.subResource} which has no agent`,
+        `  ! conversation ${conv._id} references repository ${conv.resource} which has no agent`,
       );
       continue;
     }

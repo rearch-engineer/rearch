@@ -1,15 +1,15 @@
 import { getRepositoryDetails } from "../../../../utils/github/github.js";
-import SubResource from "../../../../models/SubResource.js";
+import Resource from "../../../../models/Resource.js";
 
 export default async function onSync(job) {
-  const { parentResource, subResource } = job.data;
+  const { connection, resource } = job.data;
 
   console.log(
-    `[GitHub Sync Action] Syncing repository: ${subResource.externalId}`,
+    `[GitHub Sync Action] Syncing repository: ${resource.externalId}`,
   );
 
   const fullName =
-    subResource.data?.fullName || subResource.externalId;
+    resource.data?.fullName || resource.externalId;
   if (!fullName || !fullName.includes("/")) {
     throw new Error("Repository full name (owner/repo) is required for sync");
   }
@@ -18,13 +18,13 @@ export default async function onSync(job) {
 
   try {
     const repoDetails = await getRepositoryDetails(
-      parentResource.data,
+      connection.data,
       owner,
       repo,
     );
 
     const updatedData = {
-      ...subResource.data,
+      ...resource.data,
       slug: repoDetails.slug,
       fullName: repoDetails.fullName,
       description: repoDetails.description,
@@ -42,7 +42,7 @@ export default async function onSync(job) {
       lastSyncedAt: new Date().toISOString(),
     };
 
-    await SubResource.findByIdAndUpdate(subResource._id, {
+    await Resource.findByIdAndUpdate(resource._id, {
       $set: { data: updatedData },
     });
 

@@ -2,9 +2,9 @@ import { Elysia } from "elysia";
 import { GridFSBucket } from "mongodb";
 import mongoose from "mongoose";
 import { z } from "zod";
-import Resource from "../models/Resource.js";
-import SubResource from "../models/SubResource.js";
-import SubResourceFiles from "../models/SubResourceFiles.js";
+import Connection from "../models/Connection.js";
+import Resource, { RESOURCE_KINDS } from "../models/Resource.js";
+import ResourceFile from "../models/ResourceFile.js";
 import { getFileContents as getBitbucketFileContents } from "../utils/attlasian/bitbucket.js";
 import { getFileContents as getGithubFileContents } from "../utils/github/github.js";
 import {
@@ -13,7 +13,7 @@ import {
 } from "../utils/gridfs.js";
 import { authPlugin } from "../middleware/auth.js";
 
-const router = new Elysia({ prefix: "/api/resources" }).use(authPlugin);
+const router = new Elysia({ prefix: "/api/connections" }).use(authPlugin);
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -22,45 +22,48 @@ const getGridFSBucket = () => {
   return new GridFSBucket(db, { bucketName: "uploads" });
 };
 
-const subresourcesQuerySchema = z.object({
-  type: z.string().max(100).optional(),
+const resourcesQuerySchema = z.object({
+  kind: z.enum(RESOURCE_KINDS).optional(),
+  provider: z.enum(["bitbucket", "github"]).optional(),
 });
 
-// Get all resources
+// All imported resources (any connection) live under /api/resources
+const resourcesRouter = new Elysia({ prefix: "/api/resources" }).use(authPlugin);
+
+// Get all connections
 router.get("/", async ({ status }) => {
   try {
-    const resources = await Resource.find().sort({ createdAt: -1 }).select("-data");
-    return resources;
+    const connections = await Connection.find().sort({ createdAt: -1 }).select("-data");
+    return connections;
   } catch (err) {
     return status(500, { error: err.message });
   }
 });
 
-// Get all subresources across all resources, with optional type filter
-router.get("/subresources", async ({ query, status }) => {
-  const parsed = subresourcesQuerySchema.safeParse(query);
+// Get all resources across all connections, with optional type filter
+resourcesRouter.get("/", async ({ query, status }) => {
+  const parsed = resourcesQuerySchema.safeParse(query);
   if (!parsed.success) {
     return status(400, { errors: parsed.error.errors });
   }
 
-  const { type } = parsed.data;
+  const { kind, provider } = parsed.data;
 
   const subQuery = { imported: true };
-  if (type) {
-    subQuery.type = type;
-  }
+  if (kind) subQuery.kind = kind;
+  if (provider) subQuery.provider = provider;
 
-  const subresources = await SubResource.find(subQuery)
-    .populate("resource", "name provider")
+  const resources = await Resource.find(subQuery)
+    .populate("connection", "name provider")
     .sort({ name: 1 });
 
-  const result = subresources
-    .filter((sr) => sr.resource)
+  const result = resources
+    .filter((sr) => sr.connection)
     .map((sr) => {
       const obj = sr.toObject();
-      obj.resourceId = obj.resource._id;
-      obj.resourceName = obj.resource.name;
-      obj.resource = obj.resource._id;
+      obj.connectionId = obj.connection._id;
+      obj.connectionName = obj.connection.name;
+      obj.connection = obj.connection._id;
       if (obj.data) {
         delete obj.data.branches;
       }
@@ -70,18 +73,18 @@ router.get("/subresources", async ({ query, status }) => {
   return result;
 });
 
-// Get single resource
+// Get single connection
 router.get("/:id", async ({ params, status }) => {
   if (!OBJECT_ID_RE.test(params.id)) {
     return status(400, { error: "Invalid ID format." });
   }
 
   try {
-    const resource = await Resource.findById(params.id).select("-data");
-    if (!resource) {
-      return status(404, { error: "Resource not found" });
+    const connection = await Connection.findById(params.id).select("-data");
+    if (!connection) {
+      return status(404, { error: "Connection not found" });
     }
-    return resource;
+    return connection;
   } catch (err) {
     return status(500, { error: err.message });
   }
@@ -111,7 +114,7 @@ router.get("/file/:fileId", async ({ params, status }) => {
         "Content-Type": file.contentType || "application/octet-stream",
         "Content-Disposition": `attachment; filename="${file.filename}"`,
         "Content-Length": String(file.length),
-        "Cross-Origin-Resource-Policy": "cross-origin",
+        "Cross-Origin-Connection-Policy": "cross-origin",
       },
     });
   } catch (err) {
@@ -119,24 +122,24 @@ router.get("/file/:fileId", async ({ params, status }) => {
   }
 });
 
-// Get subresources for a resource
-router.get("/:id/subresources", async ({ params, status }) => {
+// Get resources for a connection
+router.get("/:id/resources", async ({ params, status }) => {
   if (!OBJECT_ID_RE.test(params.id)) {
     return status(400, { error: "Invalid ID format." });
   }
 
   try {
-    const resource = await Resource.findById(params.id);
-    if (!resource) {
-      return status(404, { error: "Resource not found" });
+    const connection = await Connection.findById(params.id);
+    if (!connection) {
+      return status(404, { error: "Connection not found" });
     }
 
-    const subresources = await SubResource.find({
-      resource: resource._id,
+    const resources = await Resource.find({
+      connection: connection._id,
       imported: true,
     });
 
-    return subresources.map((sr) => {
+    return resources.map((sr) => {
       const obj = sr.toObject();
       if (obj.data) {
         delete obj.data.branches;
@@ -148,69 +151,69 @@ router.get("/:id/subresources", async ({ params, status }) => {
   }
 });
 
-// Get single subresource
-router.get("/:id/subresources/:subId", async ({ params, status }) => {
+// Get single resource
+router.get("/:id/resources/:subId", async ({ params, status }) => {
   if (!OBJECT_ID_RE.test(params.id) || !OBJECT_ID_RE.test(params.subId)) {
     return status(400, { error: "Invalid ID format." });
   }
 
   try {
-    const resource = await Resource.findById(params.id);
+    const connection = await Connection.findById(params.id);
+    if (!connection) {
+      return status(404, { error: "Connection not found" });
+    }
+
+    const resource = await Resource.findById(params.subId);
     if (!resource) {
       return status(404, { error: "Resource not found" });
     }
 
-    const subresource = await SubResource.findById(params.subId);
-    if (!subresource) {
-      return status(404, { error: "Subresource not found" });
-    }
-
-    return subresource.toObject();
+    return resource.toObject();
   } catch (err) {
     return status(500, { error: err.message });
   }
 });
 
-// Get Dockerfile contents for a Bitbucket repository subresource
+// Get Dockerfile contents for a Bitbucket repository resource
 router.get(
-  "/:id/subresources/:subId/dockerfile",
+  "/:id/resources/:subId/dockerfile",
   async ({ params, query, status }) => {
     if (!OBJECT_ID_RE.test(params.id) || !OBJECT_ID_RE.test(params.subId)) {
       return status(400, { error: "Invalid ID format." });
     }
 
     try {
-      const parentResource = await Resource.findById(params.id);
-      if (!parentResource) {
-        return status(404, { error: "Parent resource not found" });
+      const connection = await Connection.findById(params.id);
+      if (!connection) {
+        return status(404, { error: "Parent connection not found" });
       }
 
-      const subResource = await SubResource.findById(params.subId);
-      if (!subResource) {
-        return status(404, { error: "Subresource not found" });
+      const resource = await Resource.findById(params.subId);
+      if (!resource) {
+        return status(404, { error: "Resource not found" });
       }
 
       const ref = query?.ref || "HEAD";
       let contents;
 
-      if (parentResource.provider === "github") {
-        const fullName = subResource.data?.fullName || subResource.externalId;
+      if (connection.provider === "github") {
+        const fullName = resource.data?.fullName || resource.externalId;
         if (!fullName || !fullName.includes("/")) {
           return status(400, {
-            error: "Cannot determine owner/repo from subresource",
+            error: "Cannot determine owner/repo from resource",
           });
         }
         const [owner, repo] = fullName.split("/");
         contents = await getGithubFileContents(
-          parentResource.data,
+          connection.data,
           owner,
           repo,
           ".rearch/Dockerfile",
           ref,
         );
       } else {
-        const workspace = parentResource.data?.workspace;
-        const repoSlug = subResource.externalId;
+        const workspace = connection.data?.workspace;
+        const repoSlug = resource.externalId;
 
         if (!workspace || !repoSlug) {
           return status(400, {
@@ -219,7 +222,7 @@ router.get(
         }
 
         contents = await getBitbucketFileContents(
-          parentResource.data,
+          connection.data,
           workspace,
           repoSlug,
           ".rearch/Dockerfile",
@@ -237,25 +240,25 @@ router.get(
   },
 );
 
-// Get all files for a subresource
-router.get("/:id/subresources/:subId/files", async ({ params, status }) => {
+// Get all files for a resource
+router.get("/:id/resources/:subId/files", async ({ params, status }) => {
   if (!OBJECT_ID_RE.test(params.id) || !OBJECT_ID_RE.test(params.subId)) {
     return status(400, { error: "Invalid ID format." });
   }
 
   try {
-    const parentResource = await Resource.findById(params.id);
-    if (!parentResource) {
-      return status(404, { error: "Parent resource not found" });
+    const connection = await Connection.findById(params.id);
+    if (!connection) {
+      return status(404, { error: "Parent connection not found" });
     }
 
-    const subresource = await SubResource.findById(params.subId);
-    if (!subresource) {
-      return status(404, { error: "Subresource not found" });
+    const resource = await Resource.findById(params.subId);
+    if (!resource) {
+      return status(404, { error: "Resource not found" });
     }
 
-    const files = await SubResourceFiles.find({
-      subResource: subresource._id,
+    const files = await ResourceFile.find({
+      resource: resource._id,
     });
     return files;
   } catch (err) {
@@ -265,7 +268,7 @@ router.get("/:id/subresources/:subId/files", async ({ params, status }) => {
 
 // Get single file metadata
 router.get(
-  "/:id/subresources/:subId/files/:fileId",
+  "/:id/resources/:subId/files/:fileId",
   async ({ params, status }) => {
     if (
       !OBJECT_ID_RE.test(params.id) ||
@@ -276,24 +279,24 @@ router.get(
     }
 
     try {
-      const parentResource = await Resource.findById(params.id);
-      if (!parentResource) {
-        return status(404, { error: "Parent resource not found" });
+      const connection = await Connection.findById(params.id);
+      if (!connection) {
+        return status(404, { error: "Parent connection not found" });
       }
 
-      const subresource = await SubResource.findById(params.subId);
-      if (!subresource) {
-        return status(404, { error: "Subresource not found" });
+      const resource = await Resource.findById(params.subId);
+      if (!resource) {
+        return status(404, { error: "Resource not found" });
       }
 
-      const file = await SubResourceFiles.findById(params.fileId);
+      const file = await ResourceFile.findById(params.fileId);
       if (!file) {
         return status(404, { error: "File not found" });
       }
 
-      if (file.subResource.toString() !== subresource._id.toString()) {
+      if (file.resource.toString() !== resource._id.toString()) {
         return status(403, {
-          error: "File does not belong to this subresource",
+          error: "File does not belong to this resource",
         });
       }
 
@@ -306,7 +309,7 @@ router.get(
 
 // Download file content
 router.get(
-  "/:id/subresources/:subId/files/:fileId/download",
+  "/:id/resources/:subId/files/:fileId/download",
   async ({ params, status }) => {
     if (
       !OBJECT_ID_RE.test(params.id) ||
@@ -317,24 +320,24 @@ router.get(
     }
 
     try {
-      const parentResource = await Resource.findById(params.id);
-      if (!parentResource) {
-        return status(404, { error: "Parent resource not found" });
+      const connection = await Connection.findById(params.id);
+      if (!connection) {
+        return status(404, { error: "Parent connection not found" });
       }
 
-      const subresource = await SubResource.findById(params.subId);
-      if (!subresource) {
-        return status(404, { error: "Subresource not found" });
+      const resource = await Resource.findById(params.subId);
+      if (!resource) {
+        return status(404, { error: "Resource not found" });
       }
 
-      const file = await SubResourceFiles.findById(params.fileId);
+      const file = await ResourceFile.findById(params.fileId);
       if (!file) {
         return status(404, { error: "File not found" });
       }
 
-      if (file.subResource.toString() !== subresource._id.toString()) {
+      if (file.resource.toString() !== resource._id.toString()) {
         return status(403, {
-          error: "File does not belong to this subresource",
+          error: "File does not belong to this resource",
         });
       }
 
@@ -350,7 +353,7 @@ router.get(
           "Content-Type": file.mimeType || "application/octet-stream",
           "Content-Disposition": `attachment; filename="${file.filename}"`,
           "Content-Length": String(file.size),
-          "Cross-Origin-Resource-Policy": "cross-origin",
+          "Cross-Origin-Connection-Policy": "cross-origin",
         },
       });
     } catch (err) {
@@ -359,4 +362,5 @@ router.get(
   },
 );
 
+export { resourcesRouter };
 export default router;

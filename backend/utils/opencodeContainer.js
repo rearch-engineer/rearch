@@ -1,7 +1,7 @@
 import { createOpencodeClient } from "@opencode-ai/sdk/v2/client";
 import Docker from "dockerode";
 import Conversation from "../models/Conversation.js";
-import SubResource from "../models/SubResource.js";
+import Resource from "../models/Resource.js";
 import { downloadFileStream } from "./gridfs.js";
 import { broadcast } from "../ws.js";
 import { execInContainer } from "./containerExec.js";
@@ -829,12 +829,12 @@ export async function getSessionInfo(conversationId) {
     throw new Error("Conversation not found");
   }
 
-  // Get repository name from subResource
+  // Get repository name from resource
   let repoName = "Unknown";
-  if (conversation.subResource) {
-    const subResource = await SubResource.findById(conversation.subResource);
-    if (subResource) {
-      repoName = subResource.name;
+  if (conversation.resource) {
+    const resource = await Resource.findById(conversation.resource);
+    if (resource) {
+      repoName = resource.name;
     }
   }
 

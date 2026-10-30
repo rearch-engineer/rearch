@@ -28,28 +28,26 @@ const MAX_CONVERSATIONS_PER_CALL = 3;
 // Mongoose models (mirrors backend models — reuse if already compiled)
 // ---------------------------------------------------------------------------
 
-const subResourceSchema = new mongoose.Schema(
+// Resource: something an agent works with (today: repositories), imported through a Connection
+const resourceSchema = new mongoose.Schema(
   {
-    resource: { type: mongoose.Schema.Types.ObjectId, ref: 'Resource' },
+    connection: { type: mongoose.Schema.Types.ObjectId, ref: 'Connection' },
     name: { type: String },
     description: { type: String, default: '' },
-    type: { type: String },
-    rearch: {
-      enabled: { type: Boolean, default: false },
-    },
+    kind: { type: String },
+    provider: { type: String },
   },
   { timestamps: true, strict: false },
 );
 
-const SubResource =
-  mongoose.models.SubResource || mongoose.model('SubResource', subResourceSchema);
+const Resource = mongoose.models.Resource || mongoose.model('Resource', resourceSchema);
 
 const agentSchema = new mongoose.Schema(
   {
     name: { type: String },
     description: { type: String, default: '' },
     enabled: { type: Boolean, default: false },
-    repository: { type: mongoose.Schema.Types.ObjectId, ref: 'SubResource' },
+    repository: { type: mongoose.Schema.Types.ObjectId, ref: 'Resource' },
   },
   { timestamps: true, strict: false },
 );
@@ -66,15 +64,16 @@ const conversationSchema = new mongoose.Schema(
 const Conversation =
   mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);
 
-const resourceSchema = new mongoose.Schema(
+// Connection: provider credentials (Bitbucket workspace, GitHub App)
+const connectionSchema = new mongoose.Schema(
   {
     provider: { type: String },
   },
   { timestamps: true, strict: false },
 );
 
-const Resource =
-  mongoose.models.Resource || mongoose.model('Resource', resourceSchema);
+const Connection =
+  mongoose.models.Connection || mongoose.model('Connection', connectionSchema);
 
 // ---------------------------------------------------------------------------
 // Tool definitions (MCP schema format)
@@ -181,7 +180,7 @@ async function handleSearchAgents(args) {
     const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const re = { $regex: escaped, $options: 'i' };
     // Also match agents through the name of the repository they work on
-    const repos = await SubResource.find({ name: re }).select('_id').lean();
+    const repos = await Resource.find({ name: re }).select('_id').lean();
     const repositoryIds = repos.map((r) => r._id);
     filter.$or = [
       { name: re },
@@ -193,8 +192,8 @@ async function handleSearchAgents(args) {
   const docs = await Agent.find(filter)
     .populate({
       path: 'repository',
-      select: 'name type resource',
-      populate: { path: 'resource', select: 'provider' },
+      select: 'name kind provider connection',
+      populate: { path: 'connection', select: 'provider' },
     })
     .select('name description repository')
     .sort({ name: 1 })
@@ -208,8 +207,8 @@ async function handleSearchAgents(args) {
       ? {
           id: doc.repository._id.toString(),
           name: doc.repository.name,
-          provider: doc.repository.resource?.provider || 'unknown',
-          type: doc.repository.type,
+          provider: doc.repository.provider || doc.repository.connection?.provider || 'unknown',
+          kind: doc.repository.kind,
         }
       : null,
   }));
@@ -305,10 +304,10 @@ async function handleCreateConversation(args, request, identity = null) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// `agentId` is preferred; `subResourceId` (a repository id) is still accepted
+// `agentId` is preferred; `resourceId` (a repository id) is still accepted
 // for callers that used the old rearch_search_repositories tool.
-async function createSingleConversation(userId, agentId, subResourceId, prompt) {
-  if (!agentId && !subResourceId) {
+async function createSingleConversation(userId, agentId, resourceId, prompt) {
+  if (!agentId && !resourceId) {
     throw new Error('agent is required');
   }
   const url = `${BACKEND_API_URL}/api/internal/conversations`;
@@ -322,7 +321,7 @@ async function createSingleConversation(userId, agentId, subResourceId, prompt) 
     body: JSON.stringify({
       userId,
       ...(agentId ? { agentId } : {}),
-      ...(subResourceId ? { subResourceId } : {}),
+      ...(resourceId ? { resourceId } : {}),
       prompt,
     }),
   });

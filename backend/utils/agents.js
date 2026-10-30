@@ -1,6 +1,6 @@
 import Agent from "../models/Agent.js";
-import SubResource from "../models/SubResource.js";
 import Resource from "../models/Resource.js";
+import Connection from "../models/Connection.js";
 
 /**
  * Agent helpers.
@@ -9,25 +9,22 @@ import Resource from "../models/Resource.js";
  * workers, routes and the migration script share one implementation.
  */
 
-// SubResource types that represent a source-code repository.
-export const REPOSITORY_SUBRESOURCE_TYPES = [
-  "bitbucket-repository",
-  "github-repository",
-];
+// Resource kind that represents a source-code repository.
+export const REPOSITORY_KIND = "repository";
 
 // Connection providers that can host a repository.
 export const GIT_PROVIDERS = ["bitbucket", "github"];
 
-export function isRepositorySubResource(subResource) {
-  return REPOSITORY_SUBRESOURCE_TYPES.includes(subResource?.type);
+export function isRepositoryResource(resource) {
+  return resource?.kind === REPOSITORY_KIND;
 }
 
 /**
- * Derive the clone URL of a repository SubResource (prefer HTTPS, then SSH,
+ * Derive the clone URL of a repository Resource (prefer HTTPS, then SSH,
  * then the HTML link).
  */
-export function getRepositoryCloneUrl(subResource) {
-  const links = subResource?.data?.links;
+export function getRepositoryCloneUrl(resource) {
+  const links = resource?.data?.links;
   if (!links) return "";
   if (Array.isArray(links.clone)) {
     const https = links.clone.find((c) => c.name === "https");
@@ -38,17 +35,17 @@ export function getRepositoryCloneUrl(subResource) {
 }
 
 /**
- * Map a legacy `SubResource.rearch` block to Agent fields.
+ * Map a legacy `Resource.rearch` block to Agent fields.
  * Used by the migration script and by the lazy fallback for conversations
  * created before agents existed.
  */
-export function agentFieldsFromLegacyRearch(subResource) {
-  const r = subResource.rearch || {};
+export function agentFieldsFromLegacyRearch(resource) {
+  const r = resource.rearch || {};
   return {
-    name: subResource.name,
-    description: subResource.description || "",
+    name: resource.name,
+    description: resource.description || "",
     enabled: Boolean(r.enabled),
-    repository: subResource._id,
+    repository: resource._id,
     resources: [],
     template: r.template || "",
     dockerImageFromBranch: r.dockerImageFromBranch || "",
@@ -73,43 +70,43 @@ export function agentFieldsFromLegacyRearch(subResource) {
 }
 
 /**
- * Find the agent bound to a repository SubResource. When none exists and the
+ * Find the agent bound to a repository Resource. When none exists and the
  * sub-resource carries a legacy `rearch` block, create the agent from it.
  *
- * @param {string|import('mongoose').Types.ObjectId|object} subResourceOrId
+ * @param {string|import('mongoose').Types.ObjectId|object} resourceOrId
  * @param {{ createIfMissing?: boolean }} [options]
  * @returns {Promise<import('mongoose').Document|null>}
  */
-export async function ensureAgentForSubResource(
-  subResourceOrId,
+export async function ensureAgentForResource(
+  resourceOrId,
   { createIfMissing = true } = {},
 ) {
-  const subResourceId = subResourceOrId?._id || subResourceOrId;
-  if (!subResourceId) return null;
+  const resourceId = resourceOrId?._id || resourceOrId;
+  if (!resourceId) return null;
 
-  const existing = await Agent.findOne({ repository: subResourceId }).sort({
+  const existing = await Agent.findOne({ repository: resourceId }).sort({
     createdAt: 1,
   });
   if (existing) return existing;
   if (!createIfMissing) return null;
 
-  const subResource =
-    subResourceOrId?._id && subResourceOrId.type
-      ? subResourceOrId
-      : await SubResource.findById(subResourceId);
-  if (!subResource || !isRepositorySubResource(subResource)) return null;
+  const resource =
+    resourceOrId?._id && resourceOrId.kind
+      ? resourceOrId
+      : await Resource.findById(resourceId);
+  if (!resource || !isRepositoryResource(resource)) return null;
 
-  const agent = new Agent(agentFieldsFromLegacyRearch(subResource));
+  const agent = new Agent(agentFieldsFromLegacyRearch(resource));
   await agent.save();
   console.log(
-    `🤖 Created agent '${agent.name}' (${agent._id}) from repository ${subResource._id}`,
+    `🤖 Created agent '${agent.name}' (${agent._id}) from repository ${resource._id}`,
   );
   return agent;
 }
 
 /**
  * Resolve the Agent of a conversation. Conversations created before agents
- * existed only carry `subResource`; for those the agent is derived (and
+ * existed only carry `resource`; for those the agent is derived (and
  * persisted) from the repository's legacy configuration.
  */
 export async function resolveConversationAgent(conversation) {
@@ -120,8 +117,8 @@ export async function resolveConversationAgent(conversation) {
     if (agent) return agent;
   }
 
-  if (conversation.subResource) {
-    const agent = await ensureAgentForSubResource(conversation.subResource);
+  if (conversation.resource) {
+    const agent = await ensureAgentForResource(conversation.resource);
     if (agent) {
       conversation.agent = agent._id;
       try {
@@ -172,16 +169,16 @@ export async function resolveAgentRuntime(agent) {
 
   if (!agent?.repository) return runtime;
 
-  const repository = await SubResource.findById(agent.repository);
+  const repository = await Resource.findById(agent.repository);
   if (!repository) {
     throw new Error(
       `Repository ${agent.repository} linked to agent '${agent.name}' not found`,
     );
   }
-  const connection = await Resource.findById(repository.resource);
+  const connection = await Connection.findById(repository.connection);
   if (!connection) {
     throw new Error(
-      `Connection ${repository.resource} for repository '${repository.name}' not found`,
+      `Connection ${repository.connection} for repository '${repository.name}' not found`,
     );
   }
 
@@ -218,9 +215,10 @@ export function serializeAgent(agentDoc) {
   if (repo && typeof repo === "object" && repo._id) {
     agent.repository = repo._id;
     agent.repositoryName = repo.name;
-    agent.repositoryType = repo.type;
+    agent.repositoryKind = repo.kind;
+    agent.repositoryProvider = repo.provider;
     agent.repositoryUrl = repo.data?.links?.html || null;
-    const connection = repo.resource;
+    const connection = repo.connection;
     if (connection && typeof connection === "object" && connection._id) {
       agent.connectionId = connection._id;
       agent.connectionName = connection.name;
@@ -235,6 +233,6 @@ export function serializeAgent(agentDoc) {
 // Populate spec shared by every route that returns agents
 export const AGENT_POPULATE = {
   path: "repository",
-  select: "name type data.links.html resource",
-  populate: { path: "resource", select: "name provider" },
+  select: "name kind provider data.links.html connection",
+  populate: { path: "connection", select: "name provider" },
 };

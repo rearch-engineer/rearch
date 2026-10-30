@@ -3,10 +3,10 @@ import './MentionRenderer.css';
 
 /**
  * Parses message content and renders text with styled mentions
- * Mentions format: @[Display Name](resourceId)
+ * Mentions format: @[Display Name](connectionId)
  */
 const MentionRenderer = ({ content }) => {
-  // Regular expression to match mentions: @[Display Name](resourceId)
+  // Regular expression to match mentions: @[Display Name](connectionId)
   const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
   
   const parseContent = (text) => {

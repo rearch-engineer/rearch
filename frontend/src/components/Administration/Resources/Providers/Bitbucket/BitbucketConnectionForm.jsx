@@ -20,7 +20,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { api } from "../../../../../api/client";
 
-// Bitbucket SVG logo component (matches ResourceTypeSelection)
+// Bitbucket SVG logo component (matches ConnectionTypeSelection)
 const BitbucketIcon = ({ size = 48 }) => (
   <svg
     width={size}
@@ -54,7 +54,7 @@ const BitbucketIcon = ({ size = 48 }) => (
   </svg>
 );
 
-function BitbucketResourceForm() {
+function BitbucketConnectionForm() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,20 +76,20 @@ function BitbucketResourceForm() {
     }
   }, [id, isEditMode]);
 
-  const loadResource = async (resourceId) => {
+  const loadResource = async (connectionId) => {
     try {
       setLoading(true);
-      const resources = await api.getAdminResources();
-      const resource = resources.find((r) => r._id === resourceId);
-      if (resource) {
+      const connections = await api.getAdminConnections();
+      const connection = connections.find((r) => r._id === connectionId);
+      if (connection) {
         setFormData({
-          name: resource.name,
-          provider: resource.provider,
-          data: resource.data,
+          name: connection.name,
+          provider: connection.provider,
+          data: connection.data,
         });
       }
     } catch (error) {
-      console.error("Error loading resource:", error);
+      console.error("Error loading connection:", error);
     } finally {
       setLoading(false);
     }
@@ -126,11 +126,11 @@ function BitbucketResourceForm() {
     try {
       setLoading(true);
       if (isEditMode) {
-        await api.updateResource(id, formData);
+        await api.updateConnection(id, formData);
       } else {
-        await api.createResource(formData);
+        await api.createConnection(formData);
       }
-      navigate("/administration/resources/connections");
+      navigate("/administration/connections/connections");
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: t("bitbucketResourceForm.failedToSave") });
@@ -183,8 +183,8 @@ function BitbucketResourceForm() {
           onClick={() =>
             navigate(
               isEditMode
-                ? "/administration/resources/connections"
-                : "/administration/resources/connections/new",
+                ? "/administration/connections/connections"
+                : "/administration/connections/connections/new",
             )
           }
           sx={{ mb: 2 }}
@@ -564,8 +564,8 @@ function BitbucketResourceForm() {
                   onClick={() =>
                     navigate(
                       isEditMode
-                        ? "/administration/resources/connections"
-                        : "/administration/resources/connections/new",
+                        ? "/administration/connections/connections"
+                        : "/administration/connections/connections/new",
                     )
                   }
                   disabled={loading}
@@ -582,4 +582,4 @@ function BitbucketResourceForm() {
   );
 }
 
-export default BitbucketResourceForm;
+export default BitbucketConnectionForm;

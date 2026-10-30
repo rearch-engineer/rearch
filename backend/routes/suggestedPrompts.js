@@ -1,9 +1,9 @@
 import { Elysia } from 'elysia';
 import SuggestedPrompt from '../models/SuggestedPrompt.js';
 import SuggestedPromptCategory from '../models/SuggestedPromptCategory.js';
-import SubResource from '../models/SubResource.js';
+import Resource from '../models/Resource.js';
 import Agent from '../models/Agent.js';
-import { ensureAgentForSubResource } from '../utils/agents.js';
+import { ensureAgentForResource } from '../utils/agents.js';
 import { authPlugin } from '../middleware/auth.js';
 
 const OBJECT_ID_RE = /^[a-fA-F0-9]{24}$/;
@@ -45,20 +45,20 @@ export const publicRouter = new Elysia({ prefix: '/api/suggested-prompts' })
   })
 
   // Legacy: prompts for a repository. Resolves the repository's agent and
-  // falls back to the old SubResource.rearch.suggestedPrompts block.
-  .get('/for-repo/:subResourceId', async ({ params, status }) => {
-    if (!OBJECT_ID_RE.test(params.subResourceId)) {
-      return status(400, { error: 'Invalid subResource ID format.' });
+  // falls back to the old Resource.rearch.suggestedPrompts block.
+  .get('/for-repo/:resourceId', async ({ params, status }) => {
+    if (!OBJECT_ID_RE.test(params.resourceId)) {
+      return status(400, { error: 'Invalid resource ID format.' });
     }
 
     try {
-      const subResource = await SubResource.findById(params.subResourceId);
-      if (!subResource) {
-        return status(404, { error: 'SubResource not found.' });
+      const resource = await Resource.findById(params.resourceId);
+      if (!resource) {
+        return status(404, { error: 'Resource not found.' });
       }
 
-      const agent = await ensureAgentForSubResource(subResource, { createIfMissing: false });
-      const config = agent?.suggestedPrompts || subResource.rearch?.suggestedPrompts;
+      const agent = await ensureAgentForResource(resource, { createIfMissing: false });
+      const config = agent?.suggestedPrompts || resource.rearch?.suggestedPrompts;
       return await promptsForConfig(config);
     } catch (err) {
       return status(500, { error: err.message });

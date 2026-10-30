@@ -34,7 +34,7 @@ import { useConfirm } from "../../../../../contexts/ConfirmContext";
  * agents that work on it, with a shortcut to create a new one.
  */
 function BitbucketRepositoryDetails({
-  subResource,
+  resource,
   onDelete,
   deleting = false,
   deleteError = null,
@@ -42,7 +42,7 @@ function BitbucketRepositoryDetails({
 }) {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
-  const { data } = subResource;
+  const { data } = resource;
   const toast = useToast();
   const confirm = useConfirm();
   const [syncing, setSyncing] = useState(false);
@@ -56,7 +56,7 @@ function BitbucketRepositoryDetails({
         const all = await api.getAdminAgents();
         setAgents(
           (all || []).filter(
-            (a) => a.repository && String(a.repository) === String(subResource._id),
+            (a) => a.repository && String(a.repository) === String(resource._id),
           ),
         );
       } catch (err) {
@@ -66,14 +66,14 @@ function BitbucketRepositoryDetails({
       }
     };
     loadAgents();
-  }, [subResource._id]);
+  }, [resource._id]);
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const response = await api.executeSubResourceAction(
-        subResource.resource,
-        subResource._id,
+      const response = await api.executeResourceAction(
+        resource.connection,
+        resource._id,
         "sync",
       );
       toast.success(t("bitbucketRepoDetails.syncStarted", { jobId: response.jobId }));
@@ -134,7 +134,7 @@ function BitbucketRepositoryDetails({
     <Box sx={{ maxWidth: 900, mx: "auto" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <Typography level="h2" sx={{ color: "var(--text-primary)" }}>
-          {subResource.name}
+          {resource.name}
         </Typography>
         {data?.links?.html && (
           <IconButton
@@ -214,7 +214,7 @@ function BitbucketRepositoryDetails({
               color="primary"
               startDecorator={<Add />}
               onClick={() =>
-                navigate(`/administration/agents/new?repository=${subResource._id}`)
+                navigate(`/administration/agents/new?repository=${resource._id}`)
               }
             >
               {t("bitbucketRepoDetails.createAgent")}
@@ -301,10 +301,10 @@ function BitbucketRepositoryDetails({
           </Typography>
           <Stack spacing={2}>
             <Field label={t("bitbucketRepoDetails.created")}>
-              {formatDate(data?.createdOn || subResource.createdAt)}
+              {formatDate(data?.createdOn || resource.createdAt)}
             </Field>
             <Field label={t("bitbucketRepoDetails.lastUpdated")}>
-              {formatDate(data?.updatedOn || subResource.updatedAt)}
+              {formatDate(data?.updatedOn || resource.updatedAt)}
             </Field>
             {data?.lastSyncedAt && (
               <Field label={t("bitbucketRepoDetails.lastSynced")}>{formatDate(data.lastSyncedAt)}</Field>

@@ -38,7 +38,7 @@ import {
   getDuplicatePortIndices,
 } from "./serviceIcons";
 
-const REPOSITORY_TYPES = ["bitbucket-repository", "github-repository"];
+const REPOSITORY_KIND = "repository";
 
 const EMPTY_FORM = {
   name: "",
@@ -135,8 +135,8 @@ export default function AgentEditPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const subs = await api.getAllAdminSubResources();
-        setRepositories((subs || []).filter((s) => REPOSITORY_TYPES.includes(s.type)));
+        const subs = await api.getAdminResources();
+        setRepositories((subs || []).filter((s) => s.kind === REPOSITORY_KIND));
       } catch (err) {
         console.error("Failed to load repositories:", err);
       }
@@ -182,8 +182,8 @@ export default function AgentEditPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const full = await api.getAdminSubResource(
-          selectedRepository.resourceId || selectedRepository.resource,
+        const full = await api.getAdminResource(
+          selectedRepository.connectionId || selectedRepository.connection,
           selectedRepository._id,
         );
         if (!cancelled) setBranches(full?.data?.branches || []);
@@ -208,8 +208,8 @@ export default function AgentEditPage() {
       if (!selectedRepository) return;
       setLoadingDockerfile(true);
       try {
-        const result = await api.getAdminSubResourceDockerfile(
-          selectedRepository.resourceId || selectedRepository.resource,
+        const result = await api.getAdminResourceDockerfile(
+          selectedRepository.connectionId || selectedRepository.connection,
           selectedRepository._id,
           form.dockerImageFromBranch || undefined,
         );
@@ -491,7 +491,7 @@ export default function AgentEditPage() {
                   <Option key={r._id} value={r._id} label={r.name}>
                     {r.name}
                     <Typography level="body-xs" sx={{ ml: 1, color: "var(--text-tertiary)" }}>
-                      {r.resourceName}
+                      {r.connectionName}
                     </Typography>
                   </Option>
                 ))}

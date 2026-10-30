@@ -40,7 +40,7 @@ const GitHubIcon = ({ size = 48 }) => (
   </svg>
 );
 
-function GithubResourceForm() {
+function GithubConnectionForm() {
   const { t } = useTranslation("Administration");
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,20 +64,20 @@ function GithubResourceForm() {
     }
   }, [id, isEditMode]);
 
-  const loadResource = async (resourceId) => {
+  const loadResource = async (connectionId) => {
     try {
       setLoading(true);
-      const resources = await api.getAdminResources();
-      const resource = resources.find((r) => r._id === resourceId);
-      if (resource) {
+      const connections = await api.getAdminConnections();
+      const connection = connections.find((r) => r._id === connectionId);
+      if (connection) {
         setFormData({
-          name: resource.name,
-          provider: resource.provider,
-          data: resource.data,
+          name: connection.name,
+          provider: connection.provider,
+          data: connection.data,
         });
       }
     } catch (error) {
-      console.error("Error loading resource:", error);
+      console.error("Error loading connection:", error);
     } finally {
       setLoading(false);
     }
@@ -113,11 +113,11 @@ function GithubResourceForm() {
     try {
       setLoading(true);
       if (isEditMode) {
-        await api.updateGithubResource(id, formData, pemFile);
+        await api.updateGithubConnection(id, formData, pemFile);
       } else {
-        await api.createGithubResource(formData, pemFile);
+        await api.createGithubConnection(formData, pemFile);
       }
-      navigate("/administration/resources/connections");
+      navigate("/administration/connections/connections");
     } catch (error) {
       console.error("Error submitting form:", error);
       setErrors({ submit: t("githubResourceForm.failedToSave") });
@@ -170,8 +170,8 @@ function GithubResourceForm() {
           onClick={() =>
             navigate(
               isEditMode
-                ? "/administration/resources/connections"
-                : "/administration/resources/connections/new",
+                ? "/administration/connections/connections"
+                : "/administration/connections/connections/new",
             )
           }
           sx={{ mb: 2 }}
@@ -525,8 +525,8 @@ function GithubResourceForm() {
                   onClick={() =>
                     navigate(
                       isEditMode
-                        ? "/administration/resources/connections"
-                        : "/administration/resources/connections/new",
+                        ? "/administration/connections/connections"
+                        : "/administration/connections/connections/new",
                     )
                   }
                   disabled={loading}
@@ -543,4 +543,4 @@ function GithubResourceForm() {
   );
 }
 
-export default GithubResourceForm;
+export default GithubConnectionForm;

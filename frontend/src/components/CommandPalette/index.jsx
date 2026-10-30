@@ -280,7 +280,7 @@ const CommandPalette = () => {
     const convItems = conversations
       .map((conv) => {
         const title = conv.title || "Untitled";
-        const repo = conv.agent?.name || conv.subResource?.name || "";
+        const repo = conv.agent?.name || conv.resource?.name || "";
         const bestScore = Math.max(
           fuzzyScore(title, query),
           fuzzyScore(repo, query),

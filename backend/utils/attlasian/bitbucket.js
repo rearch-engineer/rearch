@@ -9,11 +9,11 @@
 
 /**
  * Create authorization header for Bitbucket API
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @returns {string} Base64 encoded authorization string
  */
-const getAuthHeader = (resourceData) => {
-  const { email, apiToken } = resourceData;
+const getAuthHeader = (connectionData) => {
+  const { email, apiToken } = connectionData;
   if (!email || !apiToken) {
     throw new Error("Missing required Bitbucket credentials: email, apiToken");
   }
@@ -22,19 +22,19 @@ const getAuthHeader = (resourceData) => {
 
 /**
  * Make a request to the Bitbucket API
- * @param {Object} resourceData - Resource data containing credentials
+ * @param {Object} connectionData - Connection data containing credentials
  * @param {string} endpoint - API endpoint (relative to base URL)
  * @param {Object} options - Fetch options
  * @returns {Promise<Object>} API response
  */
-const apiRequest = async (resourceData, endpoint, options = {}) => {
+const apiRequest = async (connectionData, endpoint, options = {}) => {
   const baseUrl = "https://api.bitbucket.org/2.0";
   const url = `${baseUrl}${endpoint}`;
 
   const opts = {
     ...options,
     headers: {
-      Authorization: getAuthHeader(resourceData),
+      Authorization: getAuthHeader(connectionData),
       "Content-Type": "application/json",
       ...options.headers,
     },
@@ -54,7 +54,7 @@ const apiRequest = async (resourceData, endpoint, options = {}) => {
 
 /**
  * Search for repositories in a workspace
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @param {string} workspace - Workspace slug
  * @param {string} searchTerm - Search term to filter repositories
  * @param {Object} options - Optional parameters
@@ -62,7 +62,7 @@ const apiRequest = async (resourceData, endpoint, options = {}) => {
  * @returns {Promise<Object>} Search results containing repositories
  */
 export const searchRepositories = async (
-  resourceData,
+  connectionData,
   workspace,
   searchTerm = "",
   options = {},
@@ -78,7 +78,7 @@ export const searchRepositories = async (
       endpoint += `&q=name~"${encodeURIComponent(searchTerm)}"`;
     }
 
-    const results = await apiRequest(resourceData, endpoint);
+    const results = await apiRequest(connectionData, endpoint);
 
     return {
       total: results.size || results.values?.length || 0,
@@ -112,13 +112,13 @@ export const searchRepositories = async (
 
 /**
  * Get detailed information about a specific repository
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @param {string} workspace - Workspace slug
  * @param {string} repoSlug - Repository slug
  * @returns {Promise<Object>} Complete repository details
  */
 export const getRepositoryDetails = async (
-  resourceData,
+  connectionData,
   workspace,
   repoSlug,
 ) => {
@@ -128,13 +128,13 @@ export const getRepositoryDetails = async (
     }
 
     const repo = await apiRequest(
-      resourceData,
+      connectionData,
       `/repositories/${workspace}/${repoSlug}`,
     );
 
     // Get additional info: branches, commits
     const branchesData = await apiRequest(
-      resourceData,
+      connectionData,
       `/repositories/${workspace}/${repoSlug}/refs/branches?pagelen=20`,
     ).catch(() => ({ values: [] }));
 
@@ -193,12 +193,12 @@ export const getRepositoryDetails = async (
 
 /**
  * List all workspaces accessible to the authenticated user
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @returns {Promise<Array>} List of workspaces
  */
-export const listWorkspaces = async (resourceData) => {
+export const listWorkspaces = async (connectionData) => {
   try {
-    const results = await apiRequest(resourceData, "/workspaces?pagelen=100");
+    const results = await apiRequest(connectionData, "/workspaces?pagelen=100");
 
     return (results.values || []).map((workspace) => ({
       uuid: workspace.uuid,
@@ -214,14 +214,14 @@ export const listWorkspaces = async (resourceData) => {
  * List members of a Bitbucket workspace with auto-pagination and optional search.
  * The Bitbucket members endpoint does not support query filtering, so we fetch
  * all pages and filter server-side by display name / nickname.
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @param {string} workspace - Workspace slug
  * @param {Object} [options] - Optional parameters
  * @param {string} [options.search] - Search term to filter members by display name (case-insensitive)
  * @returns {Promise<Array>} List of workspace members
  */
 export const listWorkspaceMembers = async (
-  resourceData,
+  connectionData,
   workspace,
   { search } = {},
 ) => {
@@ -235,7 +235,7 @@ export const listWorkspaceMembers = async (
 
     // Auto-paginate through all pages (capped at 10 pages = 1000 members for safety)
     for (let page = 0; page < 10; page++) {
-      const results = await apiRequest(resourceData, url);
+      const results = await apiRequest(connectionData, url);
 
       const members = (results.values || []).map((member) => ({
         uuid: member.user?.uuid,
@@ -277,7 +277,7 @@ export const listWorkspaceMembers = async (
 
 /**
  * Create a pull request in a Bitbucket repository
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @param {string} workspace - Workspace slug
  * @param {string} repoSlug - Repository slug
  * @param {Object} options - Pull request options
@@ -289,7 +289,7 @@ export const listWorkspaceMembers = async (
  * @returns {Promise<Object>} Created pull request details
  */
 export const createPullRequest = async (
-  resourceData,
+  connectionData,
   workspace,
   repoSlug,
   { title, description, sourceBranch, destinationBranch = "main", reviewers = [] },
@@ -322,7 +322,7 @@ export const createPullRequest = async (
     }
 
     const result = await apiRequest(
-      resourceData,
+      connectionData,
       `/repositories/${workspace}/${repoSlug}/pullrequests`,
       {
         method: "POST",
@@ -352,7 +352,7 @@ export const createPullRequest = async (
 
 /**
  * Get the raw contents of a file from a Bitbucket repository
- * @param {Object} resourceData - Resource data containing Bitbucket credentials
+ * @param {Object} connectionData - Connection data containing Bitbucket credentials
  * @param {string} workspace - Workspace slug
  * @param {string} repoSlug - Repository slug
  * @param {string} filePath - Path to the file within the repository (e.g. '.rearch/Dockerfile')
@@ -360,7 +360,7 @@ export const createPullRequest = async (
  * @returns {Promise<string>} Raw file contents as a string
  */
 export const getFileContents = async (
-  resourceData,
+  connectionData,
   workspace,
   repoSlug,
   filePath,
@@ -377,7 +377,7 @@ export const getFileContents = async (
 
     const response = await fetch(url, {
       headers: {
-        Authorization: getAuthHeader(resourceData),
+        Authorization: getAuthHeader(connectionData),
       },
     });
 

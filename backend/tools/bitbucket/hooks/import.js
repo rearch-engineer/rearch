@@ -1,10 +1,10 @@
 import { getRepositoryDetails } from '../../../utils/attlasian/bitbucket.js';
 
-export default async function onImport(parentResource, subResource) {
-  console.log(`[Bitbucket Import Hook] Importing repository: ${subResource.externalId}`);
+export default async function onImport(connection, resource) {
+  console.log(`[Bitbucket Import Hook] Importing repository: ${resource.externalId}`);
 
-  const repoSlug = subResource.externalId;
-  const workspace = parentResource.data?.workspace;
+  const repoSlug = resource.externalId;
+  const workspace = connection.data?.workspace;
 
   if (!repoSlug) {
     throw new Error('Repository slug is required for import');
@@ -15,10 +15,10 @@ export default async function onImport(parentResource, subResource) {
   }
 
   try {
-    const repoDetails = await getRepositoryDetails(parentResource.data, workspace, repoSlug);
+    const repoDetails = await getRepositoryDetails(connection.data, workspace, repoSlug);
 
     return {
-      ...subResource.data,
+      ...resource.data,
       slug: repoDetails.slug,
       fullName: repoDetails.fullName,
       description: repoDetails.description,

@@ -1,6 +1,6 @@
 import Agent from "../models/Agent.js";
+import Connection from "../models/Connection.js";
 import Resource from "../models/Resource.js";
-import SubResource from "../models/SubResource.js";
 import Conversation from "../models/Conversation.js";
 import Setting from "../models/Setting.js";
 
@@ -27,16 +27,16 @@ async function triggerRebuildAll() {
 
   const jobs = [];
   for (const agent of agents) {
-    const subResource = await SubResource.findById(agent.repository);
-    if (!subResource) continue;
+    const resource = await Resource.findById(agent.repository);
+    if (!resource) continue;
 
     // Get the parent connection for credentials
-    const parentResource = await Resource.findById(subResource.resource);
-    if (!parentResource) continue;
+    const connection = await Connection.findById(resource.connection);
+    if (!connection) continue;
 
     const job = await addJobToQueue("resources", "rebuild", {
-      parentResource,
-      subResource,
+      connection,
+      resource,
       agent,
       payload: {},
     });

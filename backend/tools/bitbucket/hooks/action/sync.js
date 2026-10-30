@@ -1,13 +1,13 @@
 import { getRepositoryDetails } from '../../../../utils/attlasian/bitbucket.js';
-import SubResource from '../../../../models/SubResource.js';
+import Resource from '../../../../models/Resource.js';
 
 export default async function onSync(job) {
-  const { parentResource, subResource } = job.data;
+  const { connection, resource } = job.data;
   
-  console.log(`[Bitbucket Sync Action] Syncing repository: ${subResource.externalId}`);
+  console.log(`[Bitbucket Sync Action] Syncing repository: ${resource.externalId}`);
 
-  const repoSlug = subResource.externalId;
-  const workspace = parentResource.data?.workspace;
+  const repoSlug = resource.externalId;
+  const workspace = connection.data?.workspace;
 
   if (!repoSlug) {
     throw new Error('Repository slug is required for sync');
@@ -18,11 +18,11 @@ export default async function onSync(job) {
   }
 
   try {
-    const repoDetails = await getRepositoryDetails(parentResource.data, workspace, repoSlug);
+    const repoDetails = await getRepositoryDetails(connection.data, workspace, repoSlug);
 
-    // Update the subresource with fresh data
+    // Update the resource with fresh data
     const updatedData = {
-      ...subResource.data,
+      ...resource.data,
       slug: repoDetails.slug,
       fullName: repoDetails.fullName,
       description: repoDetails.description,
@@ -42,7 +42,7 @@ export default async function onSync(job) {
 
     // Save the updated data to the database
     // Only update the 'data' field - preserve user-edited 'description' field
-    await SubResource.findByIdAndUpdate(subResource._id, {
+    await Resource.findByIdAndUpdate(resource._id, {
       $set: { data: updatedData }
     });
 

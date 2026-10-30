@@ -3,7 +3,7 @@ import Docker from "dockerode";
 import { z } from "zod";
 import Conversation from "../models/Conversation.js";
 import User from "../models/User.js";
-import Resource from "../models/Resource.js";
+import Connection from "../models/Connection.js";
 import {
   resolveAgentForNewConversation,
   findEnabledAgentByName,
@@ -50,17 +50,14 @@ const createConversationBody = z
     title: z.string().max(200).optional(),
     // The agent to run the conversation with
     agent: z.string().regex(OBJECT_ID_RE, "Invalid agent ID format.").optional(),
-    // Legacy: connection + repository sub-resource, mapped to the repository's agent
-    repository: z
-      .string()
-      .regex(OBJECT_ID_RE, "Invalid repository ID format.")
-      .optional(),
-    subResource: z
-      .string()
-      .regex(OBJECT_ID_RE, "Invalid subResource ID format.")
-      .optional(),
+    // Legacy: a repository resource (and optionally its connection), mapped to
+    // the repository's agent. `subResource`/`repository` are the pre-rename names.
+    resource: z.string().regex(OBJECT_ID_RE, "Invalid resource ID format.").optional(),
+    subResource: z.string().regex(OBJECT_ID_RE, "Invalid resource ID format.").optional(),
+    connection: z.string().regex(OBJECT_ID_RE, "Invalid connection ID format.").optional(),
+    repository: z.string().regex(OBJECT_ID_RE, "Invalid connection ID format.").optional(),
   })
-  .refine((b) => b.agent || b.subResource, {
+  .refine((b) => b.agent || b.resource || b.subResource, {
     message: "agent is required",
     path: ["agent"],
   });
@@ -166,11 +163,11 @@ const router = new Elysia({ prefix: "/api" })
     }
 
     try {
-      const { title, agent: agentId, repository, subResource } = parsed.data;
+      const { title, agent: agentId } = parsed.data;
       const { agent, error } = await resolveAgentForNewConversation({
         agent: agentId,
-        repository,
-        subResource,
+        connection: parsed.data.connection || parsed.data.repository,
+        resource: parsed.data.resource || parsed.data.subResource,
       });
       if (error) {
         set.status = error.status;
@@ -229,7 +226,7 @@ const router = new Elysia({ prefix: "/api" })
         title: { $regex: q.trim(), $options: "i" },
       })
         .sort({ createdAt: -1 })
-        .populate("subResource", "name")
+        .populate("resource", "name")
         .populate("agent", "name");
       return conversations;
     } catch (err) {
@@ -245,7 +242,7 @@ const router = new Elysia({ prefix: "/api" })
         createdBy: user.userId,
       })
         .sort({ createdAt: -1 })
-        .populate("subResource", "name")
+        .populate("resource", "name")
         .populate("agent", "name");
 
       // Fetch session statuses for running conversations (busy/idle)
@@ -301,7 +298,7 @@ const router = new Elysia({ prefix: "/api" })
           "participants",
           "profile.display_name profile.avatar_fileId account.username account.email",
         )
-        .populate("subResource", "name")
+        .populate("resource", "name")
         .populate("agent", "name");
       if (!conversation) {
         set.status = 404;
@@ -320,7 +317,7 @@ const router = new Elysia({ prefix: "/api" })
               "participants",
               "profile.display_name profile.avatar_fileId account.username account.email",
             )
-            .populate("subResource", "name")
+            .populate("resource", "name")
             .populate("agent", "name");
         }
       }
@@ -1360,39 +1357,39 @@ const router = new Elysia({ prefix: "/api" })
       const { title, description, sourceBranch, reviewers } = parsed.data;
 
       const conversation = await Conversation.findById(conversationId)
-        .populate("repository")
-        .populate("subResource");
+        .populate("connection")
+        .populate("resource");
 
       if (!conversation) {
         set.status = 404;
         return { error: "Conversation not found" };
       }
 
-      const resource = conversation.repository;
-      const subResource = conversation.subResource;
+      const connection = conversation.connection;
+      const resource = conversation.resource;
 
-      if (!resource || !subResource) {
+      if (!connection || !resource) {
         set.status = 400;
         return {
           error: "Conversation has no linked repository",
         };
       }
 
-      // Extract owner/workspace and repo slug from the subresource fullName (e.g., "workspace/repo-slug")
-      const fullName = subResource.data?.fullName;
+      // Extract owner/workspace and repo slug from the resource fullName (e.g., "workspace/repo-slug")
+      const fullName = resource.data?.fullName;
       if (!fullName || !fullName.includes("/")) {
         set.status = 400;
         return {
-          error: "Cannot determine workspace/repo from subresource",
+          error: "Cannot determine workspace/repo from resource",
         };
       }
 
       const [ownerOrWorkspace, repoSlug] = fullName.split("/");
-      const destinationBranch = subResource.data?.mainBranch || "main";
+      const destinationBranch = resource.data?.mainBranch || "main";
 
       let pr;
-      if (resource.provider === "github") {
-        pr = await createGithubPR(resource.data, ownerOrWorkspace, repoSlug, {
+      if (connection.provider === "github") {
+        pr = await createGithubPR(connection.data, ownerOrWorkspace, repoSlug, {
           title,
           description: description || "",
           sourceBranch,
@@ -1401,7 +1398,7 @@ const router = new Elysia({ prefix: "/api" })
         });
       } else {
         pr = await createBitbucketPR(
-          resource.data,
+          connection.data,
           ownerOrWorkspace,
           repoSlug,
           {
@@ -1451,27 +1448,27 @@ const router = new Elysia({ prefix: "/api" })
 
       try {
         const conversation = await Conversation.findById(params.id)
-          .populate("repository")
-          .populate("subResource");
+          .populate("connection")
+          .populate("resource");
 
         if (!conversation) {
           set.status = 404;
           return { error: "Conversation not found" };
         }
 
-        const resource = conversation.repository;
-        const subResource = conversation.subResource;
+        const connection = conversation.connection;
+        const resource = conversation.resource;
 
-        if (!resource || !subResource) {
+        if (!connection || !resource) {
           set.status = 400;
           return { error: "Conversation has no linked repository" };
         }
 
-        const fullName = subResource.data?.fullName;
+        const fullName = resource.data?.fullName;
         if (!fullName || !fullName.includes("/")) {
           set.status = 400;
           return {
-            error: "Cannot determine workspace from subresource",
+            error: "Cannot determine workspace from resource",
           };
         }
 
@@ -1479,16 +1476,16 @@ const router = new Elysia({ prefix: "/api" })
         const search = query?.search?.trim() || "";
 
         let members;
-        if (resource.provider === "github") {
+        if (connection.provider === "github") {
           members = await listGithubCollaborators(
-            resource.data,
+            connection.data,
             ownerOrWorkspace,
             repoSlug,
             { search },
           );
         } else {
           members = await listWorkspaceMembers(
-            resource.data,
+            connection.data,
             ownerOrWorkspace,
             {
               search,

@@ -304,7 +304,7 @@ const ChatInterface = ({
       ]);
       setMessages(messages);
       // Agent (preferred) or legacy repository link for the welcome screen
-      const link = convData?.agent || convData?.subResource;
+      const link = convData?.agent || convData?.resource;
       if (link) {
         const isPopulated = typeof link === "object";
         setConversationRearchAgentId(isPopulated ? link._id : link);

@@ -149,6 +149,26 @@ Services are exposed at:
 - `https://api.rearch.yourdomain` — Backend API
 - `https://auth.rearch.yourdomain` — Keycloak
 
+## Domain model
+
+- **Connection** (`backend/models/Connection.js`, collection `connections`): credentials for a provider (a Bitbucket workspace, a GitHub App). Only authentication.
+- **Resource** (`backend/models/Resource.js`, collection `resources`): something an agent works with, imported through a connection. `kind` says what it is (today `repository`), `provider` where it lives (`bitbucket`, `github`).
+- **Agent** (`backend/models/Agent.js`): what users pick to start a conversation. Owns the container configuration (template, image, services, limits, skills) and an optional primary `repository` resource.
+- **Conversation**: always runs with an `agent`; `connection`/`resource` mirror the agent's repository for provider tools (pull requests, reviewers).
+
+Admin UI: *Resources → Repositories* lists resources, *Connections* manages provider credentials, *Generative AI → Agents* configures agents.
+
+### Migrations
+
+Run from `backend/` with the backend stopped:
+
+```bash
+bun run migrate:rename   # renames collections/fields from the pre-agent model (once)
+bun run migrate:agents   # creates an Agent per repository configured before agents existed
+```
+
+Both scripts are idempotent and accept `DRY_RUN=1`.
+
 ## API
 
 Interactive API documentation is available at `http://localhost:5000/api-docs` (Swagger UI).

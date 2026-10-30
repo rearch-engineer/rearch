@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ReArch API
-  description: API documentation for ReArch by Lab34 — an AI SDLC Agency platform with conversation management, AI-powered messaging, resource handling, and tool integration
+  description: API documentation for ReArch by Lab34 — an AI SDLC Agency platform with conversation management, AI-powered messaging, connection handling, and tool integration
   version: 0.1.0
   contact:
     name: Lab34
@@ -28,10 +28,10 @@ tags:
     description: Git operations (diff, commit, push, pull requests) inside conversation containers
   - name: Files
     description: File upload and download endpoints (GridFS-backed)
+  - name: Connections
+    description: Connection management including Bitbucket and GitHub repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/connections).
   - name: Resources
-    description: Resource management including Bitbucket and GitHub repositories. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
-  - name: SubResources
-    description: Sub-resource management (import, actions, files) within resources. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/resources).
+    description: resource management (import, actions, files) within connections. Read endpoints available to all authenticated users; write/delete operations require admin role (/api/admin/connections).
   - name: Skills
     description: Skill management (admin only)
   - name: Settings
@@ -119,11 +119,11 @@ components:
         repository:
           type: string
           example: 507f1f77bcf86cd799439013
-          description: Reference to a Resource of type bitbucket or github
+          description: Reference to a Connection of type bitbucket or github
         subResource:
           type: string
           example: 507f1f77bcf86cd799439014
-          description: Reference to a SubResource (bitbucket-repository or github-repository)
+          description: Reference to a Resource (bitbucket-repository or github-repository)
         contextUsage:
           type: object
           properties:
@@ -274,7 +274,7 @@ components:
           format: date-time
           example: "2024-01-15T10:30:00.000Z"
 
-    Resource:
+    Connection:
       type: object
       required:
         - name
@@ -310,10 +310,10 @@ components:
           format: date-time
           example: "2024-01-15T10:30:00.000Z"
 
-    SubResource:
+    Resource:
       type: object
       required:
-        - resource
+        - connection
         - name
         - type
         - data
@@ -322,9 +322,9 @@ components:
           type: string
           example: 507f1f77bcf86cd799439014
           description: MongoDB ObjectId
-        resource:
+        connection:
           type: string
-          description: Reference to parent Resource
+          description: Reference to parent Connection
         externalId:
           type: string
           description: External system identifier
@@ -339,9 +339,18 @@ components:
           type: string
           maxLength: 2000
           default: ""
+        kind:
+          type: string
+          enum: [repository]
+          description: What the resource is (today only repositories)
+        provider:
+          type: string
+          enum: [bitbucket, github]
+          description: Where the resource lives
         type:
           type: string
-          description: Sub-resource type (e.g. bitbucket-repository, github-repository)
+          readOnly: true
+          description: Backward-compatible composite of provider and kind (e.g. github-repository)
         data:
           type: object
           description: Provider-specific data
@@ -363,9 +372,9 @@ components:
                     type: string
                   internalPort:
                     type: integer
-            resources:
+            connections:
               type: object
-              description: Docker resource constraints applied when creating containers for this repository
+              description: Legacy Docker resource constraints (container limits now live on the Agent)
               properties:
                 memoryMb:
                   type: integer
@@ -389,7 +398,7 @@ components:
           type: string
           format: date-time
 
-    SubResourceFile:
+    ResourceFile:
       type: object
       required:
         - subResource
@@ -403,7 +412,7 @@ components:
           description: MongoDB ObjectId
         subResource:
           type: string
-          description: Reference to parent SubResource
+          description: Reference to parent Resource
         filename:
           type: string
         mimeType:
@@ -1382,7 +1391,7 @@ paths:
         - Conversations
       summary: Create a new conversation
       description: |
-        Creates a new conversation linked to a repository (Bitbucket or GitHub) and sub-resource.
+        Creates a new conversation linked to a repository (Bitbucket or GitHub) and resource.
         Triggers a BullMQ job for container setup.
         The authenticated user is automatically added to the `participants` array as the creator.
       requestBody:
@@ -1402,11 +1411,11 @@ paths:
                 repository:
                   type: string
                   example: 507f1f77bcf86cd799439013
-                  description: ID of a Resource with provider 'bitbucket' or 'github'
+                  description: ID of a Connection with provider 'bitbucket' or 'github'
                 subResource:
                   type: string
                   example: 507f1f77bcf86cd799439014
-                  description: ID of a SubResource of type 'bitbucket-repository' or 'github-repository' belonging to the resource
+                  description: ID of a Resource of type 'bitbucket-repository' or 'github-repository' belonging to the connection
       responses:
         "200":
           description: Conversation created successfully
@@ -1415,13 +1424,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Conversation"
         "400":
-          description: Missing required fields, invalid resource type, or subResource mismatch
+          description: Missing required fields, invalid connection type, or subResource mismatch
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: Resource or SubResource not found
+          description: Connection or Resource not found
           content:
             application/json:
               schema:
@@ -1931,7 +1940,7 @@ paths:
       tags:
         - Agent Control
       summary: Get available services for a running container
-      description: Joins SubResource service definitions with live Docker port mappings to return accessible service URLs
+      description: Joins Resource service definitions with live Docker port mappings to return accessible service URLs
       parameters:
         - name: id
           in: path
@@ -2496,24 +2505,59 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   # ===========================================================================
-  # Resources
+  # Connections
   # ===========================================================================
 
   /api/resources:
     get:
       tags:
         - Resources
-      summary: Get all resources
-      description: Retrieves all resources sorted by most recently created
+      summary: List all imported resources
+      description: Every imported resource across all connections. Filter by kind and/or provider.
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [repository]
+        - name: provider
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [bitbucket, github]
       responses:
         "200":
-          description: List of resources
+          description: List of resources (each with connectionId and connectionName)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Resource"
+        "400":
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/connections:
+    get:
+      tags:
+        - Connections
+      summary: Get all connections
+      description: Retrieves all connections sorted by most recently created
+      responses:
+        "200":
+          description: List of connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Connection"
         "500":
           description: Server error
           content:
@@ -2521,29 +2565,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/{id}:
+  /api/connections/{id}:
     get:
       tags:
-        - Resources
-      summary: Get single resource
-      description: Retrieves a specific resource by ID
+        - Connections
+      summary: Get single connection
+      description: Retrieves a specific connection by ID
       parameters:
         - name: id
           in: path
           required: true
-          description: Resource ID
+          description: Connection ID
           schema:
             type: string
             example: 507f1f77bcf86cd799439011
       responses:
         "200":
-          description: Resource details
+          description: Connection details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Resource"
+                $ref: "#/components/schemas/Connection"
         "404":
-          description: Resource not found
+          description: Connection not found
           content:
             application/json:
               schema:
@@ -2555,12 +2599,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/file/{fileId}:
+  /api/connections/file/{fileId}:
     get:
       tags:
-        - Resources
-      summary: Download/stream file from GridFS (resource files)
-      description: Downloads or streams a resource file from GridFS storage
+        - Connections
+      summary: Download/stream file from GridFS (connection files)
+      description: Downloads or streams a connection file from GridFS storage
       parameters:
         - name: fileId
           in: path
@@ -2604,126 +2648,126 @@ paths:
                 $ref: "#/components/schemas/Error"
 
   # ===========================================================================
-  # SubResources (read-only, authenticated)
+  # Resources (read-only, authenticated)
   # ===========================================================================
 
-  /api/resources/{id}/subresources:
+  /api/connections/{id}/resources:
     get:
       tags:
-        - SubResources
-      summary: List imported subresources
-      description: Returns all subresources with imported=true for the given resource
+        - Resources
+      summary: List imported resources
+      description: Returns all resources with imported=true for the given connection
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
       responses:
         "200":
-          description: List of imported subresources
+          description: List of imported resources
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/SubResource"
+                  $ref: "#/components/schemas/Resource"
         "404":
-          description: Resource not found
+          description: Connection not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/{id}/subresources/{subId}:
+  /api/connections/{id}/resources/{subId}:
     get:
       tags:
-        - SubResources
-      summary: Get single subresource
+        - Resources
+      summary: Get single resource
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
       responses:
         "200":
-          description: SubResource details
+          description: Resource details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubResource"
+                $ref: "#/components/schemas/Resource"
         "404":
-          description: Resource or subresource not found
+          description: Connection or resource not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/{id}/subresources/{subId}/files:
+  /api/connections/{id}/resources/{subId}/files:
     get:
       tags:
-        - SubResources
-      summary: List files for a subresource
+        - Resources
+      summary: List files for a resource
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
       responses:
         "200":
-          description: List of subresource files
+          description: List of resource files
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/SubResourceFile"
+                  $ref: "#/components/schemas/ResourceFile"
         "404":
-          description: Resource or subresource not found
+          description: Connection or resource not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/{id}/subresources/{subId}/files/{fileId}:
+  /api/connections/{id}/resources/{subId}/files/{fileId}:
     get:
       tags:
-        - SubResources
-      summary: Get subresource file metadata
+        - Resources
+      summary: Get resource file metadata
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
         - name: fileId
           in: path
           required: true
-          description: SubResourceFile ID
+          description: ResourceFile ID
           schema:
             type: string
       responses:
@@ -2732,42 +2776,42 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubResourceFile"
+                $ref: "#/components/schemas/ResourceFile"
         "403":
-          description: File does not belong to this subresource
+          description: File does not belong to this resource
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: Resource, subresource, or file not found
+          description: Connection, resource, or file not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/resources/{id}/subresources/{subId}/files/{fileId}/download:
+  /api/connections/{id}/resources/{subId}/files/{fileId}/download:
     get:
       tags:
-        - SubResources
-      summary: Download subresource file content
+        - Resources
+      summary: Download resource file content
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
         - name: fileId
           in: path
           required: true
-          description: SubResourceFile ID
+          description: ResourceFile ID
           schema:
             type: string
       responses:
@@ -2789,28 +2833,63 @@ paths:
               schema:
                 type: integer
         "403":
-          description: File does not belong to this subresource
+          description: File does not belong to this resource
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: Resource, subresource, file, or file content not found
+          description: Connection, resource, file, or file content not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
   # ===========================================================================
-  # Resources (Admin write operations)
+  # Connections (Admin write operations)
   # ===========================================================================
 
   /api/admin/resources:
-    post:
+    get:
       tags:
         - Resources
-      summary: Create resource (admin only)
-      description: Creates a new resource for Bitbucket providers. Executes a create hook if available. Requires admin role.
+      summary: List all imported resources (admin)
+      description: Every imported resource across all connections, including provider data. Filter by kind and/or provider.
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [repository]
+        - name: provider
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [bitbucket, github]
+      responses:
+        "200":
+          description: List of resources (each with connectionId and connectionName)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "400":
+          description: Invalid filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/connections:
+    post:
+      tags:
+        - Connections
+      summary: Create connection (admin only)
+      description: Creates a new connection for Bitbucket providers. Executes a create hook if available. Requires admin role.
       requestBody:
         required: true
         content:
@@ -2839,11 +2918,11 @@ paths:
                     - $ref: "#/components/schemas/GithubResourceData"
       responses:
         "201":
-          description: Resource created successfully
+          description: Connection created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Resource"
+                $ref: "#/components/schemas/Connection"
         "400":
           description: Bad request (validation error, file provider used, or hook failure)
           content:
@@ -2853,12 +2932,12 @@ paths:
         "403":
           description: Admin role required
 
-  /api/admin/resources/upload:
+  /api/admin/connections/upload:
     post:
       tags:
-        - Resources
-      summary: Upload file and create file resource (admin only)
-      description: Uploads a file to GridFS and creates a file resource. Requires admin role.
+        - Connections
+      summary: Upload file and create file connection (admin only)
+      description: Uploads a file to GridFS and creates a file connection. Requires admin role.
       requestBody:
         required: true
         content:
@@ -2874,18 +2953,18 @@ paths:
                   minLength: 2
                   maxLength: 100
                   example: Project Documentation
-                  description: Resource name
+                  description: Connection name
                 file:
                   type: string
                   format: binary
                   description: File to upload
       responses:
         "201":
-          description: File uploaded and resource created successfully
+          description: File uploaded and connection created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Resource"
+                $ref: "#/components/schemas/Connection"
         "400":
           description: Bad request (no file, missing name, or hook failure)
           content:
@@ -2895,17 +2974,17 @@ paths:
         "403":
           description: Admin role required
 
-  /api/admin/resources/{id}:
+  /api/admin/connections/{id}:
     put:
       tags:
-        - Resources
-      summary: Update resource (admin only)
-      description: Updates a resource's name and data. Requires admin role.
+        - Connections
+      summary: Update connection (admin only)
+      description: Updates a connection's name and data. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Resource ID
+          description: Connection ID
           schema:
             type: string
             example: 507f1f77bcf86cd799439011
@@ -2920,17 +2999,17 @@ paths:
                   type: string
                   minLength: 2
                   maxLength: 100
-                  example: Updated Resource Name
+                  example: Updated Connection Name
                 data:
                   type: object
                   description: Updated provider-specific data
       responses:
         "200":
-          description: Resource updated successfully
+          description: Connection updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Resource"
+                $ref: "#/components/schemas/Connection"
         "400":
           description: Bad request (validation error or hook failure)
           content:
@@ -2940,7 +3019,7 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Resource not found
+          description: Connection not found
           content:
             application/json:
               schema:
@@ -2948,20 +3027,20 @@ paths:
 
     delete:
       tags:
-        - Resources
-      summary: Delete resource (admin only)
-      description: Deletes a resource. Requires admin role.
+        - Connections
+      summary: Delete connection (admin only)
+      description: Deletes a connection. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Resource ID
+          description: Connection ID
           schema:
             type: string
             example: 507f1f77bcf86cd799439011
       responses:
         "200":
-          description: Resource deleted successfully
+          description: Connection deleted successfully
           content:
             application/json:
               schema:
@@ -2971,7 +3050,7 @@ paths:
                     type: boolean
                     example: true
         "400":
-          description: Delete hook failed, resource was not deleted
+          description: Delete hook failed, connection was not deleted
           content:
             application/json:
               schema:
@@ -2979,7 +3058,7 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Resource not found
+          description: Connection not found
           content:
             application/json:
               schema:
@@ -2991,10 +3070,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/admin/resources/file/{fileId}:
+  /api/admin/connections/file/{fileId}:
     delete:
       tags:
-        - Resources
+        - Connections
       summary: Delete file from GridFS (admin only)
       description: Deletes a file from GridFS storage. Requires admin role.
       parameters:
@@ -3025,23 +3104,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/admin/resources/{id}/subresources/{subId}:
+  /api/admin/connections/{id}/resources/{subId}:
     post:
       tags:
-        - SubResources
-      summary: Update subresource (admin only)
-      description: Updates subresource fields (name, description, data, rearch). Requires admin role.
+        - Resources
+      summary: Update resource (admin only)
+      description: Updates resource fields (name, description, data, rearch). Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
       requestBody:
@@ -3074,15 +3153,15 @@ paths:
                             type: integer
       responses:
         "200":
-          description: Updated subresource
+          description: Updated resource
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubResource"
+                $ref: "#/components/schemas/Resource"
         "403":
           description: Admin role required
         "404":
-          description: Resource or subresource not found
+          description: Connection or resource not found
           content:
             application/json:
               schema:
@@ -3090,25 +3169,25 @@ paths:
 
     delete:
       tags:
-        - SubResources
-      summary: Delete subresource (admin only)
-      description: Deletes a subresource, its associated GridFS files, and SubResourceFiles records. Requires admin role.
+        - Resources
+      summary: Delete resource (admin only)
+      description: Deletes a resource, its associated GridFS files, and ResourceFiles records. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
       responses:
         "200":
-          description: Subresource deleted
+          description: resource deleted
           content:
             application/json:
               schema:
@@ -3120,23 +3199,23 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Resource or subresource not found
+          description: Connection or resource not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/admin/resources/{id}/subresources/import/search:
+  /api/admin/connections/{id}/resources/import/search:
     post:
       tags:
-        - SubResources
+        - Resources
       summary: Search for importable items (admin only)
       description: Executes a provider-specific search hook to find items available for import. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
       requestBody:
@@ -3164,23 +3243,23 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Parent resource not found
+          description: Parent connection not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/admin/resources/{id}/subresources/import/import:
+  /api/admin/connections/{id}/resources/import/import:
     post:
       tags:
-        - SubResources
-      summary: Import a subresource (admin only)
-      description: Creates a new subresource and executes an import hook. Requires admin role.
+        - Resources
+      summary: Import a resource (admin only)
+      description: Creates a new resource and executes an import hook. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
       requestBody:
@@ -3201,14 +3280,14 @@ paths:
                   type: string
                 type:
                   type: string
-                  description: SubResource type (e.g. bitbucket-repository)
+                  description: Resource type (e.g. bitbucket-repository)
       responses:
         "201":
-          description: SubResource imported successfully
+          description: Resource imported successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubResource"
+                $ref: "#/components/schemas/Resource"
         "400":
           description: Already imported or import hook failure
           content:
@@ -3218,29 +3297,29 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Parent resource not found
+          description: Parent connection not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /api/admin/resources/{id}/subresources/{subId}/action/{action}:
+  /api/admin/connections/{id}/resources/{subId}/action/{action}:
     post:
       tags:
-        - SubResources
-      summary: Execute an action on a subresource (admin only)
+        - Resources
+      summary: Execute an action on a resource (admin only)
       description: Queues an action job in BullMQ for async processing. Requires admin role.
       parameters:
         - name: id
           in: path
           required: true
-          description: Parent Resource ID
+          description: Parent Connection ID
           schema:
             type: string
         - name: subId
           in: path
           required: true
-          description: SubResource ID
+          description: Resource ID
           schema:
             type: string
         - name: action
@@ -3278,7 +3357,7 @@ paths:
         "403":
           description: Admin role required
         "404":
-          description: Resource or subresource not found
+          description: Connection or resource not found
           content:
             application/json:
               schema:
@@ -4262,14 +4341,14 @@ paths:
         - Suggested Prompts
       summary: Get suggested prompts for a specific repository
       description: |
-        Returns prompts filtered based on the SubResource's `rearch.suggestedPrompts` configuration.
+        Returns prompts filtered based on the Resource's `rearch.suggestedPrompts` configuration.
         Filtering modes: `all` (default, returns all prompts), `selected` (filters by specific prompt IDs),
         `categories` (filters by category IDs).
       parameters:
         - name: subResourceId
           in: path
           required: true
-          description: SubResource MongoDB ObjectId
+          description: Resource MongoDB ObjectId
           schema:
             type: string
       responses:
@@ -4288,7 +4367,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "404":
-          description: SubResource not found
+          description: Resource not found
           content:
             application/json:
               schema:
@@ -4608,7 +4687,7 @@ paths:
       tags:
         - Jobs
       summary: Get aggregated job counts and job list (admin only)
-      description: Returns aggregated job counts and a combined list of jobs across all BullMQ queues (resources, conversations) and statuses.
+      description: Returns aggregated job counts and a combined list of jobs across all BullMQ queues (connections, conversations) and statuses.
       parameters:
         - in: query
           name: status
@@ -4653,7 +4732,7 @@ paths:
                           type: string
                         queue:
                           type: string
-                          enum: [resources, conversations]
+                          enum: [connections, conversations]
                         data:
                           type: object
                         status:
@@ -4699,7 +4778,7 @@ paths:
           description: Queue name
           schema:
             type: string
-            enum: [resources, conversations]
+            enum: [connections, conversations]
         - name: id
           in: path
           required: true
@@ -4777,7 +4856,7 @@ paths:
       tags:
         - Usage
       summary: Get available filter options for usage dashboard (admin only)
-      description: Returns the list of active users and sub-resources (repositories) available for filtering in the usage dashboard.
+      description: Returns the list of active users and resources (repositories) available for filtering in the usage dashboard.
       responses:
         "200":
           description: Filter options
@@ -4826,7 +4905,7 @@ paths:
       summary: Get aggregated usage analytics (admin only)
       description: |
         Returns aggregated usage data for the admin dashboard including KPIs,
-        cost over time, per-user costs, per-resource costs, conversations list,
+        cost over time, per-user costs, per-connection costs, conversations list,
         and pull request analytics.
       parameters:
         - in: query
@@ -4850,7 +4929,7 @@ paths:
           name: subResource
           schema:
             type: string
-          description: Filter by sub-resource/repository ID (ObjectId)
+          description: Filter by resource/repository ID (ObjectId)
       responses:
         "200":
           description: Aggregated usage data

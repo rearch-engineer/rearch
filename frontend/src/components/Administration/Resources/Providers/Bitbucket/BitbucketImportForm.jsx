@@ -1,24 +1,14 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import { useTranslation } from "react-i18next";
-import {
-  Input,
-  Button,
-  List,
-  ListItem,
-  ListItemButton,
-  Typography,
-  CircularProgress,
-  Stack,
-  Chip,
-} from "@mui/joy";
-import { Search } from "@mui/icons-material";
-import { api } from "../../../../../api/client";
-import { useToast } from "../../../../../contexts/ToastContext";
+import { Input, Button, List, ListItem, ListItemButton, Typography, CircularProgress, Stack, Chip } from '@mui/joy';
+import { Search } from '@mui/icons-material';
+import { api } from '../../../../../api/client';
+import { useToast } from '../../../../../contexts/ToastContext';
 
-function GithubImportForm({ resource, onImportSuccess }) {
+function BitbucketImportForm({ connection, onImportSuccess }) {
   const { t } = useTranslation("Administration");
   const toast = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [importing, setImporting] = useState(null);
@@ -26,13 +16,10 @@ function GithubImportForm({ resource, onImportSuccess }) {
   const handleSearch = async () => {
     try {
       setSearching(true);
-      const results = await api.searchSubResources(resource._id, searchQuery);
+      const results = await api.searchImportableResources(connection._id, searchQuery);
       setSearchResults(results);
     } catch (err) {
-      toast.error(
-        err.response?.data?.error ||
-          t("githubImport.failedToSearchRepositories"),
-      );
+      toast.error(err.response?.data?.error || t("bitbucketImport.failedToSearchRepositories"));
       setSearchResults([]);
     } finally {
       setSearching(false);
@@ -42,24 +29,21 @@ function GithubImportForm({ resource, onImportSuccess }) {
   const handleImport = async (result) => {
     try {
       setImporting(result.externalId);
-      await api.importSubResource(resource._id, {
+      await api.importResource(connection._id, {
         externalId: result.externalId,
         name: result.name,
-        type: result.type,
+        kind: result.kind,
       });
       onImportSuccess();
     } catch (err) {
-      toast.error(
-        err.response?.data?.error ||
-          t("githubImport.failedToImportRepository"),
-      );
+      toast.error(err.response?.data?.error || t("bitbucketImport.failedToImportRepository"));
     } finally {
       setImporting(null);
     }
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       handleSearch();
     }
   };
@@ -67,13 +51,13 @@ function GithubImportForm({ resource, onImportSuccess }) {
   return (
     <Stack spacing={2}>
       <Typography level="body-sm" color="neutral">
-        {t("githubImport.searchDescription")}
+        {t("bitbucketImport.searchDescription")}
       </Typography>
 
       <Stack direction="row" spacing={1}>
         <Input
           data-testid="import-search-input"
-          placeholder={t("githubImport.searchPlaceholder")}
+          placeholder={t("bitbucketImport.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -86,7 +70,7 @@ function GithubImportForm({ resource, onImportSuccess }) {
           onClick={handleSearch}
           loading={searching}
         >
-          {t("githubImport.search")}
+          {t("bitbucketImport.search")}
         </Button>
       </Stack>
 
@@ -94,8 +78,8 @@ function GithubImportForm({ resource, onImportSuccess }) {
         <List
           sx={{
             maxHeight: 300,
-            overflow: "auto",
-            "--ListItem-paddingY": "8px",
+            overflow: 'auto',
+            '--ListItem-paddingY': '8px',
           }}
         >
           {searchResults.map((result) => (
@@ -104,11 +88,7 @@ function GithubImportForm({ resource, onImportSuccess }) {
                 data-testid="import-result-btn"
                 onClick={() => handleImport(result)}
                 disabled={importing !== null}
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
                 <Stack spacing={0.5} sx={{ flex: 1 }}>
                   <Typography level="body-sm" fontWeight="md">
@@ -122,7 +102,7 @@ function GithubImportForm({ resource, onImportSuccess }) {
                   <CircularProgress size="sm" />
                 ) : (
                   <Chip size="sm" variant="soft" color="primary">
-                    {t("githubImport.import")}
+                    {t("bitbucketImport.import")}
                   </Chip>
                 )}
               </ListItemButton>
@@ -132,17 +112,12 @@ function GithubImportForm({ resource, onImportSuccess }) {
       )}
 
       {!searching && searchResults.length === 0 && searchQuery && (
-        <Typography
-          level="body-sm"
-          color="neutral"
-          textAlign="center"
-          sx={{ py: 2 }}
-        >
-          {t("githubImport.noRepositoriesFound")}
+        <Typography level="body-sm" color="neutral" textAlign="center" sx={{ py: 2 }}>
+          {t("bitbucketImport.noRepositoriesFound")}
         </Typography>
       )}
     </Stack>
   );
 }
 
-export default GithubImportForm;
+export default BitbucketImportForm;

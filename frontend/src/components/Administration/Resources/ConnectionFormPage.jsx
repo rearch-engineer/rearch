@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Box, Typography } from "@mui/joy";
 import { api } from "../../../api/client";
-import BitbucketResourceForm from "./SubResources/Bitbucket/BitbucketResourceForm";
-import GithubResourceForm from "./SubResources/Github/GithubResourceForm";
+import BitbucketConnectionForm from "./Providers/Bitbucket/BitbucketConnectionForm";
+import GithubConnectionForm from "./Providers/Github/GithubConnectionForm";
 
-function ResourceFormPage() {
+function ConnectionFormPage() {
   const { t } = useTranslation("Administration");
   const { id } = useParams();
   const [provider, setProvider] = useState(null);
@@ -18,16 +18,16 @@ function ResourceFormPage() {
     }
   }, [id]);
 
-  const loadResource = async (resourceId) => {
+  const loadResource = async (connectionId) => {
     try {
       setLoading(true);
-      const resources = await api.getAdminResources();
-      const resource = resources.find((r) => r._id === resourceId);
-      if (resource) {
-        setProvider(resource.provider);
+      const connections = await api.getAdminConnections();
+      const connection = connections.find((r) => r._id === connectionId);
+      if (connection) {
+        setProvider(connection.provider);
       }
     } catch (error) {
-      console.error("Error loading resource:", error);
+      console.error("Error loading connection:", error);
     } finally {
       setLoading(false);
     }
@@ -49,11 +49,11 @@ function ResourceFormPage() {
   }
 
   if (provider === "bitbucket") {
-    return <BitbucketResourceForm />;
+    return <BitbucketConnectionForm />;
   }
 
   if (provider === "github") {
-    return <GithubResourceForm />;
+    return <GithubConnectionForm />;
   }
 
   return (
@@ -70,4 +70,4 @@ function ResourceFormPage() {
   );
 }
 
-export default ResourceFormPage;
+export default ConnectionFormPage;

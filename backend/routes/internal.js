@@ -54,14 +54,17 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
    * Create a conversation on behalf of a user (called by the MCP proxy).
    *
    * Body: { userId, agentId, prompt?, workspaceId? }
-   *       `subResourceId` (legacy) is still accepted and mapped to the
-   *       agent bound to that repository.
+   *       `resourceId` (a repository resource) and the pre-rename
+   *       `subResourceId` are still accepted and mapped to the agent bound
+   *       to that repository.
    * Returns: { _id, title }
    */
   .post("/conversations", async ({ body, set }) => {
-    let { userId, agentId, subResourceId, prompt, workspaceId } = body || {};
+    let { userId, agentId, resourceId, subResourceId, prompt, workspaceId } =
+      body || {};
+    resourceId = resourceId || subResourceId;
 
-    if (!userId || (!agentId && !subResourceId)) {
+    if (!userId || (!agentId && !resourceId)) {
       set.status = 400;
       return { error: "userId and agentId are required" };
     }
@@ -71,7 +74,7 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
     if (
       !OBJECT_ID_RE.test(userId) ||
       (agentId && !OBJECT_ID_RE.test(agentId)) ||
-      (subResourceId && !OBJECT_ID_RE.test(subResourceId))
+      (resourceId && !OBJECT_ID_RE.test(resourceId))
     ) {
       set.status = 400;
       return { error: "Invalid ID format" };
@@ -98,10 +101,10 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
         workspaceId = personalWs._id;
       }
 
-      // Resolve the agent (legacy subResourceId maps to the repository's agent)
+      // Resolve the agent (a repository resource id maps to the repository's agent)
       const { agent, error } = await resolveAgentForNewConversation({
         agent: agentId,
-        subResource: subResourceId,
+        resource: resourceId,
       });
       if (error) {
         set.status = error.status;
@@ -118,7 +121,7 @@ const internalRoutes = new Elysia({ prefix: "/api/internal" })
       // Populate names for the WS broadcast
       const populatedConv = await Conversation.findById(conversation._id)
         .populate("agent", "name")
-        .populate("subResource", "name")
+        .populate("resource", "name")
         .lean();
 
       // Broadcast so all frontend clients see the new conversation

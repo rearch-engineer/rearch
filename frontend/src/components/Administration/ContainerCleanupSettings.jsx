@@ -138,9 +138,9 @@ export default function ContainerCleanupSettings() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [settings, subResources] = await Promise.all([
+      const [settings, agents] = await Promise.all([
         api.getContainerCleanupSettings(),
-        api.getAllSubResources(),
+        api.getAgents(),
       ]);
 
       setEnabled(settings.enabled || false);
@@ -154,7 +154,8 @@ export default function ContainerCleanupSettings() {
       setRemoveUnit(removeDisplay.unit);
 
       setLastTriggeredAt(settings.lastTriggeredAt || null);
-      setHasRearchEnabled(subResources.some((sr) => sr.rearch?.enabled === true));
+      // Cleanup only matters once at least one agent is enabled
+      setHasRearchEnabled(agents.length > 0);
     } catch (err) {
       toast.error(t("containerCleanup.failedToLoadSettings", { message: err.message }));
     } finally {

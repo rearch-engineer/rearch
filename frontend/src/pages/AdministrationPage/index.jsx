@@ -21,14 +21,14 @@ import McpServersManualPage from "../../components/Administration/McpServersManu
 import McpServersOpenApiPage from "../../components/Administration/McpServersOpenApiPage";
 import McpServersEditPage from "../../components/Administration/McpServersEditPage";
 import RepositoriesListPage from "../../components/Administration/Resources/RepositoriesListPage";
-import ResourceListPage from "../../components/Administration/Resources/ResourceListPage";
-import ResourceTypeSelection from "../../components/Administration/Resources/ResourceTypeSelection";
-import ResourceFormPage from "../../components/Administration/Resources/ResourceFormPage";
+import ConnectionListPage from "../../components/Administration/Resources/ConnectionListPage";
+import ConnectionTypeSelection from "../../components/Administration/Resources/ConnectionTypeSelection";
+import ConnectionFormPage from "../../components/Administration/Resources/ConnectionFormPage";
+import ConnectionDetailsPage from "../../components/Administration/Resources/ConnectionDetailsPage";
 import ResourceDetailsPage from "../../components/Administration/Resources/ResourceDetailsPage";
-import SubResourceDetailsPage from "../../components/Administration/Resources/SubResourceDetailsPage";
-import SubResourcesListPage from "../../components/Administration/Resources/SubResourcesListPage";
-import BitbucketResourceForm from "../../components/Administration/Resources/SubResources/Bitbucket/BitbucketResourceForm";
-import GithubResourceForm from "../../components/Administration/Resources/SubResources/Github/GithubResourceForm";
+import ConnectionResourcesPage from "../../components/Administration/Resources/ConnectionResourcesPage";
+import BitbucketConnectionForm from "../../components/Administration/Resources/Providers/Bitbucket/BitbucketConnectionForm";
+import GithubConnectionForm from "../../components/Administration/Resources/Providers/Github/GithubConnectionForm";
 import AgentsSettings from "../../components/Administration/Agents/AgentsSettings";
 import AgentEditPage from "../../components/Administration/Agents/AgentEditPage";
 import WorkspacesSettings from "../../components/Administration/WorkspacesSettings";
@@ -58,34 +58,34 @@ export default function AdministrationPage() {
           element={<Navigate to="/administration/resources/repositories" replace />}
         />
         <Route path="/resources/repositories" element={<RepositoriesListPage />} />
-        <Route path="/resources/connections" element={<ResourceListPage />} />
+        <Route path="/resources/connections" element={<ConnectionListPage />} />
         <Route
           path="/resources/connections/new"
-          element={<ResourceTypeSelection />}
+          element={<ConnectionTypeSelection />}
         />
         <Route
           path="/resources/connections/new/bitbucket"
-          element={<BitbucketResourceForm />}
+          element={<BitbucketConnectionForm />}
         />
         <Route
           path="/resources/connections/new/github"
-          element={<GithubResourceForm />}
+          element={<GithubConnectionForm />}
         />
         <Route
           path="/resources/connections/:id"
-          element={<ResourceDetailsPage />}
+          element={<ConnectionDetailsPage />}
         />
         <Route
           path="/resources/connections/:id/edit"
-          element={<ResourceFormPage />}
+          element={<ConnectionFormPage />}
         />
         <Route
-          path="/resources/connections/:id/subresources"
-          element={<SubResourcesListPage />}
+          path="/resources/connections/:id/resources"
+          element={<ConnectionResourcesPage />}
         />
         <Route
-          path="/resources/connections/:id/subresources/:subId"
-          element={<SubResourceDetailsPage />}
+          path="/resources/connections/:id/resources/:subId"
+          element={<ResourceDetailsPage />}
         />
         {/* Agents: the unit users pick to start a conversation */}
         <Route path="/agents" element={<AgentsSettings />} />

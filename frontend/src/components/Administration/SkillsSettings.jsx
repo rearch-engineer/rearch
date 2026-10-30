@@ -41,11 +41,11 @@ export default function SkillsSettings() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [repositorySubResources, setRepositorySubResources] = useState([]);
+  const [repositoryResources, setRepositoryResources] = useState([]);
 
   useEffect(() => {
     loadSkills();
-    loadRepositorySubResources();
+    loadRepositoryResources();
   }, []);
 
   const loadSkills = async () => {
@@ -60,12 +60,12 @@ export default function SkillsSettings() {
     }
   };
 
-  const loadRepositorySubResources = async () => {
+  const loadRepositoryResources = async () => {
     try {
-      const subResources = await api.getAllSubResources();
-      setRepositorySubResources(subResources);
+      const resources = await api.getResources();
+      setRepositoryResources(resources);
     } catch (err) {
-      console.error("Failed to load repository subresources:", err);
+      console.error("Failed to load repository resources:", err);
     }
   };
 
@@ -203,7 +203,7 @@ export default function SkillsSettings() {
               </thead>
               <tbody>
                 {skills.filter((s) => s.title.toLowerCase().includes(search.toLowerCase())).map((skill) => {
-                  const linkedRepo = repositorySubResources.find(
+                  const linkedRepo = repositoryResources.find(
                     (r) => r._id === skill.skillsRepository,
                   );
                   return (
@@ -376,7 +376,7 @@ export default function SkillsSettings() {
                     borderColor: "var(--border-color)",
                   }}
                 >
-                  {repositorySubResources.map((r) => (
+                  {repositoryResources.map((r) => (
                     <Option key={r._id} value={r._id}>
                       {r.name}
                     </Option>

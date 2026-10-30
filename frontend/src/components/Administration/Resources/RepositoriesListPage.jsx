@@ -15,9 +15,8 @@ import {
 import { Search, Add, Hub } from "@mui/icons-material";
 import { api } from "../../../api/client";
 
-// Sub-resource types that represent a source-code repository.
-// Keep in sync with backend/routes/api.js (conversation creation).
-const REPOSITORY_TYPES = ["bitbucket-repository", "github-repository"];
+// Resource kind that represents a source-code repository (see backend/utils/agents.js).
+const REPOSITORY_KIND = "repository";
 
 const providerMeta = {
   bitbucket: {
@@ -32,13 +31,9 @@ const providerMeta = {
   },
 };
 
-function providerFromType(type) {
-  return type?.split("-")[0] || "";
-}
-
 function RepositoryCard({ repo, agentCount, onClick }) {
   const { t } = useTranslation("Administration");
-  const provider = providerFromType(repo.type);
+  const provider = repo.provider || "";
   const meta = providerMeta[provider] || {
     label: provider,
     color: "#6b7280",
@@ -124,7 +119,7 @@ function RepositoryCard({ repo, agentCount, onClick }) {
             level="body-xs"
             sx={{ color: "var(--text-tertiary)", mt: 0.5 }}
           >
-            {t("repositoriesList.connections")}: {repo.resourceName}
+            {t("repositoriesList.connections")}: {repo.connectionName}
           </Typography>
         </Box>
       </Box>
@@ -148,13 +143,13 @@ function RepositoriesListPage() {
   const loadRepositories = async () => {
     try {
       setLoading(true);
-      // No type filter: fetch every imported sub-resource and keep repositories only.
+      // Fetch every imported resource and keep repositories only.
       const [data, agents] = await Promise.all([
-        api.getAllAdminSubResources(),
+        api.getAdminResources(),
         api.getAdminAgents().catch(() => []),
       ]);
       setRepositories(
-        (data || []).filter((sr) => REPOSITORY_TYPES.includes(sr.type)),
+        (data || []).filter((sr) => sr.kind === REPOSITORY_KIND),
       );
       // Number of agents using each repository
       const counts = {};
@@ -178,9 +173,9 @@ function RepositoriesListPage() {
       !q ||
       r.name.toLowerCase().includes(q) ||
       (r.data?.fullName || "").toLowerCase().includes(q) ||
-      (r.resourceName || "").toLowerCase().includes(q);
+      (r.connectionName || "").toLowerCase().includes(q);
     const matchesProvider =
-      providerFilter === "all" || providerFromType(r.type) === providerFilter;
+      providerFilter === "all" || r.provider === providerFilter;
     return matchesQuery && matchesProvider;
   });
 
@@ -324,7 +319,7 @@ function RepositoriesListPage() {
                 agentCount={agentCounts[String(repo._id)] || 0}
                 onClick={() =>
                   navigate(
-                    `/administration/resources/connections/${repo.resourceId}/subresources/${repo._id}`,
+                    `/administration/resources/connections/${repo.connectionId}/resources/${repo._id}`,
                   )
                 }
               />

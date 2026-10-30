@@ -1,7 +1,7 @@
 import Skill from "../models/Skill.js";
 import Agent from "../models/Agent.js";
-import SubResource from "../models/SubResource.js";
 import Resource from "../models/Resource.js";
+import Connection from "../models/Connection.js";
 import { execInContainer } from "../utils/containerExec.js";
 
 /**
@@ -55,61 +55,61 @@ function toSkillName(title) {
 }
 
 /**
- * Resolve a SubResource ID into an authenticated git clone URL.
+ * Resolve a Resource ID into an authenticated git clone URL.
  * Returns { cloneUrl, name } or null if resolution fails.
  *
- * @param {string} subResourceId - The SubResource _id referencing a bitbucket-repository
+ * @param {string} resourceId - The Resource _id referencing a bitbucket-repository
  * @param {Function} log - jobLog callback
  * @returns {Promise<{cloneUrl: string, name: string} | null>}
  */
-async function resolveSkillCloneUrl(subResourceId, log) {
+async function resolveSkillCloneUrl(resourceId, log) {
   try {
-    const skillSubResource = await SubResource.findById(subResourceId);
-    if (!skillSubResource) {
+    const skillResource = await Resource.findById(resourceId);
+    if (!skillResource) {
       await log(
-        `Skills injection: SubResource ${subResourceId} not found, skipping`,
+        `Skills injection: Resource ${resourceId} not found, skipping`,
       );
       return null;
     }
 
-    // Derive clone URL from SubResource clone links (prefer HTTPS)
+    // Derive clone URL from Resource clone links (prefer HTTPS)
     let cloneUrl = "";
-    if (skillSubResource.data?.links?.clone) {
-      const httpsClone = skillSubResource.data.links.clone.find(
+    if (skillResource.data?.links?.clone) {
+      const httpsClone = skillResource.data.links.clone.find(
         (c) => c.name === "https",
       );
-      const sshClone = skillSubResource.data.links.clone.find(
+      const sshClone = skillResource.data.links.clone.find(
         (c) => c.name === "ssh",
       );
       cloneUrl = httpsClone?.href || sshClone?.href || "";
     }
-    if (!cloneUrl && skillSubResource.data?.links?.html) {
-      cloneUrl = skillSubResource.data.links.html;
+    if (!cloneUrl && skillResource.data?.links?.html) {
+      cloneUrl = skillResource.data.links.html;
     }
 
     if (!cloneUrl) {
       await log(
-        `Skills injection: no clone URL found for SubResource '${skillSubResource.name}', skipping`,
+        `Skills injection: no clone URL found for Resource '${skillResource.name}', skipping`,
       );
       return null;
     }
 
     // Construct an authenticated clone URL using the same approach as the
     // rebuild hook (tools/bitbucket/hooks/action/rebuild.js).
-    // Uses the parent Resource's cloneUsername + apiToken and the URL
+    // Uses the parent Connection's cloneUsername + apiToken and the URL
     // constructor with encodeURIComponent, which is the proven working method.
-    const parentResource = await Resource.findById(skillSubResource.resource);
-    if (parentResource?.data?.apiToken && parentResource?.data?.cloneUsername) {
+    const connection = await Connection.findById(skillResource.connection);
+    if (connection?.data?.apiToken && connection?.data?.cloneUsername) {
       const cloneUrlObj = new URL(cloneUrl);
-      cloneUrlObj.username = encodeURIComponent(parentResource.data.cloneUsername);
-      cloneUrlObj.password = encodeURIComponent(parentResource.data.apiToken);
+      cloneUrlObj.username = encodeURIComponent(connection.data.cloneUsername);
+      cloneUrlObj.password = encodeURIComponent(connection.data.apiToken);
       cloneUrl = cloneUrlObj.toString();
     }
 
-    return { cloneUrl, name: skillSubResource.name };
+    return { cloneUrl, name: skillResource.name };
   } catch (err) {
     await log(
-      `Skills injection: failed to resolve SubResource ${subResourceId} — ${err.message}`,
+      `Skills injection: failed to resolve Resource ${resourceId} — ${err.message}`,
     );
     return null;
   }
@@ -121,10 +121,10 @@ async function resolveSkillCloneUrl(subResourceId, log) {
  *
  * Skills come from two sources:
  * 1. Default skills: Skill documents with isDefault=true (global, cloned into every container)
- * 2. Agent-specific skills: SubResource IDs stored in Agent.skills
+ * 2. Agent-specific skills: Resource IDs stored in Agent.skills
  *
- * Each skill's skillsRepository field is a SubResource ID that is resolved to get the
- * actual git clone URL and Bitbucket credentials from the parent Resource.
+ * Each skill's skillsRepository field is a Resource ID that is resolved to get the
+ * actual git clone URL and Bitbucket credentials from the parent Connection.
  *
  * Errors per-skill are non-fatal — they are logged but do not throw.
  *
@@ -133,16 +133,16 @@ async function resolveSkillCloneUrl(subResourceId, log) {
  * @param {Function} log - jobLog callback (message: string) => Promise<void>
  */
 async function injectSkillsIntoContainer(containerId, agentId, log) {
-  // Collect all SubResource IDs to clone (deduplicated)
-  const skillSubResourceIds = new Set();
-  const skillNameMap = new Map(); // subResourceId -> display name for logging
+  // Collect all Resource IDs to clone (deduplicated)
+  const skillResourceIds = new Set();
+  const skillNameMap = new Map(); // resourceId -> display name for logging
 
   // 1. Default skills from the Skill collection
   try {
     const defaultSkills = await Skill.find({ isDefault: true });
     for (const skill of defaultSkills) {
       if (skill.skillsRepository) {
-        skillSubResourceIds.add(skill.skillsRepository);
+        skillResourceIds.add(skill.skillsRepository);
         skillNameMap.set(skill.skillsRepository, skill.title);
       }
     }
@@ -160,8 +160,8 @@ async function injectSkillsIntoContainer(containerId, agentId, log) {
     const agent = agentId ? await Agent.findById(agentId) : null;
     const agentSkills = agent?.skills || [];
     for (const skillId of agentSkills) {
-      if (skillId && !skillSubResourceIds.has(skillId)) {
-        skillSubResourceIds.add(skillId);
+      if (skillId && !skillResourceIds.has(skillId)) {
+        skillResourceIds.add(skillId);
         skillNameMap.set(skillId, `agent-specific:${skillId}`);
       }
     }
@@ -174,13 +174,13 @@ async function injectSkillsIntoContainer(containerId, agentId, log) {
     );
   }
 
-  if (skillSubResourceIds.size === 0) {
+  if (skillResourceIds.size === 0) {
     await log("Skills injection: no skills to inject, skipping");
     return;
   }
 
   await log(
-    `Skills injection: injecting ${skillSubResourceIds.size} skill(s) into container`,
+    `Skills injection: injecting ${skillResourceIds.size} skill(s) into container`,
   );
 
   // Ensure the skills directory exists
@@ -198,7 +198,7 @@ async function injectSkillsIntoContainer(containerId, agentId, log) {
     return;
   }
 
-  for (const subResId of skillSubResourceIds) {
+  for (const subResId of skillResourceIds) {
     const displayName = skillNameMap.get(subResId) || subResId;
 
     const resolved = await resolveSkillCloneUrl(subResId, log);

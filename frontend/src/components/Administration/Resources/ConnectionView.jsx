@@ -10,21 +10,21 @@ import {
   Stack,
 } from '@mui/joy';
 
-function ResourceView({ open, onClose, resource }) {
+function ConnectionView({ open, onClose, connection }) {
   const { t } = useTranslation("Administration");
-  if (!resource) return null;
+  if (!connection) return null;
 
   const renderDataDetails = () => {
-    if (resource.provider === 'bitbucket') {
+    if (connection.provider === 'bitbucket') {
       return (
         <Stack spacing={1}>
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.workspace")}</Typography>
-            <Typography level="body-md">{resource.data.workspace}</Typography>
+            <Typography level="body-md">{connection.data.workspace}</Typography>
           </Box>
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.username")}</Typography>
-            <Typography level="body-md">{resource.data.username}</Typography>
+            <Typography level="body-md">{connection.data.username}</Typography>
           </Box>
         </Stack>
       );
@@ -42,27 +42,27 @@ function ResourceView({ open, onClose, resource }) {
         <Stack spacing={2}>
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.name")}</Typography>
-            <Typography level="h5">{resource.name}</Typography>
+            <Typography level="h5">{connection.name}</Typography>
           </Box>
 
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.provider")}</Typography>
             <Chip color="primary" variant="soft" sx={{ mt: 0.5 }}>
-              {resource.provider}
+              {connection.provider}
             </Chip>
           </Box>
 
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.created")}</Typography>
             <Typography level="body-md">
-              {new Date(resource.createdAt).toLocaleString()}
+              {new Date(connection.createdAt).toLocaleString()}
             </Typography>
           </Box>
 
           <Box>
             <Typography level="body-sm" fontWeight="bold">{t("resourceView.lastUpdated")}</Typography>
             <Typography level="body-md">
-              {new Date(resource.updatedAt).toLocaleString()}
+              {new Date(connection.updatedAt).toLocaleString()}
             </Typography>
           </Box>
 
@@ -78,4 +78,4 @@ function ResourceView({ open, onClose, resource }) {
   );
 }
 
-export default ResourceView;
+export default ConnectionView;

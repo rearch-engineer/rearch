@@ -1,6 +1,6 @@
 import { searchRepositories } from "../../../utils/github/github.js";
 
-export default async function onSearch(parentResource, query) {
+export default async function onSearch(connection, query) {
   console.log(`[GitHub Search Hook] Searching GitHub repositories`);
   console.log(`[GitHub Search Hook] Query:`, query);
 
@@ -8,12 +8,13 @@ export default async function onSearch(parentResource, query) {
 
   try {
     const searchResults = await searchRepositories(
-      parentResource.data,
+      connection.data,
       searchTerm,
     );
 
     const results = searchResults.repositories.map((repo) => ({
-      type: "github-repository",
+      kind: "repository",
+      provider: "github",
       externalId: repo.fullName, // owner/repo format
       humanReadableId: repo.fullName,
       name: repo.name,
