@@ -157,7 +157,10 @@ Servers whose `auth.mode` is `oauth-user` (configured by the admin as
 
 Users connect under **Account › Integrations** in the frontend; the backend
 runs OAuth 2.1 discovery (RFC 9728 / 8414), dynamic client registration
-(RFC 7591) and the PKCE authorization-code flow.
+(RFC 7591) and the PKCE authorization-code flow. Providers without dynamic
+registration (GitHub, Slack) work with a manually registered OAuth app: the
+admin picks "Manual" in the server form, registers the shown redirect URI
+with the provider and pastes the client ID/secret (stored encrypted).
 
 ### Hot reload
 

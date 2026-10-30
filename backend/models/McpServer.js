@@ -85,6 +85,17 @@ const schema = new mongoose.Schema({
       // Space-separated scopes requested at authorisation time (optional —
       // most servers apply sensible defaults when omitted).
       scopes: { type: String, default: '' },
+      // `dynamic` – client obtained via dynamic client registration (RFC 7591).
+      // `manual`  – the admin registered an OAuth app with the provider and
+      //             pasted its client ID/secret (GitHub, Slack, …).
+      registration: {
+        type: String,
+        enum: ['dynamic', 'manual'],
+        default: 'dynamic'
+      },
+      // Scope advertised by the server in its 401 WWW-Authenticate challenge;
+      // used when the admin leaves `scopes` empty (MCP spec scope selection).
+      scopeHint: { type: String, default: '' },
       // Discovered metadata (RFC 9728 protected-resource + RFC 8414 AS).
       resource: { type: String, default: null },
       authorizationServer: { type: String, default: null },

@@ -818,6 +818,20 @@
     "oauthNoDynamicRegistration": "Deze server ondersteunt geen dynamische clientregistratie; OAuth per gebruiker kan niet automatisch worden ingesteld.",
     "oauthNotSupported": "OAuth niet gedetecteerd: {{message}}",
     "oauthRegisteredClient": "Geregistreerde client-ID: {{clientId}}",
-    "oauthBadge": "OAuth per gebruiker"
+    "oauthBadge": "OAuth per gebruiker",
+    "registration": "OAuth-client",
+    "registrationDynamic": "Automatisch (dynamische clientregistratie)",
+    "registrationManual": "Handmatig (ik heb een OAuth-app bij de provider geregistreerd)",
+    "registrationDynamicHelp": "rearch registreert zichzelf bij de autorisatieserver bij het opslaan. Werkt met Linear, Sentry, Atlassian, Cloudflare, Neon, Supabase en de meeste MCP-servers.",
+    "registrationManualHelp": "Maak een OAuth-app in de ontwikkelaarsinstellingen van de provider (GitHub, Slack, …) met de onderstaande redirect-URI en plak de client-ID en het secret.",
+    "redirectUri": "Redirect-URI (registreer deze bij de provider)",
+    "redirectUriHelp": "Ingesteld via MCP_OAUTH_REDIRECT_URI (of afgeleid van FRONTEND_URL) in de backend.",
+    "redirectUriCopied": "Redirect-URI gekopieerd naar het klembord.",
+    "clientId": "Client-ID",
+    "clientSecret": "Client secret",
+    "clientSecretUnchanged": "•••••••• (ongewijzigd)",
+    "clientSecretHelp": "Versleuteld opgeslagen. Laat leeg om het huidige secret te behouden, of als de provider een publieke client heeft uitgegeven.",
+    "clientIdRequired": "Client-ID is verplicht wanneer de OAuth-client handmatig is geregistreerd.",
+    "oauthScopesSupported": "Door de server aangeboden scopes: {{scopes}}"
   }
 }

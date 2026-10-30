@@ -75,12 +75,18 @@ export async function getUserAccessToken(userId, serverName, { forceRefresh = fa
 
   const data = await res.json().catch(() => ({}));
 
-  if (res.status === 404 || res.status === 401) {
+  if (res.status === 404 || (res.status === 401 && data.error === 'reauthorize_required')) {
     throw new NotConnectedError(
       serverName,
       data.error === 'reauthorize_required'
         ? `The previous authorization expired or was revoked (${data.message || 'reauthorize required'}).`
         : undefined,
+    );
+  }
+  if (res.status === 401) {
+    // Not a user problem: the backend rejected *our* internal secret.
+    throw new Error(
+      'Backend rejected the MCP proxy internal API call (INTERNAL_API_SECRET mismatch or unset).',
     );
   }
   if (!res.ok) {

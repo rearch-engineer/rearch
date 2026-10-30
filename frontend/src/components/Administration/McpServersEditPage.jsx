@@ -9,7 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
-import McpAuthFields from './McpAuthFields';
+import McpAuthFields, { DEFAULT_AUTH, buildAuthPayload } from './McpAuthFields';
 
 export default function McpServersEditPage() {
   const { t } = useTranslation("Administration");
@@ -28,7 +28,7 @@ export default function McpServersEditPage() {
     environment: '',
     enabled: true,
   });
-  const [auth, setAuth] = useState({ mode: 'shared', scopes: '' });
+  const [auth, setAuth] = useState({ ...DEFAULT_AUTH });
   const [oauthInfo, setOauthInfo] = useState(null);
   // OpenAPI ("API Definition") editing state
   const [baseUrl, setBaseUrl] = useState('');
@@ -60,9 +60,14 @@ export default function McpServersEditPage() {
           ? JSON.stringify(server.environment, null, 2) : '',
         enabled: server.enabled !== false,
       });
+      const registration = server.auth?.oauth?.registration === 'manual' ? 'manual' : 'dynamic';
       setAuth({
+        ...DEFAULT_AUTH,
         mode: server.auth?.mode === 'oauth-user' ? 'oauth-user' : 'shared',
         scopes: server.auth?.oauth?.scopes || '',
+        registration,
+        clientId: registration === 'manual' ? (server.auth?.oauth?.clientId || '') : '',
+        clientSecret: '',
       });
       setOauthInfo(server.auth?.oauth || null);
       setBaseUrl(server.baseUrl || '');
@@ -98,7 +103,11 @@ export default function McpServersEditPage() {
 
     if (formData.type === 'remote') {
       payload.url = formData.url;
-      payload.auth = { mode: auth.mode, oauth: { scopes: auth.scopes.trim() } };
+      payload.auth = buildAuthPayload(auth);
+      if (payload.auth.mode === 'oauth-user' && payload.auth.oauth.registration === 'manual' && !payload.auth.oauth.clientId) {
+        toast.error(t("mcpAuth.clientIdRequired"));
+        return;
+      }
       if (headers && auth.mode !== 'oauth-user') payload.headers = headers;
     } else if (formData.type === 'openapi') {
       const enabledOps = operations.filter((o) => o.enabled !== false);

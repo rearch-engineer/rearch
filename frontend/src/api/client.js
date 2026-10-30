@@ -1128,6 +1128,10 @@ export const api = {
     const response = await axios.post(`${API_BASE_URL}/admin/mcp/reload`);
     return response.data;
   },
+  getMcpOAuthConfig: async () => {
+    const response = await axios.get(`${API_BASE_URL}/admin/mcp/oauth/config`);
+    return response.data; // { redirectUri }
+  },
   discoverMcpOAuth: async (url) => {
     const response = await axios.post(
       `${API_BASE_URL}/admin/mcp/oauth/discover`,

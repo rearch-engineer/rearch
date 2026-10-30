@@ -9,7 +9,8 @@ import { downloadFileBuffer } from "../../utils/gridfs.js";
 import { parseOpenApiSpec, loadSpec } from "../../utils/mcp/openapiParser.js";
 import { suggestCuration } from "../../utils/mcp/openapiAiCuration.js";
 import { discoverOAuth } from "../../utils/mcp/oauth.js";
-import { ensureOAuthClient } from "../../utils/mcp/userCredentials.js";
+import { ensureOAuthClient, getIntegrationsRedirectUri } from "../../utils/mcp/userCredentials.js";
+import { encrypt } from "../../utils/encryption.js";
 
 // ─── Gallery Data ─────────────────────────────────────────────────────────────
 
@@ -65,6 +66,10 @@ const authSchema = z
     oauth: z
       .object({
         scopes: z.string().max(500).optional().default(""),
+        registration: z.enum(["dynamic", "manual"]).optional().default("dynamic"),
+        // Only used with registration === "manual".
+        clientId: z.string().trim().max(500).optional(),
+        clientSecret: z.string().max(4000).optional(),
       })
       .optional(),
   })
@@ -77,6 +82,17 @@ function refineByType(data, ctx) {
       code: z.ZodIssueCode.custom,
       message: "Per-user OAuth is only available for remote servers",
       path: ["auth", "mode"],
+    });
+  }
+  if (
+    data.auth?.mode === "oauth-user" &&
+    data.auth?.oauth?.registration === "manual" &&
+    !data.auth?.oauth?.clientId
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Client ID is required when the OAuth client is registered manually",
+      path: ["auth", "oauth", "clientId"],
     });
   }
   if (data.type === "remote" && !data.url) {
@@ -164,13 +180,35 @@ const MCP_PROXY_URL = process.env.MCP_PROXY_URL || "http://mcp-proxy:3100";
 function applyAuth(server, auth) {
   const mode = auth?.mode || "shared";
   const prev = server.auth?.oauth?.toObject ? server.auth.oauth.toObject() : server.auth?.oauth || {};
-  server.auth = {
-    mode,
-    oauth: {
-      ...(mode === "oauth-user" ? prev : {}),
-      scopes: auth?.oauth?.scopes ?? prev.scopes ?? "",
-    },
+  const registration = auth?.oauth?.registration || prev.registration || "dynamic";
+  const next = {
+    ...(mode === "oauth-user" ? prev : {}),
+    scopes: auth?.oauth?.scopes ?? prev.scopes ?? "",
+    registration,
   };
+
+  if (mode === "oauth-user" && registration === "manual") {
+    // Admin-registered OAuth app: take the client ID as given, keep the stored
+    // secret unless a new one was supplied.
+    next.clientId = auth?.oauth?.clientId || prev.clientId || null;
+    if (auth?.oauth?.clientSecret) {
+      next.clientSecret = encrypt(auth.oauth.clientSecret);
+    } else if (prev.registration !== "manual") {
+      next.clientSecret = { ciphertext: null, iv: null, tag: null };
+    }
+    next.tokenEndpointAuthMethod = next.clientSecret?.ciphertext ? "client_secret_post" : "none";
+    next.redirectUri = getIntegrationsRedirectUri();
+    next.registeredAt = prev.registration === "manual" ? prev.registeredAt || new Date() : new Date();
+  } else if (mode === "oauth-user" && prev.registration === "manual") {
+    // Switching back to dynamic registration: forget the manual client so the
+    // bootstrap registers a fresh one.
+    next.clientId = null;
+    next.clientSecret = { ciphertext: null, iv: null, tag: null };
+    next.tokenEndpointAuthMethod = "none";
+    next.registeredAt = null;
+  }
+
+  server.auth = { mode, oauth: next };
   server.markModified("auth");
 }
 
@@ -314,6 +352,12 @@ const router = new Elysia({ prefix: "/mcp" })
         } = parsed.data;
         const urlChanged = type === "remote" && url !== server.url;
         const modeChanged = (auth?.mode || "shared") !== (server.auth?.mode || "shared");
+        const prevOauth = server.auth?.oauth || {};
+        const registrationChanged =
+          (auth?.oauth?.registration || "dynamic") !== (prevOauth.registration || "dynamic");
+        const clientChanged =
+          auth?.oauth?.registration === "manual" &&
+          (!!auth?.oauth?.clientSecret || (auth?.oauth?.clientId && auth.oauth.clientId !== prevOauth.clientId));
         Object.assign(server, {
           type,
           url,
@@ -331,7 +375,7 @@ const router = new Elysia({ prefix: "/mcp" })
         // when the server has never been bootstrapped.
         if (
           server.auth.mode === "oauth-user" &&
-          (urlChanged || modeChanged || !server.auth.oauth?.clientId)
+          (urlChanged || modeChanged || registrationChanged || clientChanged || !server.auth.oauth?.clientId)
         ) {
           const oauthError = await bootstrapOAuth(server);
           if (oauthError) {
@@ -451,6 +495,13 @@ const router = new Elysia({ prefix: "/mcp" })
       }
     },
   )
+
+  /**
+   * Static OAuth configuration the admin needs when registering an OAuth app
+   * by hand (providers without dynamic client registration).
+   * GET /api/admin/mcp/oauth/config → { redirectUri }
+   */
+  .get("/oauth/config", () => ({ redirectUri: getIntegrationsRedirectUri() }))
 
   /**
    * Probe a remote MCP URL for OAuth support (used by the admin form before

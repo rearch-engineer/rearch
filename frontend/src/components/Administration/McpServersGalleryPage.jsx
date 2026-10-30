@@ -86,7 +86,10 @@ export default function McpServersGalleryPage() {
           ? JSON.stringify(item.headers, null, 2) : '',
         // Servers that advertise OAuth 2.1 with dynamic client registration
         // default to per-user authentication.
-        authMode: item.auth === 'oauth' ? 'oauth-user' : 'shared',
+        authMode: item.auth === 'oauth' || item.auth === 'oauth-manual' ? 'oauth-user' : 'shared',
+        // `oauth-manual`: the provider supports OAuth but not dynamic client
+        // registration, so the admin must paste an app's client ID/secret.
+        oauthRegistration: item.auth === 'oauth-manual' ? 'manual' : 'dynamic',
         oauthScopes: item.oauthScopes || '',
       },
     });
@@ -245,7 +248,7 @@ export default function McpServersGalleryPage() {
                         {isInstalled && (
                           <CheckCircleIcon sx={{ fontSize: 14, color: '#16a34a', flexShrink: 0 }} />
                         )}
-                        {item.auth === 'oauth' && (
+                        {(item.auth === 'oauth' || item.auth === 'oauth-manual') && (
                           <VerifiedUserIcon
                             titleAccess={t("mcpAuth.oauthBadge")}
                             sx={{ fontSize: 14, color: 'var(--joy-palette-primary-500, #2563eb)', flexShrink: 0 }}

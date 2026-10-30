@@ -141,6 +141,57 @@ async function ensureDependencies(rootDir: string): Promise<void> {
   if (tasks.length > 0) await Promise.all(tasks);
 }
 
+/**
+ * Minimal .env parser (KEY=VALUE, `#` comments, optional quotes). The backend
+ * loads backend/.env itself via dotenv; the MCP proxy does not, yet it must
+ * share MCP_PROXY_SECRET / INTERNAL_API_SECRET with the backend. Values
+ * already present in the shell environment take precedence.
+ */
+function readBackendEnv(rootDir: string): Record<string, string> {
+  const envFile = join(resolve(rootDir, "backend"), ".env");
+  const out: Record<string, string> = {};
+  if (!existsSync(envFile)) return out;
+  for (const rawLine of readFileSync(envFile, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+const PROXY_ENV_KEYS = [
+  "MONGODB_URI",
+  "MCP_PROXY_PORT",
+  "MCP_PROXY_SECRET",
+  "INTERNAL_API_SECRET",
+  "BACKEND_API_URL",
+  "FRONTEND_URL",
+];
+
+/** Environment for a local service process. */
+function serviceEnv(rootDir: string, svcKey: string): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...process.env, FORCE_COLOR: "0" };
+  if (svcKey === "mcp-proxy") {
+    const backendEnv = readBackendEnv(rootDir);
+    for (const key of PROXY_ENV_KEYS) {
+      if (env[key] === undefined && backendEnv[key]) env[key] = backendEnv[key];
+    }
+    env.BACKEND_API_URL ??= "http://localhost:5000";
+    env.FRONTEND_URL ??= "http://localhost:4200";
+  }
+  return env;
+}
+
 function ensureBackendEnv(rootDir: string): void {
   const envFile = join(resolve(rootDir, "backend"), ".env");
   const envExample = join(resolve(rootDir, "backend"), ".env.example");
@@ -207,7 +258,7 @@ export async function startServices(rootDir: string): Promise<void> {
       stderr: logFd,
       cwd,
       detached: true,
-      env: { ...process.env, FORCE_COLOR: "0" },
+      env: serviceEnv(rootDir, svc.key),
     });
 
     pids[svc.key] = proc.pid; // PID == PGID for the group leader
@@ -361,7 +412,7 @@ export async function restartService(rootDir: string, serviceKey?: string): Prom
     stderr: logFd,
     cwd,
     detached: true,
-    env: { ...process.env, FORCE_COLOR: "0" },
+    env: serviceEnv(rootDir, svc.key),
   });
 
   pids[svc.key] = proc.pid;

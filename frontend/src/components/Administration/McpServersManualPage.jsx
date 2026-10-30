@@ -9,7 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import { api } from '../../api/client';
 import { useToast } from '../../contexts/ToastContext';
-import McpAuthFields from './McpAuthFields';
+import McpAuthFields, { DEFAULT_AUTH, buildAuthPayload } from './McpAuthFields';
 
 const EMPTY_FORM = {
   name: '',
@@ -39,7 +39,9 @@ export default function McpServersManualPage() {
     } : {}),
   });
   const [auth, setAuth] = useState({
+    ...DEFAULT_AUTH,
     mode: prefill.authMode === 'oauth-user' ? 'oauth-user' : 'shared',
+    registration: prefill.oauthRegistration === 'manual' ? 'manual' : 'dynamic',
     scopes: prefill.oauthScopes || '',
   });
   const [saving, setSaving] = useState(false);
@@ -72,7 +74,11 @@ export default function McpServersManualPage() {
 
     if (formData.type === 'remote') {
       payload.url = formData.url;
-      payload.auth = { mode: auth.mode, oauth: { scopes: auth.scopes.trim() } };
+      payload.auth = buildAuthPayload(auth);
+      if (payload.auth.mode === 'oauth-user' && payload.auth.oauth.registration === 'manual' && !payload.auth.oauth.clientId) {
+        toast.error(t("mcpAuth.clientIdRequired"));
+        return;
+      }
       if (headers && auth.mode !== 'oauth-user') payload.headers = headers;
     } else {
       payload.command = formData.command.split('\n').map((s) => s.trim()).filter(Boolean);

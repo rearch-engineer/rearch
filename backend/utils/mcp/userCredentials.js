@@ -59,11 +59,19 @@ export async function ensureOAuthClient(server, { force = false } = {}) {
   }
   const redirectUri = getIntegrationsRedirectUri();
   const oauth = server.auth.oauth || {};
+  const manual = oauth.registration === "manual";
 
+  let changed = false;
   const needsDiscovery =
-    force || !oauth.authorizationEndpoint || !oauth.tokenEndpoint;
+    force ||
+    !oauth.authorizationEndpoint ||
+    !oauth.tokenEndpoint ||
+    // Servers bootstrapped before scopeHint existed: discover once more.
+    oauth.scopeHint === undefined ||
+    oauth.scopeHint === null;
   if (needsDiscovery) {
     const meta = await discoverOAuth(server.url);
+    server.auth.oauth.scopeHint = meta.scopeHint || "";
     server.auth.oauth.resource = meta.resource;
     server.auth.oauth.authorizationServer = meta.authorizationServer;
     server.auth.oauth.authorizationEndpoint = meta.authorizationEndpoint;
@@ -73,36 +81,64 @@ export async function ensureOAuthClient(server, { force = false } = {}) {
     server.auth.oauth.codeChallengeMethods = meta.codeChallengeMethods;
     server.auth.oauth.scopesSupported = meta.scopesSupported;
     server.auth.oauth.discoveredAt = new Date();
-    // A different authorization server invalidates any previous registration.
-    if (oauth.authorizationServer && oauth.authorizationServer !== meta.authorizationServer) {
+    changed = true;
+    // A different authorization server invalidates a dynamically registered
+    // client (a manually registered app is the admin's responsibility).
+    if (
+      !manual &&
+      oauth.authorizationServer &&
+      oauth.authorizationServer !== meta.authorizationServer
+    ) {
       server.auth.oauth.clientId = null;
       server.auth.oauth.clientSecret = { ciphertext: null, iv: null, tag: null };
     }
   }
 
-  const needsRegistration =
-    force ||
-    !server.auth.oauth.clientId ||
-    server.auth.oauth.redirectUri !== redirectUri;
-  if (needsRegistration) {
-    const reg = await registerClient({
-      registrationEndpoint: server.auth.oauth.registrationEndpoint,
-      redirectUri,
-      scopes: server.auth.oauth.scopes || "",
-    });
-    server.auth.oauth.clientId = reg.clientId;
-    server.auth.oauth.clientSecret = encField(reg.clientSecret);
-    server.auth.oauth.tokenEndpointAuthMethod = reg.tokenEndpointAuthMethod;
-    server.auth.oauth.redirectUri = redirectUri;
-    server.auth.oauth.registeredAt = new Date();
+  if (manual) {
+    if (!server.auth.oauth.clientId) {
+      throw new Error(
+        "Manual registration requires a client ID. Register an OAuth application with the provider " +
+          `using the redirect URI ${redirectUri} and enter its client ID (and secret, if any).`,
+      );
+    }
+    if (server.auth.oauth.redirectUri !== redirectUri) {
+      server.auth.oauth.redirectUri = redirectUri;
+      changed = true;
+    }
+  } else {
+    const needsRegistration =
+      force ||
+      !server.auth.oauth.clientId ||
+      server.auth.oauth.redirectUri !== redirectUri;
+    if (needsRegistration) {
+      const reg = await registerClient({
+        registrationEndpoint: server.auth.oauth.registrationEndpoint,
+        redirectUri,
+        scopes: server.auth.oauth.scopes || "",
+      });
+      server.auth.oauth.clientId = reg.clientId;
+      server.auth.oauth.clientSecret = encField(reg.clientSecret);
+      server.auth.oauth.tokenEndpointAuthMethod = reg.tokenEndpointAuthMethod;
+      server.auth.oauth.redirectUri = redirectUri;
+      server.auth.oauth.registeredAt = new Date();
+      changed = true;
+    }
   }
 
-  if (needsDiscovery || needsRegistration) {
+  if (changed) {
     server.markModified("auth");
     await server.save();
   }
 
   return server.auth.oauth;
+}
+
+/**
+ * Scopes to request: the admin's explicit list, else the scope the server
+ * advertised in its WWW-Authenticate challenge, else none (server default).
+ */
+export function effectiveScopes(oauth) {
+  return (oauth?.scopes || "").trim() || (oauth?.scopeHint || "").trim() || "";
 }
 
 /** Client credentials (decrypted) for token-endpoint calls. */
@@ -111,7 +147,7 @@ function clientCredentials(server) {
   return {
     tokenEndpoint: o.tokenEndpoint,
     resource: o.resource,
-    scopes: o.scopes || "",
+    scopes: effectiveScopes(o),
     clientId: o.clientId,
     clientSecret: decField(o.clientSecret),
     tokenEndpointAuthMethod: o.tokenEndpointAuthMethod || "none",

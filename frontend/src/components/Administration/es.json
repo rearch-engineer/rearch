@@ -818,6 +818,20 @@
     "oauthNoDynamicRegistration": "Este servidor no soporta registro dinámico de cliente; el OAuth por usuario no puede configurarse automáticamente.",
     "oauthNotSupported": "No se ha detectado OAuth: {{message}}",
     "oauthRegisteredClient": "Client ID registrado: {{clientId}}",
-    "oauthBadge": "OAuth por usuario"
+    "oauthBadge": "OAuth por usuario",
+    "registration": "Cliente OAuth",
+    "registrationDynamic": "Automático (registro dinámico de cliente)",
+    "registrationManual": "Manual (he registrado una app OAuth en el proveedor)",
+    "registrationDynamicHelp": "rearch se registra por sí mismo en el servidor de autorización al guardar. Funciona con Linear, Sentry, Atlassian, Cloudflare, Neon, Supabase y la mayoría de servidores MCP.",
+    "registrationManualHelp": "Crea una app OAuth en los ajustes de desarrollador del proveedor (GitHub, Slack, …) con la URI de redirección de abajo y pega su client ID y secret.",
+    "redirectUri": "URI de redirección (regístrala en el proveedor)",
+    "redirectUriHelp": "Se define con MCP_OAUTH_REDIRECT_URI (o se deriva de FRONTEND_URL) en el backend.",
+    "redirectUriCopied": "URI de redirección copiada al portapapeles.",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "clientSecretUnchanged": "•••••••• (sin cambios)",
+    "clientSecretHelp": "Se guarda cifrado. Déjalo vacío para mantener el secret actual o si el proveedor emitió un cliente público.",
+    "clientIdRequired": "El client ID es obligatorio cuando el cliente OAuth se registra manualmente.",
+    "oauthScopesSupported": "Scopes anunciados por el servidor: {{scopes}}"
   }
 }

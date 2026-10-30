@@ -4,6 +4,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import LockIcon from "@mui/icons-material/Lock";
 import BuildIcon from "@mui/icons-material/Build";
+import HubIcon from "@mui/icons-material/Hub";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
 import { useTranslation } from "react-i18next";
@@ -24,6 +25,7 @@ const AccountSidebarMenu = () => {
 
   const toolsItems = [
     { label: t("githubCopilot"), path: "/account/tools", icon: <BuildIcon /> },
+    { label: t("integrations"), path: "/account/integrations", icon: <HubIcon /> },
   ];
 
   const renderItem = (item) => (

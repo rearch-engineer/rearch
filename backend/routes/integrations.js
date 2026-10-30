@@ -26,6 +26,7 @@ import {
   getIntegrationsRedirectUri,
   storeUserTokens,
   deleteUserCredential,
+  effectiveScopes,
 } from "../utils/mcp/userCredentials.js";
 import {
   generatePkce,
@@ -74,7 +75,7 @@ function presentServer(server, cred) {
     description: gallery.description || "",
     icon: gallery.icon || null,
     url: server.url,
-    scopes: server.auth?.oauth?.scopes || "",
+    scopes: effectiveScopes(server.auth?.oauth),
     authorizationServer: server.auth?.oauth?.authorizationServer || null,
     ...(cred
       ? cred.toStatusJSON()
@@ -129,7 +130,7 @@ const router = new Elysia({ prefix: "/api/integrations" })
         authorizationEndpoint: oauth.authorizationEndpoint,
         clientId: oauth.clientId,
         redirectUri: getIntegrationsRedirectUri(),
-        scopes: oauth.scopes || "",
+        scopes: effectiveScopes(oauth),
         state,
         codeChallenge,
         resource: oauth.resource,
