@@ -12,6 +12,88 @@ const docker = new Docker();
 // Cache for OpenCode clients to avoid recreating connections
 const clientCache = new Map();
 
+// Placeholder title given to conversations on creation (see Conversation model).
+const DEFAULT_CONVERSATION_TITLE = "New Conversation";
+
+// OpenCode only runs its title agent on the first user message of a session,
+// and only while the session still carries its own default title
+// ("New session - <ISO date>"); any other title is treated as user-chosen and
+// left alone. Mirror that check so we never copy a default title back onto
+// the conversation.
+const OPENCODE_DEFAULT_TITLE_RE =
+  /^(New session - |Child session - )\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+function isOpenCodeDefaultTitle(title) {
+  return typeof title === "string" && OPENCODE_DEFAULT_TITLE_RE.test(title);
+}
+
+/**
+ * Copy an OpenCode-generated session title onto the conversation, but only if
+ * the conversation still has the placeholder title (a user rename wins).
+ * Broadcasts `conversation.titleUpdated` when the title changes.
+ * @param {string} conversationId
+ * @param {string|undefined} openCodeTitle - Current title of the OpenCode session
+ * @returns {Promise<string|null>} The new title, or null if nothing changed
+ */
+async function syncTitleFromOpenCode(conversationId, openCodeTitle) {
+  const title =
+    typeof openCodeTitle === "string" ? openCodeTitle.trim().slice(0, 200) : "";
+  if (
+    !title ||
+    title === DEFAULT_CONVERSATION_TITLE ||
+    isOpenCodeDefaultTitle(title)
+  ) {
+    return null;
+  }
+
+  // Atomic: only replaces the placeholder, so concurrent syncs or a user
+  // rename racing with the title agent never clobber each other.
+  const conv = await Conversation.findOneAndUpdate(
+    { _id: conversationId, title: DEFAULT_CONVERSATION_TITLE },
+    { title },
+    { new: true },
+  );
+  if (!conv) return null;
+
+  broadcast("conversation.titleUpdated", { conversationId, title });
+  return title;
+}
+
+// OpenCode's title agent runs in the background and typically finishes a
+// couple of seconds *after* the session goes idle, so a single check right
+// after the prompt usually comes too early. Poll a few more times without
+// blocking the response; the Socket.IO broadcast reaches clients even after
+// the SSE stream has closed.
+const TITLE_SYNC_RETRY_DELAYS_MS = [2000, 4000, 8000, 15000];
+const pendingTitleSyncs = new Set();
+
+function scheduleTitleSync(conversationId, client, sessionId) {
+  const key = String(conversationId);
+  if (pendingTitleSyncs.has(key)) return;
+  pendingTitleSyncs.add(key);
+
+  (async () => {
+    try {
+      for (const delay of TITLE_SYNC_RETRY_DELAYS_MS) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+
+        // Stop early once the conversation has a name (from us or the user)
+        const conv = await Conversation.findById(conversationId).select("title");
+        if (!conv || conv.title !== DEFAULT_CONVERSATION_TITLE) return;
+
+        const session = await client.session.get({ sessionID: sessionId });
+        if (await syncTitleFromOpenCode(conversationId, session.data?.title)) {
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error syncing title from OpenCode:", err.message);
+    } finally {
+      pendingTitleSyncs.delete(key);
+    }
+  })();
+}
+
 /**
  * Get or create an OpenCode client for a conversation's container
  * @param {string} conversationId - The conversation ID
@@ -95,10 +177,15 @@ export async function getOrCreateSession(conversationId) {
     }
   }
 
-  // Create new session
-  const session = await client.session.create({
-    title: conversation.title || `Conversation ${conversationId}`,
-  });
+  // Create new session.
+  // Only pass a title the user actually chose: OpenCode treats any title given
+  // at creation as user-set and skips its auto-title agent, so passing the
+  // "New Conversation" placeholder would leave the conversation unnamed forever.
+  const createParams = {};
+  if (conversation.title && conversation.title !== DEFAULT_CONVERSATION_TITLE) {
+    createParams.title = conversation.title;
+  }
+  const session = await client.session.create(createParams);
 
   const sessionId = session.data.id;
 
@@ -207,14 +294,9 @@ export async function sendPrompt(conversationId, prompt, options = {}) {
   // Sync auto-generated title from OpenCode's title agent
   try {
     const session = await client.session.get({ sessionID: sessionId });
-    const openCodeTitle = session.data?.title;
-    if (openCodeTitle && openCodeTitle !== "New Conversation") {
-      const conv = await Conversation.findById(conversationId);
-      if (conv && conv.title === "New Conversation") {
-        conv.title = openCodeTitle;
-        await conv.save();
-        broadcast("conversation.titleUpdated", { conversationId, title: openCodeTitle });
-      }
+    const synced = await syncTitleFromOpenCode(conversationId, session.data?.title);
+    if (!synced && isOpenCodeDefaultTitle(session.data?.title)) {
+      scheduleTitleSync(conversationId, client, sessionId);
     }
   } catch (err) {
     console.error("Error syncing title from OpenCode:", err.message);
@@ -290,6 +372,10 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
   // Track assistant message for response.complete event
   let currentAssistantMessageId = null;
 
+  // Title picked by OpenCode's title agent during this prompt (if any)
+  let updatedTitle = null;
+  let lastOpenCodeTitle = null;
+
   // Convert attached files to OpenCode FilePartInput objects
   const fileParts = await filesToParts(options.files);
 
@@ -329,6 +415,21 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
         const info = props.info;
         if (info?.role === "assistant" && !currentAssistantMessageId) {
           currentAssistantMessageId = info.id;
+        }
+      }
+
+      // --- Handle session.updated (OpenCode's title agent renamed the session) ---
+      if (eventType === "session.updated") {
+        const newTitle = props.info?.title;
+        if (newTitle && newTitle !== lastOpenCodeTitle) {
+          lastOpenCodeTitle = newTitle;
+          if (!updatedTitle) {
+            try {
+              updatedTitle = await syncTitleFromOpenCode(conversationId, newTitle);
+            } catch (err) {
+              console.error("Error syncing title from OpenCode:", err.message);
+            }
+          }
         }
       }
 
@@ -479,22 +580,23 @@ export async function* streamPrompt(conversationId, prompt, options = {}) {
     };
   }
 
-  // Sync auto-generated title from OpenCode's title agent
-  let updatedTitle = null;
-  try {
-    const session = await client.session.get({ sessionID: sessionId });
-    const openCodeTitle = session.data?.title;
-    if (openCodeTitle && openCodeTitle !== "New Conversation") {
-      const conv = await Conversation.findById(conversationId);
-      if (conv && conv.title === "New Conversation") {
-        conv.title = openCodeTitle;
-        await conv.save();
-        updatedTitle = openCodeTitle;
-        broadcast("conversation.titleUpdated", { conversationId, title: openCodeTitle });
+  // Fallback: the title agent normally finishes *after* session.idle, so the
+  // in-stream handler above rarely sees the final title. Check once more now
+  // and, if OpenCode is still on its default title, keep polling in the
+  // background.
+  if (!updatedTitle) {
+    try {
+      const session = await client.session.get({ sessionID: sessionId });
+      updatedTitle = await syncTitleFromOpenCode(
+        conversationId,
+        session.data?.title,
+      );
+      if (!updatedTitle && isOpenCodeDefaultTitle(session.data?.title)) {
+        scheduleTitleSync(conversationId, client, sessionId);
       }
+    } catch (err) {
+      console.error("Error syncing title from OpenCode:", err.message);
     }
-  } catch (err) {
-    console.error("Error syncing title from OpenCode:", err.message);
   }
 
   // Fetch latest session info, persist to MongoDB, and push via Socket.IO
