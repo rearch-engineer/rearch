@@ -88,12 +88,6 @@ const conversationSchema = new mongoose.Schema({
       type: String,
     },
     // Additional ports for Node.js template containers
-    codeServerUrl: {
-      type: String,
-    },
-    codeServerPort: {
-      type: Number,
-    },
     appUrl: {
       type: String,
     },

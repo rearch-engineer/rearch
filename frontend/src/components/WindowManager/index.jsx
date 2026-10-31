@@ -5,6 +5,7 @@ import { usePanels } from "../../contexts/PanelContext";
 import TileContainer from "./TileContainer";
 import ChatInterface from "../ChatInterface";
 import ServicePanel from "../ServicePanel";
+import FileEditorPanel from "../FileEditorPanel";
 import "./WindowManager.css";
 
 const WindowManager = ({
@@ -24,6 +25,15 @@ const WindowManager = ({
             onConversationUpdate={onConversationUpdate}
             onConversationCreated={onConversationCreated}
             onSessionInfoUpdate={onSessionInfoUpdate}
+          />
+        );
+      }
+      if (panelId.startsWith("file:")) {
+        return (
+          <FileEditorPanel
+            conversationId={conversationId}
+            panelId={panelId}
+            filePath={panelId.slice("file:".length)}
           />
         );
       }

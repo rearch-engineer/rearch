@@ -45,7 +45,7 @@ const docker = new Docker();
  * @param {number} [params.resourceConstraints.cpuQuota=0] - CPU quota (0 = no limit, 100000 = 1 CPU)
  * @param {number} [params.resourceConstraints.pidsLimit=0] - Max number of PIDs (0 = no limit)
  * @param {(msg: string) => Promise<void>} [params.log] - Async logging callback
- * @returns {Promise<{container: object, containerId: string, opencodeUrl: string, hostPort: number|null, codeServerHostPort: number|null, appHostPort: number|null, postgresHostPort: number|null, publicBaseUrl: string|null}>}
+ * @returns {Promise<{container: object, containerId: string, opencodeUrl: string, hostPort: number|null, appHostPort: number|null, postgresHostPort: number|null, publicBaseUrl: string|null}>}
  */
 export async function createConversationContainer({
   containerImage,
@@ -98,10 +98,8 @@ export async function createConversationContainer({
   } else if (!useOverlayNetwork) {
     // Fallback: hard-coded ports for backward compatibility (host-port mode only)
     exposedPorts[`${appPort}/tcp`] = {};
-    exposedPorts["8080/tcp"] = {};
     exposedPorts["5432/tcp"] = {};
     portBindings[`${appPort}/tcp`] = [{ HostPort: "0" }];
-    portBindings["8080/tcp"] = [{ HostPort: "0" }];
     portBindings["5432/tcp"] = [{ HostPort: "0" }];
   }
 
@@ -125,16 +123,6 @@ export async function createConversationContainer({
       "keycloak-auth@file";
     labels[`traefik.http.services.${containerName}.loadbalancer.server.port`] =
       OPENCODE_PORT;
-
-    // Code-server router (port 8080, path /code)
-    labels[`traefik.http.routers.${containerName}-code.rule`] =
-      `Host(\`${convHost}\`) && PathPrefix(\`/code\`)`;
-    labels[`traefik.http.routers.${containerName}-code.entrypoints`] = "web";
-    labels[`traefik.http.routers.${containerName}-code.middlewares`] =
-      "keycloak-auth@file";
-    labels[
-      `traefik.http.services.${containerName}-code.loadbalancer.server.port`
-    ] = "8080";
 
     // Add service-specific routers from rearch.services
     for (const service of rearchServices) {
@@ -272,7 +260,6 @@ export async function createConversationContainer({
   let opencodeUrl;
   let hostPort = null;
   let appHostPort = null;
-  let codeServerHostPort = null;
   let postgresHostPort = null;
 
   if (useOverlayNetwork) {
@@ -296,14 +283,10 @@ export async function createConversationContainer({
 
     // Get optional port mappings (may not exist in basic container image)
     const appPortBind = ports[`${appPort}/tcp`];
-    const codeServerPortBind = ports["8080/tcp"];
     const postgresPortBind = ports["5432/tcp"];
 
     appHostPort = appPortBind?.[0]?.HostPort
       ? parseInt(appPortBind[0].HostPort, 10)
-      : null;
-    codeServerHostPort = codeServerPortBind?.[0]?.HostPort
-      ? parseInt(codeServerPortBind[0].HostPort, 10)
       : null;
     postgresHostPort = postgresPortBind?.[0]?.HostPort
       ? parseInt(postgresPortBind[0].HostPort, 10)
@@ -313,10 +296,6 @@ export async function createConversationContainer({
       `✅ Container ${containerId} started for conversation ${conversationId}`,
     );
     console.log(`📡 OpenCode server will be available at ${opencodeUrl}`);
-    if (codeServerHostPort)
-      console.log(
-        `💻 Code-server (VS Code) will be available at http://localhost:${codeServerHostPort}`,
-      );
     if (appHostPort)
       console.log(
         `🚀 Node.js app will be available at http://localhost:${appHostPort}`,
@@ -338,7 +317,6 @@ export async function createConversationContainer({
     containerName,
     opencodeUrl,
     hostPort,
-    codeServerHostPort,
     appHostPort,
     postgresHostPort,
     publicBaseUrl,

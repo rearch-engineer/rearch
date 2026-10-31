@@ -167,11 +167,6 @@ components:
             errorMessage:
               type: string
               description: Error message if container failed
-            codeServerUrl:
-              type: string
-              description: Code server URL (for Node.js template containers)
-            codeServerPort:
-              type: integer
             appUrl:
               type: string
             appPort:

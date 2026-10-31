@@ -1,11 +1,10 @@
 # =============================================================================
-# Minimal Development Environment with Code-Server and OpenCode
+# Minimal Development Environment with OpenCode
 # =============================================================================
 #
 # Built-in template: minimal
 #
 # This Dockerfile creates a minimal development environment with:
-# - Code-server (VS Code in browser) on port 8080
 # - OpenCode (AI coding assistant) on port 4096
 # - Terminal (ttyd + Oh My Zsh) on port 7681
 #
@@ -13,7 +12,7 @@
 # No language-specific tooling or dependency installation is performed.
 #
 # Extends: ghcr.io/rearch-engineer/rearch-agent-base
-# Supervisor programs inherited: vscode, opencode, terminal
+# Supervisor programs inherited: opencode, terminal
 #
 # =============================================================================
 
@@ -38,10 +37,9 @@ RUN chmod +x /entrypoint.sh
 # =============================================================================
 # 4. Expose Ports
 # =============================================================================
-# 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
 # 7681: Terminal (ttyd + Oh My Zsh)
-EXPOSE 8080 4096 7681
+EXPOSE 4096 7681
 
 # =============================================================================
 # 5. Start via Entrypoint

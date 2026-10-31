@@ -526,6 +526,32 @@ export const api = {
     return response.data;
   },
 
+  // ── Repository files (sidebar "Files" panel) ──────────────────────────────
+
+  listFiles: async (workspaceId, conversationId, path = "") => {
+    const response = await axios.get(
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/files`,
+      { params: { path } },
+    );
+    return response.data;
+  },
+
+  readFile: async (workspaceId, conversationId, path) => {
+    const response = await axios.get(
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/files/content`,
+      { params: { path } },
+    );
+    return response.data;
+  },
+
+  writeFile: async (workspaceId, conversationId, path, content) => {
+    const response = await axios.put(
+      `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/files/content`,
+      { path, content },
+    );
+    return response.data;
+  },
+
   getGitDiff: async (workspaceId, conversationId) => {
     const response = await axios.get(
       `${API_BASE_URL}/workspaces/${workspaceId}/conversations/${conversationId}/git-diff`,

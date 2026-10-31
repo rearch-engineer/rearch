@@ -1,0 +1,20 @@
+{
+  "save": "Guardar",
+  "saving": "Guardando…",
+  "saved": "Guardado",
+  "unsaved": "Cambios sin guardar",
+  "reload": "Recargar desde el contenedor",
+  "retry": "Reintentar",
+  "binary": "Este archivo es binario y no se puede editar aquí.",
+  "tooLarge": "Este archivo es demasiado grande para abrirlo aquí.",
+  "notFound": "Archivo no encontrado. Puede haberse movido o eliminado.",
+  "notRunning": "El contenedor no está en ejecución.",
+  "loadError": "No se pudo cargar el archivo.",
+  "saveError": "No se pudo guardar el archivo",
+  "reloadTitle": "¿Recargar archivo?",
+  "reloadMessage": "{{file}} tiene cambios sin guardar. Al recargar se perderán.",
+  "reloadConfirm": "Recargar",
+  "discardTitle": "¿Descartar cambios?",
+  "discardMessage": "{{file}} tiene cambios sin guardar. ¿Cerrar de todos modos?",
+  "discardConfirm": "Cerrar sin guardar"
+}

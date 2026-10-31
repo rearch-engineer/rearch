@@ -1,5 +1,5 @@
 # =============================================================================
-# Projects Development Environment with PostgreSQL, pgweb, Code-Server & OpenCode
+# Projects Development Environment with PostgreSQL, pgweb & OpenCode
 # =============================================================================
 #
 # This Dockerfile creates a development environment with:
@@ -7,7 +7,6 @@
 # - pgweb (PostgreSQL web UI) on port 8081
 # - Backend (Express/TypeScript via tsx watch) on port 3000
 # - Frontend (Vite React dev server) on port 4200
-# - Code-server (VS Code in browser) on port 8080
 # - OpenCode (AI coding assistant) on port 4096
 # - Terminal (ttyd + Oh My Zsh) on port 7681
 #
@@ -23,7 +22,7 @@
 #   docker build -f .rearch/Dockerfile -t projects .
 #
 # Extends: ghcr.io/rearch-engineer/rearch-agent-base
-# Supervisor programs inherited: vscode, opencode (overridden), terminal
+# Supervisor programs inherited: opencode (overridden), terminal
 # Supervisor programs added: postgres, pgweb, backend, frontend
 #
 # =============================================================================
@@ -180,11 +179,10 @@ stderr_logfile=/var/log/supervisor/frontend.err\n\
 # 3000: Backend API (Express)
 # 4200: Frontend (Vite dev server)
 # 8081: pgweb (PostgreSQL web UI)
-# 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
 # 7681: Terminal (ttyd + Oh My Zsh)
 # Note: PostgreSQL (5432) is internal only, accessed via pgweb or container shell
-EXPOSE 3000 4200 8081 8080 4096 7681
+EXPOSE 3000 4200 8081 4096 7681
 
 # =============================================================================
 # 14. Start via Entrypoint

@@ -348,7 +348,6 @@ const conversationsWorker = new Worker(
         containerId,
         opencodeUrl,
         hostPort,
-        codeServerHostPort,
         appHostPort,
         postgresHostPort,
         publicBaseUrl,
@@ -408,16 +407,8 @@ const conversationsWorker = new Worker(
         hostPort: hostPort,
         opencodeSessionId: null, // Will be set when first session is created
         errorMessage: null,
-        // Public URLs (overlay mode only, used by frontend)
+        // Public URL (overlay mode only, used by frontend)
         publicUrl: publicBaseUrl,
-        publicCodeServerUrl: publicBaseUrl ? `${publicBaseUrl}/code` : null,
-        // Host-port mode URLs (backward compat)
-        codeServerUrl: codeServerHostPort
-          ? `http://localhost:${codeServerHostPort}`
-          : publicBaseUrl
-            ? `${publicBaseUrl}/code`
-            : null,
-        codeServerPort: codeServerHostPort,
         appUrl: appHostPort ? `http://localhost:${appHostPort}` : null,
         appPort: appHostPort,
         postgresPort: postgresHostPort,
@@ -465,7 +456,6 @@ const conversationsWorker = new Worker(
         opencodeUrl,
         hostPort,
         publicUrl: publicBaseUrl,
-        codeServerPort: codeServerHostPort,
         appPort: appHostPort,
         postgresPort: postgresHostPort,
       };

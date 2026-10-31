@@ -2,7 +2,7 @@
 
 This guide explains how to create a `.rearch/` directory for any repository so that, when the ReArch platform launches a container for it, the container comes fully configured with all required services running automatically.
 
-The `projects/` repository serves as a reference implementation throughout this guide. It runs PostgreSQL, a Node.js backend, a Vite React frontend, pgweb (database UI), code-server (VS Code in the browser), and OpenCode (AI coding assistant) — all inside a single container managed by [supervisor](http://supervisord.org/).
+The `projects/` repository serves as a reference implementation throughout this guide. It runs PostgreSQL, a Node.js backend, a Vite React frontend, pgweb (database UI), and OpenCode (AI coding assistant) — all inside a single container managed by [supervisor](http://supervisord.org/).
 
 ---
 
@@ -82,7 +82,7 @@ The Dockerfile builds a single image containing all services your project needs.
 The general pattern is:
 
 1. **System dependencies** — Always include `supervisor`, `build-essential`, `python3`, `git`, `curl`. Add project-specific packages (e.g., `postgresql`, `redis`).
-2. **Developer tools** — Install code-server, Playwright (Chromium), OpenCode, and nodemon globally.
+2. **Developer tools** — Install Playwright (Chromium), OpenCode, and nodemon globally.
 3. **Additional tools** — Project-specific tools like pgweb, phpMyAdmin, etc.
 4. **Users and directories** — Create a `coder` user, set root password, create `/repository`.
 5. **Copy repository code** — `COPY --chown=coder:coder . /repository`
@@ -143,7 +143,6 @@ docker run -d \
   -p 3000:3000 \
   -p 4200:4200 \
   -p 8081:8081 \
-  -p 8080:8080 \
   -p 4096:4096 \
   --name your-project-dev \
   your-project
@@ -183,7 +182,7 @@ Use priorities to control startup order when services depend on each other:
 
 ```
 priority=5   -> Database (must start first)
-priority=10  -> Independent tools (code-server, opencode)
+priority=10  -> Independent tools (opencode)
 priority=15  -> Database tools (pgweb -- needs database running)
 priority=20  -> Backend (needs database running)
 priority=25  -> Frontend (needs backend for API proxy)
@@ -238,7 +237,6 @@ When the ReArch platform launches containers, it maps internal ports to **random
 
 **What to EXPOSE**: Only ports that external users/services need to reach:
 - Frontend (your app's UI)
-- Code-server (VS Code in browser)
 - OpenCode API
 - Database web UI (e.g., pgweb)
 
@@ -255,7 +253,6 @@ The `projects/` repository runs these services:
 | Service | Internal Port | Exposed | Supervisor Priority |
 |---------|--------------|---------|-------------------|
 | PostgreSQL | 5432 | No (internal only) | 5 |
-| Code-server | 8080 | Yes | 10 |
 | OpenCode | 4096 | Yes | 10 |
 | pgweb | 8081 | Yes | 15 |
 | Backend (Express/tsx) | 3000 | Yes | 20 |
@@ -370,7 +367,6 @@ If a host port is already in use, map to different ports:
 ```bash
 docker run -d \
   -p 9200:4200 \
-  -p 9080:8080 \
   -p 9096:4096 \
   --name your-project-dev \
   your-project

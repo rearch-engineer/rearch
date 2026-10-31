@@ -140,7 +140,7 @@ export default function ContainerCleanupSettings() {
       setLoading(true);
       const [settings, agents] = await Promise.all([
         api.getContainerCleanupSettings(),
-        api.getAgents(),
+        api.getAdminAgents(),
       ]);
 
       setEnabled(settings.enabled || false);

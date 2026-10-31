@@ -53,6 +53,21 @@
 .tile-tab.active { color: var(--text-primary); border-bottom-color: var(--joy-palette-primary-400, #096bde); }
 .tile-tab-label { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 
+/* Close button / unsaved indicator on closable (file) tabs */
+.tile-tab-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; margin-left: 2px; margin-right: -4px; border-radius: 4px;
+  color: var(--text-tertiary);
+}
+.tile-tab-close:hover { background: var(--bg-hover, rgba(255, 255, 255, 0.08)); color: var(--text-primary); }
+.tile-tab-close-icon { display: none; }
+.tile-tab-dirty-dot { display: none; width: 8px; height: 8px; border-radius: 50%; background: var(--joy-palette-primary-400, #096bde); }
+.tile-tab:hover .tile-tab-close-icon, .tile-tab.active .tile-tab-close-icon { display: inline-flex; }
+.tile-tab-close.dirty .tile-tab-dirty-dot { display: inline-block; }
+.tile-tab-close.dirty .tile-tab-close-icon { display: none; }
+.tile-tab-close.dirty:hover .tile-tab-dirty-dot { display: none; }
+.tile-tab-close.dirty:hover .tile-tab-close-icon { display: inline-flex; }
+
 /* Tab being dragged */
 .tile-tab.dragging { opacity: 0.4; }
 

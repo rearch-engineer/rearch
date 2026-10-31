@@ -33,7 +33,6 @@ export function ServiceIcon({ iconId, sx = {} }) {
 
 /** Quick-add presets. Each entry includes a suggested icon. */
 export const SERVICE_PRESETS = [
-  { label: "Code", icon: "Code", internalPort: 8080 },
   { label: "Frontend", icon: "Web", internalPort: 5173 },
   { label: "Backend", icon: "Storage", internalPort: 3000 },
   { label: "Custom", icon: "Widgets", internalPort: "" },
@@ -50,22 +49,22 @@ export const TEMPLATE_OPTIONS = [
   {
     value: "minimal",
     label: "Minimal",
-    description: "VS Code + OpenCode only",
+    description: "OpenCode only",
   },
   {
     value: "node",
     label: "Node.js",
-    description: "VS Code + OpenCode + Node.js runtime + dev server",
+    description: "OpenCode + Node.js runtime + dev server",
   },
   {
     value: "node-browser",
     label: "Node.js + Browser",
-    description: "VS Code + OpenCode + Node.js",
+    description: "OpenCode + Node.js + headless browser",
   },
   {
     value: "node-react-pg",
     label: "Node.js + React + PostgreSQL database",
-    description: "VS Code + OpenCode + Node.js & PostgreSQL db",
+    description: "OpenCode + Node.js & PostgreSQL db",
   },
 ];
 
@@ -76,21 +75,17 @@ export const TEMPLATE_OPTIONS = [
 export const TEMPLATE_DEFAULT_SERVICES = {
   "": null,
   minimal: [
-    { label: "Code", icon: "Code", internalPort: 8080 },
     { label: "Terminal", icon: "Terminal", internalPort: 7681 },
   ],
   node: [
-    { label: "Code", icon: "Code", internalPort: 8080 },
     { label: "Backend", icon: "Storage", internalPort: 3000 },
     { label: "Terminal", icon: "Terminal", internalPort: 7681 },
   ],
   "node-browser": [
-    { label: "Code", icon: "Code", internalPort: 8080 },
     { label: "Backend", icon: "Storage", internalPort: 3000 },
     { label: "Terminal", icon: "Terminal", internalPort: 7681 },
   ],
   "node-react-pg": [
-    { label: "Code", icon: "Code", internalPort: 8080 },
     { label: "Backend", icon: "Storage", internalPort: 3000 },
     { label: "Frontend", icon: "Web", internalPort: 4200 },
     { label: "Database", icon: "Storage", internalPort: 8081 },
@@ -103,7 +98,7 @@ export const TEMPLATE_DEFAULT_SERVICES = {
  * Dockerfile. `null` discards a port (internal tooling).
  */
 const PORT_SERVICE_MAP = {
-  8080: { label: "Code", icon: "Code" },
+  8080: { label: "Web", icon: "Web" },
   5173: { label: "Frontend", icon: "Web" },
   3000: { label: "Backend", icon: "Storage" },
   3001: { label: "Backend", icon: "Storage" },

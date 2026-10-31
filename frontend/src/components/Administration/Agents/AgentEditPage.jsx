@@ -524,7 +524,7 @@ export default function AgentEditPage() {
                           transition: "all 0.15s ease",
                           borderWidth: 2,
                           borderColor: selected ? "var(--joy-palette-primary-500)" : "var(--joy-palette-neutral-outlinedBorder)",
-                          "&:hover": disabled ? {} : { borderColor: "var(--joy-palette-primary-400)", bgcolor: selected ? undefined : "var(--joy-palette-primary-50)" },
+                          "&:hover": disabled ? {} : { borderColor: "var(--joy-palette-primary-400)", bgcolor: selected ? undefined : "var(--joy-palette-primary-softBg)" },
                         }}
                       >
                         <CardContent sx={{ p: 1.5 }}>

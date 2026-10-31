@@ -12,6 +12,7 @@ import { getLeaves } from "react-mosaic-component";
  * Panel IDs:
  *   "conversation"      – ChatInterface
  *   "service:<index>"   – embedded service iframe
+ *   "file:<path>"       – repository file editor (path relative to the repo root)
  */
 
 const STORAGE_PREFIX = "panel-layout:";
@@ -272,6 +273,32 @@ export function PanelProvider({ conversationId, services, children }) {
   const unregisterPanelActions = useCallback((panelId) => { delete panelActionsRef.current[panelId]; }, []);
   const getPanelActions = useCallback((panelId) => panelActionsRef.current[panelId] || null, []);
 
+  /* ── Per-panel UI state (e.g. unsaved editor changes shown on the tab) ── */
+  const [panelState, setPanelState] = useState({});
+  const setPanelDirty = useCallback((panelId, dirty) => {
+    setPanelState((prev) => {
+      if (Boolean(prev[panelId]?.dirty) === Boolean(dirty)) return prev;
+      return { ...prev, [panelId]: { ...prev[panelId], dirty: Boolean(dirty) } };
+    });
+  }, []);
+
+  /** Close a tab, letting the panel veto it (e.g. unsaved changes) via `beforeClose`. */
+  const closeTab = useCallback(async (panelId) => {
+    const actions = panelActionsRef.current[panelId];
+    if (actions?.beforeClose) {
+      const ok = await actions.beforeClose();
+      if (!ok) return false;
+    }
+    removeTab(panelId);
+    setPanelState((prev) => {
+      if (!(panelId in prev)) return prev;
+      const next = { ...prev };
+      delete next[panelId];
+      return next;
+    });
+    return true;
+  }, [removeTab]);
+
   /* ── Sidebar collapsed state ── */
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const toggleSidebar = useCallback(() => setSidebarCollapsed((p) => !p), []);
@@ -280,6 +307,7 @@ export function PanelProvider({ conversationId, services, children }) {
     layout, services: services || [],
     updateMosaicTree, setActiveTab, addTab, removeTab, splitWithPanel, moveTab, reorderTabs, splitFromTab, resetLayout, getOpenPanels,
     registerPanelActions, unregisterPanelActions, getPanelActions,
+    panelState, setPanelDirty, closeTab,
     sidebarCollapsed, setSidebarCollapsed, toggleSidebar,
   };
 

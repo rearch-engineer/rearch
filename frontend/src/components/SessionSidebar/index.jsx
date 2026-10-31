@@ -16,6 +16,8 @@ import PublishOutlined from "@mui/icons-material/PublishOutlined";
 import GroupOutlined from "@mui/icons-material/GroupOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import InfoOutlined from "@mui/icons-material/InfoOutlined";
+import FilesPanel from "../FilesPanel";
 import CommitPushModal from "../CommitPushModal";
 import UserAvatar from "../UserAvatar";
 import { useConversations } from "../../contexts/ConversationsContext";
@@ -30,6 +32,18 @@ const DEFAULT_WIDTH = 240;
 const MIN_WIDTH = 180;
 const MAX_WIDTH = 500;
 
+const PANEL_STORAGE_KEY = "session-sidebar-panel";
+const PANELS = ["files", "session"];
+
+function loadActivePanel() {
+  try {
+    const stored = localStorage.getItem(PANEL_STORAGE_KEY);
+    return PANELS.includes(stored) ? stored : "files";
+  } catch {
+    return "files";
+  }
+}
+
 const SessionSidebar = ({ conversationId }) => {
   const { t } = useTranslation('SessionSidebar');
   const [sessionInfo, setSessionInfo] = useState(null);
@@ -42,6 +56,7 @@ const SessionSidebar = ({ conversationId }) => {
   const [isResizing, setIsResizing] = useState(false);
   const [detailsPopoverOpen, setDetailsPopoverOpen] = useState(false);
   const [participantsPopoverOpen, setParticipantsPopoverOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState(loadActivePanel);
   const detailsPopoverTimeout = useRef(null);
   const participantsPopoverTimeout = useRef(null);
   const wrapperRef = useRef(null);
@@ -54,6 +69,12 @@ const SessionSidebar = ({ conversationId }) => {
     (c) => c._id === conversationId,
   )?.environment?.status;
   const isContainerReady = conversationEnvStatus === "running";
+
+  useEffect(() => {
+    try { localStorage.setItem(PANEL_STORAGE_KEY, activePanel); } catch { /* quota */ }
+  }, [activePanel]);
+
+  const showPanel = (panel) => { setActivePanel(panel); setCollapsed(false); };
 
   // Resize handling
   useEffect(() => {
@@ -226,14 +247,14 @@ const SessionSidebar = ({ conversationId }) => {
             </Tooltip>
           </div>
           <div className="session-collapsed-nav">
-            <Tooltip title={t('sessionStatus', { status: envStatus })} placement="left">
-              <div className="session-collapsed-icon-btn">
-                <TerminalOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+            <Tooltip title={t('files')} placement="left">
+              <div className="session-collapsed-icon-btn" onClick={() => showPanel("files")} style={{ cursor: "pointer" }}>
+                <FolderOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
               </div>
             </Tooltip>
-            <Tooltip title={sessionInfo?.repoName || t('repository')} placement="left">
-              <div className="session-collapsed-icon-btn">
-                <FolderOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
+            <Tooltip title={t('sessionStatus', { status: envStatus })} placement="left">
+              <div className="session-collapsed-icon-btn" onClick={() => showPanel("session")} style={{ cursor: "pointer" }}>
+                <TerminalOutlined sx={{ fontSize: 20, color: "var(--text-tertiary)" }} />
               </div>
             </Tooltip>
             {isRunning && (
@@ -322,11 +343,23 @@ const SessionSidebar = ({ conversationId }) => {
       <div className={`session-sidebar-resize-handle${isResizing ? " active" : ""}`} onMouseDown={() => setIsResizing(true)} />
       <div className="session-sidebar">
         <div className="session-sidebar-header">
-          <Typography level="body-xs" sx={{ fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t('session')}</Typography>
+          <div className="session-sidebar-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={activePanel === "files"} className={`session-sidebar-tab${activePanel === "files" ? " active" : ""}`} onClick={() => setActivePanel("files")}>
+              <FolderOutlined sx={{ fontSize: 15 }} />{t('files')}
+            </button>
+            <button type="button" role="tab" aria-selected={activePanel === "session"} className={`session-sidebar-tab${activePanel === "session" ? " active" : ""}`} onClick={() => setActivePanel("session")}>
+              <InfoOutlined sx={{ fontSize: 15 }} />{t('session')}
+            </button>
+          </div>
           <div className="session-sidebar-toggle-btn" onClick={() => setCollapsed(true)} title={t('collapseSidebar', 'Collapse sidebar')}>
             <ChevronRightIcon sx={{ fontSize: 18 }} />
           </div>
         </div>
+
+        {activePanel === "files" ? (
+          <FilesPanel conversationId={conversationId} active={!collapsed} />
+        ) : (
+        <>
         <div className="session-sidebar-section">
           <Tooltip title={t('session')} placement="left"><TerminalOutlined sx={{ fontSize: 18, color: "text.tertiary" }} /></Tooltip>
           <Typography level="body-sm" sx={{ fontWeight: 500, wordBreak: "break-word" }}>{envStatus}</Typography>
@@ -413,6 +446,8 @@ const SessionSidebar = ({ conversationId }) => {
               {t('concludeChange')}
             </Button>
           </div>
+        )}
+        </>
         )}
 
         <CommitPushModal open={commitModalOpen} onClose={() => setCommitModalOpen(false)} conversationId={conversationId} />

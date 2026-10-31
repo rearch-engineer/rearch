@@ -1,0 +1,20 @@
+{
+  "save": "Save",
+  "saving": "Saving…",
+  "saved": "Saved",
+  "unsaved": "Unsaved changes",
+  "reload": "Reload from container",
+  "retry": "Retry",
+  "binary": "This file is binary and cannot be edited here.",
+  "tooLarge": "This file is too large to open here.",
+  "notFound": "File not found. It may have been moved or deleted.",
+  "notRunning": "The container is not running.",
+  "loadError": "Could not load the file.",
+  "saveError": "Could not save the file",
+  "reloadTitle": "Reload file?",
+  "reloadMessage": "{{file}} has unsaved changes. Reloading will discard them.",
+  "reloadConfirm": "Reload",
+  "discardTitle": "Discard changes?",
+  "discardMessage": "{{file}} has unsaved changes. Close it anyway?",
+  "discardConfirm": "Close without saving"
+}

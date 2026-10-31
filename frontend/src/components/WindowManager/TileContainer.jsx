@@ -16,6 +16,8 @@ import TerminalOutlined from "@mui/icons-material/TerminalOutlined";
 import WidgetsOutlined from "@mui/icons-material/WidgetsOutlined";
 import OpenInNewOutlined from "@mui/icons-material/OpenInNewOutlined";
 import RefreshOutlined from "@mui/icons-material/RefreshOutlined";
+import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import { usePanels } from "../../contexts/PanelContext";
 
 const SERVICE_ICON_MAP = {
@@ -35,6 +37,10 @@ function getPanelMeta(panelId, services) {
     const svc = services[idx];
     if (svc) return { label: svc.label, Icon: SERVICE_ICON_MAP[svc.icon] || OpenInNewOutlined };
     return { label: "Service", Icon: OpenInNewOutlined };
+  }
+  if (panelId.startsWith("file:")) {
+    const filePath = panelId.slice("file:".length);
+    return { label: filePath.split("/").pop() || filePath, Icon: InsertDriveFileOutlined, title: filePath, closable: true };
   }
   return { label: panelId, Icon: WidgetsOutlined };
 }
@@ -59,9 +65,9 @@ function getDropZoneFromOffset(clientOffset, rect) {
  * DraggableTab -- individual tab with useDrag + useDrop
  * ───────────────────────────────────────────────────────── */
 const DraggableTab = ({
-  panelId, index, tileId, isActive, label, Icon,
+  panelId, index, tileId, isActive, label, Icon, title, closable, dirty,
   tabDropIndex, setTabDropIndex,
-  onActivate, onContextMenu,
+  onActivate, onContextMenu, onClose,
   onReorder, onMoveBetweenTiles,
 }) => {
   const ref = useRef(null);
@@ -120,9 +126,20 @@ const DraggableTab = ({
       className={`tile-tab${isActive ? " active" : ""}${showDropIndicator ? " drop-before" : ""}${isDragging ? " dragging" : ""}`}
       onClick={onActivate}
       onContextMenu={onContextMenu}
+      title={title}
     >
       <Icon sx={{ fontSize: 14 }} />
       <span className="tile-tab-label">{label}</span>
+      {closable && (
+        <span
+          className={`tile-tab-close${dirty ? " dirty" : ""}`}
+          onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <span className="tile-tab-dirty-dot" />
+          <CloseOutlined className="tile-tab-close-icon" sx={{ fontSize: 13 }} />
+        </span>
+      )}
     </div>
   );
 };
@@ -134,7 +151,7 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
   const { t } = useTranslation("WindowManager");
   const {
     layout, services, setActiveTab, moveTab, reorderTabs, splitFromTab,
-    getPanelActions,
+    getPanelActions, panelState, closeTab,
   } = usePanels();
   const [ctxMenu, setCtxMenu] = useState(null);
   const ctxAnchorRef = useRef(null);
@@ -279,7 +296,7 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
       <div className="tile-tab-bar" ref={tabBarDrop}>
         <div className="tile-tabs">
           {tabs.map((panelId, index) => {
-            const { label, Icon } = getPanelMeta(panelId, services);
+            const { label, Icon, title, closable } = getPanelMeta(panelId, services);
             const isActive = panelId === activeTab;
             return (
               <DraggableTab
@@ -290,6 +307,10 @@ const TileContainer = ({ tileId, renderPanelContent }) => {
                 isActive={isActive}
                 label={label}
                 Icon={Icon}
+                title={title}
+                closable={closable}
+                dirty={Boolean(panelState[panelId]?.dirty)}
+                onClose={() => closeTab(panelId)}
                 tabDropIndex={tabDropIndex}
                 setTabDropIndex={setTabDropIndex}
                 onActivate={() => setActiveTab(tileId, panelId)}

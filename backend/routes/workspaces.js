@@ -30,6 +30,11 @@ import {
 } from "../utils/opencodeContainer.js";
 import { execInContainer, gitExec } from "../utils/containerExec.js";
 import {
+  listDirectory,
+  readFile as readContainerFile,
+  writeFile as writeContainerFile,
+} from "../utils/containerFiles.js";
+import {
   createPullRequest as createBitbucketPR,
   listWorkspaceMembers as listBitbucketWorkspaceMembers,
 } from "../utils/attlasian/bitbucket.js";
@@ -192,6 +197,29 @@ async function requireMembership(workspaceId, userId, set) {
 }
 
 // ─── Helper: load conversation and verify workspace ownership ─────────────────
+
+/**
+ * Return the running container ID of a conversation, or set a 503 and return null.
+ */
+function runningContainerId(conversation, set) {
+  if (
+    conversation.environment?.status !== "running" ||
+    !conversation.environment?.container
+  ) {
+    set.status = 503;
+    return null;
+  }
+  return conversation.environment.container;
+}
+
+/**
+ * Map a file-operation error to an HTTP response.
+ */
+function fileRouteError(err, set, logPrefix) {
+  if (!err?.status || err.status >= 500) console.error(`${logPrefix}:`, err);
+  set.status = err?.status || 500;
+  return { error: err?.message || "Internal error" };
+}
 
 async function loadConversation(conversationId, workspaceId, set) {
   if (!OBJECT_ID_RE.test(conversationId)) {
@@ -1310,6 +1338,99 @@ const router = new Elysia({ prefix: "/api/workspaces" })
         console.error("Error getting services:", err);
         set.status = 500;
         return { error: err.message };
+      }
+    },
+  )
+
+  // ============================================================================
+  // Repository Files Endpoints (sidebar "Files" panel)
+  // ============================================================================
+
+  /**
+   * List a directory of the repository inside the conversation's container
+   * GET /:wid/conversations/:id/files?path=<relative directory>
+   */
+  .get(
+    "/:wid/conversations/:id/files",
+    async ({ params, query, user, set }) => {
+      const membership = await requireMembership(params.wid, user.userId, set);
+      if (!membership) return { error: "Not found" };
+
+      const conversation = await loadConversation(params.id, params.wid, set);
+      if (!conversation) return { error: "Not found" };
+
+      const containerId = runningContainerId(conversation, set);
+      if (!containerId) return { error: "Container not running" };
+
+      try {
+        const relPath = typeof query?.path === "string" ? query.path : "";
+        const entries = await listDirectory(containerId, relPath);
+        return { path: relPath, entries };
+      } catch (err) {
+        return fileRouteError(err, set, "Error listing files");
+      }
+    },
+  )
+
+  /**
+   * Read a text file of the repository inside the conversation's container
+   * GET /:wid/conversations/:id/files/content?path=<relative file>
+   */
+  .get(
+    "/:wid/conversations/:id/files/content",
+    async ({ params, query, user, set }) => {
+      const membership = await requireMembership(params.wid, user.userId, set);
+      if (!membership) return { error: "Not found" };
+
+      const conversation = await loadConversation(params.id, params.wid, set);
+      if (!conversation) return { error: "Not found" };
+
+      const containerId = runningContainerId(conversation, set);
+      if (!containerId) return { error: "Container not running" };
+
+      if (typeof query?.path !== "string" || !query.path) {
+        set.status = 400;
+        return { error: "Path is required" };
+      }
+
+      try {
+        return await readContainerFile(containerId, query.path);
+      } catch (err) {
+        return fileRouteError(err, set, "Error reading file");
+      }
+    },
+  )
+
+  /**
+   * Write a text file of the repository inside the conversation's container
+   * PUT /:wid/conversations/:id/files/content
+   * Body: { path: string, content: string }
+   */
+  .put(
+    "/:wid/conversations/:id/files/content",
+    async ({ params, body, user, set }) => {
+      const membership = await requireMembership(params.wid, user.userId, set);
+      if (!membership) return { error: "Not found" };
+
+      const conversation = await loadConversation(params.id, params.wid, set);
+      if (!conversation) return { error: "Not found" };
+
+      const containerId = runningContainerId(conversation, set);
+      if (!containerId) return { error: "Container not running" };
+
+      if (typeof body?.path !== "string" || !body.path) {
+        set.status = 400;
+        return { error: "Path is required" };
+      }
+      if (typeof body?.content !== "string") {
+        set.status = 400;
+        return { error: "Content must be a string" };
+      }
+
+      try {
+        return await writeContainerFile(containerId, body.path, body.content);
+      } catch (err) {
+        return fileRouteError(err, set, "Error writing file");
       }
     },
   )

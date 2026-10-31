@@ -1,0 +1,57 @@
+.file-editor-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+}
+
+.file-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary, var(--bg-primary));
+}
+
+.file-editor-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary, var(--text-primary));
+}
+
+.file-editor-status {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.file-editor-status.dirty {
+  color: var(--joy-palette-warning-500, #ea9a3e);
+}
+
+.file-editor-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.file-editor-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary, var(--text-primary));
+}

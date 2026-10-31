@@ -1,11 +1,10 @@
 # =============================================================================
-# Node.js Development Environment with Code-Server and OpenCode
+# Node.js Development Environment with OpenCode
 # =============================================================================
 #
 # Built-in template: node
 #
 # This Dockerfile creates a Node.js development environment with:
-# - Code-server (VS Code in browser) on port 8080
 # - OpenCode (AI coding assistant) on port 4096
 # - Terminal (ttyd + Oh My Zsh) on port 7681
 # - Node.js runtime with npm install and configurable dev server
@@ -15,7 +14,7 @@
 # the APP_START_COMMAND environment variable (default: npm run dev).
 #
 # Extends: ghcr.io/rearch-engineer/rearch-agent-base
-# Supervisor programs inherited: vscode, opencode, terminal
+# Supervisor programs inherited: opencode, terminal
 # Supervisor programs added: app
 #
 # =============================================================================
@@ -75,11 +74,10 @@ ENV APP_PORT="3000"
 # =============================================================================
 # 8. Expose Ports
 # =============================================================================
-# 8080: VS Code Web Interface (code-server)
 # 4096: OpenCode Server API
 # 3000: Application dev server (default, configurable via APP_PORT)
 # 7681: Terminal (ttyd + Oh My Zsh)
-EXPOSE 8080 4096 3000 7681
+EXPOSE 4096 3000 7681
 
 # =============================================================================
 # 9. Start via Entrypoint

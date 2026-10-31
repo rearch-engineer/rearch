@@ -1,0 +1,20 @@
+{
+  "save": "Opslaan",
+  "saving": "Opslaan…",
+  "saved": "Opgeslagen",
+  "unsaved": "Niet-opgeslagen wijzigingen",
+  "reload": "Opnieuw laden uit de container",
+  "retry": "Opnieuw proberen",
+  "binary": "Dit bestand is binair en kan hier niet worden bewerkt.",
+  "tooLarge": "Dit bestand is te groot om hier te openen.",
+  "notFound": "Bestand niet gevonden. Het is mogelijk verplaatst of verwijderd.",
+  "notRunning": "De container draait niet.",
+  "loadError": "Het bestand kon niet worden geladen.",
+  "saveError": "Het bestand kon niet worden opgeslagen",
+  "reloadTitle": "Bestand opnieuw laden?",
+  "reloadMessage": "{{file}} heeft niet-opgeslagen wijzigingen. Opnieuw laden verwijdert ze.",
+  "reloadConfirm": "Opnieuw laden",
+  "discardTitle": "Wijzigingen verwerpen?",
+  "discardMessage": "{{file}} heeft niet-opgeslagen wijzigingen. Toch sluiten?",
+  "discardConfirm": "Sluiten zonder opslaan"
+}

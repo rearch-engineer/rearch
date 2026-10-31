@@ -4,9 +4,8 @@
  * For each built-in template (minimal, node, node-browser) this suite:
  *   1. Builds a Docker image using the template's Dockerfile (mirrors rebuild.js)
  *   2. Launches a container via createConversationContainer (same as conversationsWorker.js)
- *   3. Verifies code-server (VS Code) responds on port 8080
- *   4. Verifies OpenCode health endpoint on port 4096
- *   5. Verifies the OpenCode config inside the container contains MCP "rearch-tools"
+ *   3. Verifies OpenCode health endpoint on port 4096
+ *   4. Verifies the OpenCode config inside the container contains MCP "rearch-tools"
  *
  * Requirements:
  *   - Docker daemon must be running
@@ -335,7 +334,6 @@ describe.if(dockerAvailable)("templates integration", () => {
       let imageTag;
       let containerId;
       let opencodePort;
-      let codeServerPort;
 
       // ── Build ──────────────────────────────────────────────────────────
 
@@ -377,38 +375,15 @@ describe.if(dockerAvailable)("templates integration", () => {
           createdContainers.push(containerId);
 
           opencodePort = result.hostPort;
-          codeServerPort = result.codeServerHostPort;
 
           expect(containerId).toBeDefined();
           expect(opencodePort).toBeGreaterThan(0);
-          expect(codeServerPort).toBeGreaterThan(0);
 
           // Verify the container is running
           const info = await docker.getContainer(containerId).inspect();
           expect(info.State.Running).toBe(true);
         },
         60 * 1000, // 1 minute
-      );
-
-      // ── VS Code Server ─────────────────────────────────────────────────
-
-      it(
-        "VS Code server (code-server) responds with HTTP 200 on port 8080",
-        async () => {
-          expect(codeServerPort).toBeDefined();
-
-          const url = `http://localhost:${codeServerPort}`;
-          await waitForService(url, {
-            label: `code-server (${template})`,
-            maxAttempts: 60,
-            delayMs: 2000,
-          });
-
-          // Final verification
-          const response = await fetch(url);
-          expect(response.status).toBe(200);
-        },
-        3 * 60 * 1000, // 3 minutes
       );
 
       // ── OpenCode Server ────────────────────────────────────────────────

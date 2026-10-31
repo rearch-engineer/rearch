@@ -70,7 +70,7 @@ export default function DockerRebuildSettings() {
 
       const [settings, agents] = await Promise.all([
         api.getDockerRebuildSettings(),
-        api.getAgents(),
+        api.getAdminAgents(),
       ]);
 
       setEnabled(settings.enabled || false);

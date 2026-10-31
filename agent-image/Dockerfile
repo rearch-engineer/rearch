@@ -5,7 +5,6 @@
 # Base Docker image for all ReArch dev container templates.
 # Provides the common foundation that every agent environment needs:
 #
-# - Code-server (VS Code in browser)
 # - OpenCode (AI coding assistant)
 # - ttyd (web-based terminal)
 # - Oh My Zsh shell environment
@@ -20,28 +19,38 @@
 #
 # =============================================================================
 
-FROM node:22
+# node:22-bookworm-slim instead of node:22: the full image carries ~1.2 GB of
+# buildpack-deps (compilers, ImageMagick, MySQL/Postgres dev headers, ...) that
+# agents almost never need. Everything the environment relies on is installed
+# explicitly below.
+FROM node:22-bookworm-slim
 
 # =============================================================================
 # 1. Install System Dependencies
 # =============================================================================
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
     build-essential \
     python3 \
     git \
+    openssh-client \
+    gnupg \
     curl \
-    iputils-ping \
+    wget \
     ca-certificates \
+    iputils-ping \
+    procps \
     sudo \
     vim \
     nano \
-    wget \
+    less \
+    file \
     jq \
     htop \
     zip \
     unzip \
     tar \
+    xz-utils \
     rsync \
     zsh \
     && rm -rf /var/lib/apt/lists/*
@@ -61,41 +70,38 @@ RUN ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/ttyd
 
 # =============================================================================
-# 3. Install Code-Server (VS Code in browser)
+# 3. Install OpenCode globally
 # =============================================================================
-RUN curl -fsSL https://code-server.dev/install.sh | sh
+# The npm cache is cleared in the same layer so it does not end up baked into
+# the image (it was ~285 MB).
+RUN npm i -g opencode-ai && npm cache clean --force
 
 # =============================================================================
-# 4. Install OpenCode globally
-# =============================================================================
-RUN npm i -g opencode-ai
-
-# =============================================================================
-# 5. Create the "coder" user and setup directories
+# 4. Create the "coder" user and setup directories
 # =============================================================================
 RUN useradd -m -s /bin/zsh coder && \
     echo "coder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     mkdir -p /repository && \
     chown -R coder:coder /repository && \
-    mkdir -p /home/coder/.config/code-server \
+    mkdir -p /home/coder/.config \
              /home/coder/.local/share \
              /home/coder/.local/state && \
     chown -R coder:coder /home/coder/.config /home/coder/.local
 
 # =============================================================================
-# 6. Install Oh My Zsh for the coder user
+# 5. Install Oh My Zsh for the coder user
 # =============================================================================
 USER coder
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 USER root
 
 # =============================================================================
-# 7. Prepare supervisor log directory
+# 6. Prepare supervisor log directory
 # =============================================================================
 RUN mkdir -p /var/log/supervisor
 
 # =============================================================================
-# 8. Create Supervisor base configuration
+# 7. Create Supervisor base configuration
 # =============================================================================
 # Main supervisord settings.
 #
@@ -121,19 +127,6 @@ user=root\n\
 [include]\n\
 files = /etc/supervisor/conf.d/*.conf\n\
 ' > /etc/supervisor/supervisord.conf
-
-# VS Code (code-server) on port 8080
-RUN echo '[program:vscode]\n\
-command=code-server --bind-addr 0.0.0.0:8080 --auth none /repository\n\
-user=coder\n\
-environment=HOME="/home/coder"\n\
-directory=/repository\n\
-autostart=true\n\
-autorestart=true\n\
-priority=10\n\
-stdout_logfile=/var/log/supervisor/vscode.log\n\
-stderr_logfile=/var/log/supervisor/vscode.err\n\
-' > /etc/supervisor/conf.d/vscode.conf
 
 # OpenCode (AI coding assistant) on port 4096
 RUN echo '[program:opencode]\n\
@@ -162,6 +155,6 @@ stderr_logfile=/var/log/supervisor/terminal.err\n\
 ' > /etc/supervisor/conf.d/terminal.conf
 
 # =============================================================================
-# 9. Default environment variables
+# 8. Default environment variables
 # =============================================================================
 ENV REPOSITORY_BRANCH="main"

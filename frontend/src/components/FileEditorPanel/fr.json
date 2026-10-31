@@ -1,0 +1,20 @@
+{
+  "save": "Enregistrer",
+  "saving": "Enregistrement…",
+  "saved": "Enregistré",
+  "unsaved": "Modifications non enregistrées",
+  "reload": "Recharger depuis le conteneur",
+  "retry": "Réessayer",
+  "binary": "Ce fichier est binaire et ne peut pas être modifié ici.",
+  "tooLarge": "Ce fichier est trop volumineux pour être ouvert ici.",
+  "notFound": "Fichier introuvable. Il a peut-être été déplacé ou supprimé.",
+  "notRunning": "Le conteneur n'est pas en cours d'exécution.",
+  "loadError": "Impossible de charger le fichier.",
+  "saveError": "Impossible d'enregistrer le fichier",
+  "reloadTitle": "Recharger le fichier ?",
+  "reloadMessage": "{{file}} contient des modifications non enregistrées. Le rechargement les supprimera.",
+  "reloadConfirm": "Recharger",
+  "discardTitle": "Abandonner les modifications ?",
+  "discardMessage": "{{file}} contient des modifications non enregistrées. Fermer quand même ?",
+  "discardConfirm": "Fermer sans enregistrer"
+}

@@ -14,5 +14,6 @@
   "cost": "Coût",
   "costValue": "Coût : ${{value}}",
   "noData": "Aucune donnée",
-  "changedFilesCount": "{{count}} fichiers modifiés"
+  "changedFilesCount": "{{count}} fichiers modifiés",
+  "files": "Fichiers"
 }
